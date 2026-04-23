@@ -2,4 +2,6 @@
 export * from './organization'
 export * from './audit'
 export * from './timeline'
+export * from './rbac'
+export * from './webhook-log'
 
