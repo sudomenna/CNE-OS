@@ -45,7 +45,11 @@ Motivo: <por que divergiu>
 Ação: <atualizar doc em <quando> | deliberadamente mantido>
 ```
 
-<!-- Nenhuma entrada ainda -->
+#### 2026-04-23 · @cne-domain-author · [SYNC-PENDING] · MOD-TIMELINE
+Doc afetada: docs/30-contracts/07-module-interfaces.md
+Divergência: `lib/timeline/emit.ts` expõe interface pública `emitTimelineEvent` + `ModuleSource` + `TimelineEventInput` que ainda não está listada na seção MOD-TIMELINE de 07-module-interfaces.md.
+Motivo: T-0-13 criou o módulo de domínio; atualização de 07-module-interfaces.md é tarefa serial (CLAUDE.md §2 regra 6).
+Ação: atualizar docs/30-contracts/07-module-interfaces.md na próxima onda serial antes do Sprint 1.
 
 ---
 
