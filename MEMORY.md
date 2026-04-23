@@ -21,6 +21,12 @@ Padrão de nome de branch: `<sprint>/<t-id>-<slug-curto>`. Ex: `sprint-0/t-0-01-
 Motivo: facilita filtrar PRs por sprint no GitHub Projects.
 -->
 
+#### 2026-04-23 · @cne-schema-author · T-0-05 · [STACK-BLOQUEIO] drizzle-kit version mismatch
+Problema: `pnpm db:generate` e `pnpm db:push` falham com "This version of drizzle-kit requires newer version of drizzle-orm".
+Versões instaladas: `drizzle-orm@0.35.3` + `drizzle-kit@0.27.2`. O drizzle-kit 0.27.x é incompatível com drizzle-orm 0.35.x.
+Workaround adotado em T-0-05: migration SQL escrita manualmente em `lib/db/migrations/0001_organization_brand_legal_entity.sql`, copiada para `supabase/migrations/20260423000001_organization_brand_legal_entity.sql` e aplicada via `supabase db push --linked`.
+Acao necessaria (bloqueante para T-0-06+): upgrade coordenado de `drizzle-orm` e `drizzle-kit` para versoes compativeis. Requer decisao humana (mudanca de minor em dep critica).
+
 #### 2026-04-23 · @humano · bootstrap da fundação
 Inicializado o projeto com `.gitignore`, `MEMORY.md`, 7 subagents customizados, matriz de testes por sprint, ADRs 10-16 propostos (pendente aprovação), e refinos de doc para paralelismo. Repo ainda pré-código; Sprint 0 será plano separado.
 
