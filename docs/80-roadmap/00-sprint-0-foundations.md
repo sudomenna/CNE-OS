@@ -32,12 +32,12 @@ Preparar o repositório para que todos os demais sprints rodem em paralelo com s
 | T-0-04 | Sentry + Axiom + Vercel Analytics | A | ✅ done | `1a24c99` |
 | T-0-05 | Schema brand, legal_entity, brand_legal_entity | B | ✅ done | `f14563b` |
 | T-0-06 | Schema user_account, role, user_role + seed | C | ✅ done | (Onda C) |
-| T-0-07 | Schema permission + role_permission + matriz | D | ⏳ pending | — |
+| T-0-07 | Schema permission + role_permission + matriz | D | ✅ done | (Onda D) |
 | T-0-08 | Supabase RLS policies Fase 1 | E | ⏳ pending | — |
 | T-0-09 | Helpers requireSession, requirePermission | E | ⏳ pending | — |
 | T-0-10 | Schema audit_log + trigger append-only | C | ✅ done | (Onda C) |
 | T-0-11 | Schema timeline_event + trigger append-only | C | ✅ done | (Onda C) |
-| T-0-12 | Schema webhook_log + UNIQUE idempotency | D | ⏳ pending | — |
+| T-0-12 | Schema webhook_log + UNIQUE idempotency | D | ✅ done | (Onda D) |
 | T-0-13 | Helper emitTimelineEvent (zod por kind) | E | ⏳ pending | — |
 | T-0-14 | Shell do app: sidebar + topbar + command palette | F | ⏳ pending | — |
 | T-0-15 | UI Auth: login, magic link, recuperação | F | ⏳ pending | — |
@@ -45,7 +45,7 @@ Preparar o repositório para que todos os demais sprints rodem em paralelo com s
 | T-0-17 | CI GitHub Actions | A | ✅ done | `1a24c99` |
 | T-0-18 | Test fixtures + factories base | F | ⏳ pending | — |
 
-**Próxima onda:** D — disparar T-0-07, T-0-12 em paralelo.
+**Próxima onda:** E — disparar T-0-08, T-0-09, T-0-13 em paralelo.
 
 **Pendências antes de avançar:**
 - [ ] Configurar chaves Inngest, Sentry, Axiom no `.env.local` (e secrets Vercel/GitHub) antes de validar observabilidade em staging
