@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CNE-OS — Proposta Comercial & Plano de Desenvolvimento</title>
+<style>
+  :root {
+    --bg: #0b0d12;
+    --surface: #11141c;
+    --surface-2: #171b26;
+    --border: #242938;
+    --text: #e6e8ef;
+    --muted: #9aa0b4;
+    --accent: #4f8cff;
+    --accent-2: #7c5cff;
+    --success: #2fd67a;
+    --warn: #f0b429;
+    --danger: #ff5c7a;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    scroll-behavior: smooth;
+  }
+  header.hero {
+    background:
+      radial-gradient(1200px 500px at 80% -10%, rgba(124,92,255,0.25), transparent 60%),
+      radial-gradient(900px 400px at 0% 0%, rgba(79,140,255,0.25), transparent 60%),
+      linear-gradient(180deg, #0e1119 0%, #0b0d12 100%);
+    padding: 80px 40px 60px;
+    border-bottom: 1px solid var(--border);
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; }
+  .eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-size: 12px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+  h1 {
+    font-size: 52px;
+    line-height: 1.1;
+    margin: 16px 0 12px;
+    letter-spacing: -1px;
+  }
+  h1 span.grad {
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .sub {
+    font-size: 20px;
+    color: var(--muted);
+    max-width: 780px;
+  }
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    margin-top: 36px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .meta strong { color: var(--text); display: block; font-size: 13px; }
+
+  nav.toc {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: rgba(11,13,18,0.92);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 40px;
+  }
+  nav.toc ul {
+    list-style: none;
+    margin: 0; padding: 0;
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    max-width: 1100px;
+    margin: 0 auto;
+    font-size: 13px;
+  }
+  nav.toc a {
+    color: var(--muted);
+    text-decoration: none;
+    transition: color .2s;
+  }
+  nav.toc a:hover { color: var(--text); }
+
+  section { padding: 72px 40px; border-bottom: 1px solid var(--border); }
+  section.alt { background: var(--surface); }
+
+  h2 {
+    font-size: 34px;
+    margin: 0 0 8px;
+    letter-spacing: -0.5px;
+  }
+  h2 + .lead {
+    color: var(--muted);
+    font-size: 17px;
+    max-width: 780px;
+    margin-bottom: 40px;
+  }
+  h3 {
+    font-size: 20px;
+    margin: 32px 0 12px;
+  }
+  h4 {
+    font-size: 15px;
+    margin: 16px 0 6px;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  p { margin: 0 0 14px; }
+  ul, ol { padding-left: 20px; }
+  li { margin-bottom: 6px; }
+
+  .grid {
+    display: grid;
+    gap: 20px;
+  }
+  .grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+  .grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+  @media (max-width: 900px) {
+    .grid.cols-2, .grid.cols-3, .grid.cols-4 { grid-template-columns: 1fr; }
+    h1 { font-size: 38px; }
+    section { padding: 56px 24px; }
+    header.hero { padding: 56px 24px 40px; }
+    nav.toc { padding: 12px 24px; }
+  }
+
+  .card {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px;
+    transition: border-color .2s, transform .2s;
+  }
+  .card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .card h3 { margin-top: 0; }
+  .card .tag {
+    display: inline-block;
+    background: rgba(79,140,255,0.12);
+    color: var(--accent);
+    border: 1px solid rgba(79,140,255,0.3);
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .card .tag.v2 { background: rgba(124,92,255,0.12); color: var(--accent-2); border-color: rgba(124,92,255,0.3); }
+  .card .tag.core { background: rgba(47,214,122,0.12); color: var(--success); border-color: rgba(47,214,122,0.3); }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+  th, td {
+    text-align: left;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  th {
+    background: var(--surface-2);
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+  }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .timeline {
+    position: relative;
+    padding-left: 32px;
+    margin-top: 20px;
+  }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 8px; top: 8px; bottom: 8px;
+    width: 2px;
+    background: linear-gradient(180deg, var(--accent), var(--accent-2));
+  }
+  .sprint {
+    position: relative;
+    margin-bottom: 32px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 22px;
+  }
+  .sprint::before {
+    content: '';
+    position: absolute;
+    left: -30px;
+    top: 26px;
+    width: 14px;
+    height: 14px;
+    background: var(--accent);
+    border-radius: 50%;
+    border: 3px solid var(--bg);
+    box-shadow: 0 0 0 2px var(--accent);
+  }
+  .sprint .head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+  .sprint h3 { margin: 0; }
+  .sprint .duration {
+    color: var(--muted);
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  .sprint .badge {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: rgba(79,140,255,0.12);
+    color: var(--accent);
+    font-weight: 600;
+    margin-right: 6px;
+  }
+
+  .kpi {
+    text-align: center;
+    padding: 24px;
+  }
+  .kpi .num {
+    font-size: 42px;
+    font-weight: 700;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    line-height: 1;
+  }
+  .kpi .label {
+    color: var(--muted);
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 8px;
+  }
+
+  .stack {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .stack .chip {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--text);
+  }
+  .stack .chip b { color: var(--accent); }
+
+  pre.ascii {
+    background: #05070c;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    overflow-x: auto;
+    color: #c6d0e0;
+    font-size: 12.5px;
+    line-height: 1.5;
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+  }
+
+  .callout {
+    border-left: 3px solid var(--accent);
+    padding: 16px 20px;
+    background: rgba(79,140,255,0.06);
+    border-radius: 0 10px 10px 0;
+    margin: 20px 0;
+    color: var(--muted);
+  }
+  .callout strong { color: var(--text); }
+
+  footer {
+    padding: 60px 40px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  footer .brand {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
+  }
+
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+  }
+  @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+
+  .check::before {
+    content: "✓ ";
+    color: var(--success);
+    font-weight: 700;
+  }
+  .cross::before {
+    content: "✗ ";
+    color: var(--danger);
+    font-weight: 700;
+  }
+
+  .pill-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+  .pill {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 999px;
+  }
+  .pill.on { color: var(--success); border-color: rgba(47,214,122,0.4); }
+  .pill.soon { color: var(--warn); border-color: rgba(240,180,41,0.4); }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Proposta Comercial · Versão 2 · Fase 1</div>
+    <h1>CNE-OS<br/><span class="grad">O Sistema Operacional da CNE Educação</span></h1>
+    <p class="sub">
+      Plataforma multi-marca que centraliza CRM, inbox omnichannel, marketing, funis comerciais,
+      motor de ofertas dinâmicas, snapshot imutável de vendas, assinaturas e integrações —
+      substituindo gradualmente a pilha de ferramentas externas hoje fragmentada.
+    </p>
+    <div class="meta">
+      <div><strong>Cliente</strong>CNE Educação</div>
+      <div><strong>Mercado</strong>Ensino Jurídico</div>
+      <div><strong>Escopo</strong>Fase 1 — Núcleo operacional</div>
+      <div><strong>Duração estimada</strong>~27 semanas (≈ 6 meses)</div>
+      <div><strong>Sprints</strong>11 sprints em 9 entregas</div>
+    </div>
+  </div>
+</header>
+
+<nav class="toc">
+  <ul>
+    <li><a href="#contexto">Contexto</a></li>
+    <li><a href="#visao">Visão</a></li>
+    <li><a href="#modulos">Módulos</a></li>
+    <li><a href="#arquitetura">Arquitetura</a></li>
+    <li><a href="#stack">Stack</a></li>
+    <li><a href="#rbac">RBAC</a></li>
+    <li><a href="#integracoes">Integrações</a></li>
+    <li><a href="#roadmap">Roadmap</a></li>
+    <li><a href="#entrega">Entrega</a></li>
+    <li><a href="#resultado">Resultado</a></li>
+  </ul>
+</nav>
+
+<!-- CONTEXTO -->
+<section id="contexto">
+  <div class="wrap">
+    <h2>1. Contexto e problema</h2>
+    <p class="lead">
+      Hoje a CNE Educação opera com dados distribuídos em diversas ferramentas externas.
+      O resultado é divergência de informação, retrabalho, baixa visibilidade gerencial e custo
+      crescente de assinaturas SaaS redundantes.
+    </p>
+
+    <div class="grid cols-3">
+      <div class="card">
+        <h4>Dados fragmentados</h4>
+        <p>Contato existe em múltiplas ferramentas simultaneamente, cada uma com uma versão diferente da verdade.</p>
+      </div>
+      <div class="card">
+        <h4>Operação em silos</h4>
+        <p>Marketing, comercial, suporte e financeiro operam em sistemas desconectados, sem jornada unificada.</p>
+      </div>
+      <div class="card">
+        <h4>Perda de histórico</h4>
+        <p>Condições de venda, direitos adquiridos e acordos comerciais não ficam preservados de forma imutável.</p>
+      </div>
+      <div class="card">
+        <h4>Conciliação manual</h4>
+        <p>Vendas e recebimentos precisam ser reconciliados em planilhas, com alto risco de erro humano.</p>
+      </div>
+      <div class="card">
+        <h4>Custo de SaaS</h4>
+        <p>Assinaturas sobrepostas de CRM, inbox, gestão de UTM e cobrança aumentando mês a mês.</p>
+      </div>
+      <div class="card">
+        <h4>Baixa visibilidade</h4>
+        <p>Relatórios gerenciais dependem de exportações manuais e não cruzam dados internos com integrações externas.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- VISÃO -->
+<section id="visao" class="alt">
+  <div class="wrap">
+    <h2>2. Visão do produto</h2>
+    <p class="lead">
+      Construir um sistema operacional multi-marca que centraliza toda a operação da CNE
+      Educação — marketing, comercial, suporte, financeiro e administração — para ser a
+      fonte única da verdade de contatos, jornada, vendas e atendimento.
+    </p>
+
+    <div class="two-col">
+      <div>
+        <h3>Norte estratégico</h3>
+        <ul>
+          <li class="check">Centralizar operação hoje fragmentada</li>
+          <li class="check">Reduzir dependência de ferramentas externas</li>
+          <li class="check">Eliminar divergência de dados entre sistemas</li>
+          <li class="check">Integrar marketing, comercial, suporte e financeiro</li>
+          <li class="check">Permitir crescimento modular controlado</li>
+          <li class="check">Preservar histórico e direitos adquiridos do cliente</li>
+          <li class="check">Consolidar relatórios gerenciais unificados</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Resultado esperado</h3>
+        <p>Com o sistema em produção, a CNE será capaz de:</p>
+        <ul>
+          <li>Localizar um contato e ver toda sua jornada em um só lugar</li>
+          <li>Saber por qual marca, funil, campanha e criativo o lead entrou</li>
+          <li>Ver quais conversas aconteceram e quem é o responsável atual</li>
+          <li>Entender o estágio comercial atual de cada oportunidade</li>
+          <li>Saber exatamente o que foi vendido e em quais condições</li>
+          <li>Conciliar vendas e recebimentos externos automaticamente</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="callout">
+      <strong>Estratégia de migração:</strong> dual-run. O CNE-OS roda em paralelo às ferramentas
+      atuais até estabilizar cada módulo. A substituição acontece de forma controlada, sprint a sprint,
+      sem ruptura da operação.
+    </div>
+  </div>
+</section>
+
+<!-- MÓDULOS -->
+<section id="modulos">
+  <div class="wrap">
+    <h2>3. Módulos funcionais — escopo Fase 1</h2>
+    <p class="lead">
+      15 agregados de domínio organizados em módulos independentes com fronteiras
+      explícitas e contratos versionados. Cada módulo tem seu dono, schema próprio e
+      regras de negócio formalizadas.
+    </p>
+
+    <div class="grid cols-2">
+      <div class="card">
+        <span class="tag core">Núcleo</span>
+        <h3>Organização multi-marca</h3>
+        <p>Suporte nativo a múltiplas marcas e CNPJs dentro de uma única instância. Configuração
+        independente de integrações, catálogo, funis e dashboards por marca.</p>
+      </div>
+
+      <div class="card">
+        <span class="tag core">CRM</span>
+        <h3>Contato e identidade</h3>
+        <p>Cadastro global unificado de contatos com regras determinísticas de identificação,
+        detecção de conflitos e fluxo formal de merge (com possibilidade de reversão).
+        Campos personalizados, tags e notas livres.</p>
+      </div>
+
+      <div class="card">
+        <span class="tag core">CRM</span>
+        <h3>Timeline unificada</h3>
+        <p>Histórico cronológico append-only de todos os eventos do contato: mensagens,
+        tickets, mudanças de estágio, compras, reembolsos, automações. Fonte única para
+        compreender a jornada completa.</p>
+      </div>
+
+      <div class="card">
+        <span class="tag">Atendimento</span>
+        <h3>Inbox omnichannel</h3>
+        <p>Caixa unificada de WhatsApp (API Oficial), Instagram e e-mail. Atribuição de
+        conversas, estados, SLA, respostas rápidas e visibilidade completa do histórico
+        do contato ao lado.</p>
+      </div>
+
+      <div class="card">
+        <span class="tag">Atendimento</span>
+        <h3>Tickets</h3>
+        <p>Sistema formal de tickets originados do inbox ou criados manualmente. Categorias,
+        prioridades, responsáveis, SLA e trilha de auditoria.</p>
+      </div>
+
+      <div class="card">
+        <span class="tag">Marketing</span>
+        <h3>Campanhas e criativos</h3>
+        <p>Cadastro de campanhas, criativos, links rastreáveis e captura automática de UTMs.
+        Vinculação do contato à origem (marca, funil, campanha, criativo) no primeiro toque.</p>
+      </div>
+
+      <div class="card">
+        <span class="tag">Comercial</span>
+        <h3>Funis e oportunidades</h3>
+        <p>Funis configuráveis com estágios, histórico de passagem por estágio, score, metas
+        e oportunidades. Múltiplos funis coexistem por marca.</p>
+      </div>
+
+      <div class="card">
+        <span class="tag">Comercial</span>
+        <h3>Catálogo comercial</h3>
+        <p>Produtos e benefícios cadastrados de forma estruturada, servindo de base para
+        o motor de ofertas e para o controle de direitos adquiridos.</p>
+      </div>
+
+      <div class="card">
+        <span class="tag">Comercial</span>
+        <h3>Motor de ofertas dinâmicas</h3>
+        <p>Composição de ofertas a partir de condições, regras de elegibilidade, cupons e
+        opções de pagamento. Motor de decisão calcula a melhor oferta para o contato
+        elegível — substitui as planilhas de oferta atuais.</p>
+      </div>
+
+      <div class="card">
+        <span class="tag">Financeiro</span>
+        <h3>Snapshot imutável da venda</h3>
+        <p>No momento da venda, todas as condições comerciais são congeladas em um snapshot
+        que nunca é alterado. Preserva para sempre o que foi vendido e em quais condições,
+        mesmo que o produto, preço ou condição mude depois.</p>
+      </div>
+
+      <div class="card">
+        <span class="tag">Financeiro</span>
+        <h3>Direitos adquiridos (entitlement)</h3>
+        <p>Derivação explícita dos direitos do cliente a partir do snapshot: o que ele tem acesso,
+        por quanto tempo, com quais benefícios. Base para área de membros (Fase 2) e para
+        decisões operacionais atuais.</p>
+      </div>
+
+      <div class="card">
+        <span class="tag">Financeiro</span>
+        <h3>Assinaturas, parcelamento e inadimplência</h3>
+        <p>Ciclo completo de cobrança recorrente: gestão de assinaturas ativas, parcelamento
+        de vendas pontuais, fluxo de dunning automatizado (retry) e tratamento formal
+        de inadimplência.</p>
+      </div>
+
+      <div class="card">
+        <span class="tag">Financeiro</span>
+        <h3>Reembolso formalizado</h3>
+        <p>Fluxo de reembolso com abertura, aprovação, integração com gateway e revogação
+        automática de direitos adquiridos. Tudo auditado e irreversível após aprovação.</p>
+      </div>
+
+      <div class="card">
+        <span class="tag">Automação</span>
+        <h3>Automações visuais</h3>
+        <p>Editor visual de automações baseadas em gatilhos do sistema (evento de timeline,
+        mudança de estágio, compra, inadimplência). Executor confiável com retries,
+        idempotência e observabilidade.</p>
+      </div>
+
+      <div class="card">
+        <span class="tag">Gestão</span>
+        <h3>Dashboards gerenciais</h3>
+        <p>Painéis analíticos com métricas de marketing, funil, vendas, financeiro e atendimento.
+        Dados internos cruzados com integrações externas. Materialized views para performance.</p>
+      </div>
+    </div>
+
+    <h3 style="margin-top:48px">Fora do escopo Fase 1</h3>
+    <p>Arquitetura preparada para, mas não entregue nesta fase:</p>
+    <div class="pill-row">
+      <span class="pill soon">Área de membros / LMS</span>
+      <span class="pill soon">Cadastro acadêmico profundo</span>
+      <span class="pill soon">Eventos presenciais</span>
+      <span class="pill soon">Certificados</span>
+      <span class="pill soon">Comissão comercial</span>
+      <span class="pill soon">B2B multiusuário</span>
+      <span class="pill soon">LGPD avançada (portal do titular)</span>
+      <span class="pill soon">API pública</span>
+    </div>
+    <p style="margin-top:16px"><strong>Definitivamente fora de escopo:</strong> LMS de terceiros embutido, videoconferência nativa, emissor fiscal próprio (Notazz cobre), gateway de pagamento próprio (Digital Guru cobre), marketplace.</p>
+  </div>
+</section>
+
+<!-- ARQUITETURA -->
+<section id="arquitetura" class="alt">
+  <div class="wrap">
+    <h2>4. Arquitetura técnica</h2>
+    <p class="lead">
+      Arquitetura monolítica modular sobre Next.js App Router + Postgres, com processamento
+      assíncrono via Inngest e realtime via Supabase. Fronteiras de módulo explícitas,
+      contratos versionados e auditoria append-only em todas as ações críticas.
+    </p>
+
+    <h3>Diagrama de blocos</h3>
+<pre class="ascii">
+                +----------------------------+
+                |  Cliente (Browser / PWA)   |
+                |  React Server Components   |
+                |  Tailwind + shadcn/ui      |
+                +-------------+--------------+
+                              |
+                              | HTTPS (Server Actions)
+                              v
++--------------------------------------------------------------+
+|                    Next.js App Router (Vercel)               |
+|                                                              |
+|  /app/(app)/...           /app/api/webhooks/<provider>/...   |
+|  Server Actions           Route Handlers (entrada externa)   |
+|  requireSession +         verifySignature +                  |
+|  requirePermission        ingestWebhook -> webhook_log       |
+|  -> domain/<mod>          -> inngest.send()                  |
+|       |        |                                             |
+|       v        v                                             |
+|  emitTimelineEvent  logAudit   (mesma transação SQL)         |
++-------+--------------+-------------------------+-------------+
+        |              |                         |
+        | Drizzle      | Drizzle                 | Inngest client
+        v              v                         v
++---------------------------+            +--------------------+
+|  Postgres (Supabase)      |&lt;---CDC----&gt;|  Supabase Realtime |
+|  - tabelas de domínio     |            |  (pg_notify)       |
+|  - audit_log (append)     |            +---------+----------+
+|  - timeline_event (append)|                      |
+|  - transaction_snapshot   |                      | WebSocket
+|  - webhook_log            |                      v
+|  - *_history (append)     |            +--------------------+
++------------+--------------+            |  Cliente (inbox,   |
+             ^                           |  timeline realtime)|
+             |                           +--------------------+
+             | Drizzle (tx)
+             |
++------------+---------------+
+|      Inngest Workers       |
+|  - processWebhook          |
+|  - subscription-advance    |
+|  - dunning-retry           |
+|  - automation executor     |
+|  - dlq-alerter             |
++------+---------+-----------+
+       |         |
+       |         | Adapters (lib/integrations/&lt;p&gt;)
+       v         v
++-------------+  +-------------------+  +--------------------+
+| Supabase    |  | Digital Guru      |  | Brevo / WhatsApp / |
+| Storage     |  | (checkout)        |  | Notazz / Analytics |
+| (anexos)    |  +-------------------+  +--------------------+
++-------------+
+</pre>
+
+    <div class="grid cols-3" style="margin-top:32px">
+      <div class="card">
+        <h4>Fronteiras de módulo</h4>
+        <p>Cada módulo é dono exclusivo do seu schema. Comunicação entre módulos acontece
+        apenas via interfaces públicas versionadas — sem acoplamento acidental.</p>
+      </div>
+      <div class="card">
+        <h4>Auditoria total</h4>
+        <p>Toda ação crítica emite log imutável append-only. Timeline do contato e audit trail
+        compartilham a mesma transação da operação de domínio — consistência garantida.</p>
+      </div>
+      <div class="card">
+        <h4>Webhooks assíncronos</h4>
+        <p>Integrações externas gravam payload bruto em <code>webhook_log</code>, respondem 200
+        imediatamente e delegam processamento ao Inngest com retries, idempotência e DLQ.</p>
+      </div>
+      <div class="card">
+        <h4>RLS + RBAC</h4>
+        <p>Dois níveis de proteção: Row Level Security no Postgres (defesa em profundidade)
+        e matriz RBAC na camada de aplicação, com 2FA obrigatório para ações sensíveis.</p>
+      </div>
+      <div class="card">
+        <h4>Snapshot imutável</h4>
+        <p>Regra estrutural: <code>transaction_snapshot</code> nunca recebe UPDATE. A venda vira
+        um fato imutável, blindando a empresa contra disputas e garantindo direitos adquiridos.</p>
+      </div>
+      <div class="card">
+        <h4>Observabilidade</h4>
+        <p>Sentry (erros), Axiom (logs estruturados JSON), Vercel Analytics (Web Vitals) e
+        dashboards Inngest. Correlation ID propagado em toda requisição.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STACK -->
+<section id="stack">
+  <div class="wrap">
+    <h2>5. Stack tecnológica</h2>
+    <p class="lead">
+      Stack moderna, pinada e justificada. Escolhas otimizam para velocidade de desenvolvimento,
+      qualidade de entrega e custo operacional controlado.
+    </p>
+
+    <h3>Camada aplicação</h3>
+    <div class="stack">
+      <span class="chip"><b>Next.js 15</b> (App Router, RSC, Server Actions)</span>
+      <span class="chip"><b>React 19</b></span>
+      <span class="chip"><b>TypeScript 5.6+</b> estrito</span>
+      <span class="chip"><b>Node.js 20 LTS</b></span>
+      <span class="chip"><b>pnpm 9</b></span>
+      <span class="chip"><b>Tailwind 3.4+</b></span>
+      <span class="chip"><b>shadcn/ui + Radix</b></span>
+      <span class="chip"><b>Zod</b></span>
+    </div>
+
+    <h3>Dados e backend</h3>
+    <div class="stack">
+      <span class="chip"><b>Postgres 15+</b> (Supabase)</span>
+      <span class="chip"><b>Drizzle ORM</b></span>
+      <span class="chip"><b>Supabase Auth</b></span>
+      <span class="chip"><b>Supabase Realtime</b></span>
+      <span class="chip"><b>Supabase Storage</b></span>
+      <span class="chip"><b>Row Level Security</b></span>
+    </div>
+
+    <h3>Processamento assíncrono e integrações</h3>
+    <div class="stack">
+      <span class="chip"><b>Inngest</b> (jobs, webhooks, crons)</span>
+      <span class="chip"><b>Retries</b> + idempotência</span>
+      <span class="chip"><b>Dead Letter Queue</b></span>
+    </div>
+
+    <h3>Qualidade e observabilidade</h3>
+    <div class="stack">
+      <span class="chip"><b>Vitest</b> (unit + integration)</span>
+      <span class="chip"><b>Playwright</b> (E2E)</span>
+      <span class="chip"><b>ESLint + Prettier</b></span>
+      <span class="chip"><b>Husky + lint-staged</b></span>
+      <span class="chip"><b>Sentry</b></span>
+      <span class="chip"><b>Axiom</b></span>
+      <span class="chip"><b>Vercel Analytics</b></span>
+    </div>
+
+    <h3>Hospedagem</h3>
+    <div class="stack">
+      <span class="chip"><b>Vercel</b> (front + Server Actions, Edge Network)</span>
+      <span class="chip"><b>Supabase</b> (DB gerenciado, backups, PITR)</span>
+    </div>
+
+    <div class="callout" style="margin-top:28px">
+      <strong>Princípio:</strong> qualquer troca de tecnologia crítica exige um ADR
+      (Architecture Decision Record) aprovado. Sem exceções silenciosas — o histórico
+      técnico fica explícito e rastreável.
+    </div>
+  </div>
+</section>
+
+<!-- RBAC -->
+<section id="rbac" class="alt">
+  <div class="wrap">
+    <h2>6. Perfis de usuário e segurança</h2>
+    <p class="lead">
+      5 papéis de acesso com permissões granulares por ação. Ações críticas passam por
+      RBAC rígido e geram trilha de auditoria imutável. Admin e financeiro operam com
+      2FA obrigatório.
+    </p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Papel</th>
+          <th>Descrição</th>
+          <th>Tarefas típicas</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Admin</strong></td>
+          <td>Administração geral, todos os poderes</td>
+          <td>Configurar marcas, criar usuários, aprovar reembolsos, impersonar</td>
+        </tr>
+        <tr>
+          <td><strong>Financeiro</strong></td>
+          <td>Conciliação, cobrança, reembolso</td>
+          <td>Abrir reembolso, ver faturamento, tratar inadimplência</td>
+        </tr>
+        <tr>
+          <td><strong>Marketing</strong></td>
+          <td>Campanhas, criativos, conteúdo, funis de topo</td>
+          <td>Criar campanha, cadastrar criativo, gerar link rastreável</td>
+        </tr>
+        <tr>
+          <td><strong>Comercial</strong></td>
+          <td>Vendas, funil, ofertas, negociação</td>
+          <td>Mover oportunidade, criar oferta, cadastrar condição, fechar venda</td>
+        </tr>
+        <tr>
+          <td><strong>Suporte</strong></td>
+          <td>Atendimento omnichannel, tickets</td>
+          <td>Responder inbox, abrir ticket, encaminhar</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Camadas de segurança</h3>
+    <div class="grid cols-3">
+      <div class="card">
+        <h4>Autenticação</h4>
+        <p>Supabase Auth com email+senha, magic link e TOTP (2FA). 2FA <strong>obrigatório</strong>
+        para admin e financeiro desde o dia 1.</p>
+      </div>
+      <div class="card">
+        <h4>Autorização</h4>
+        <p>Matriz RBAC explícita em código, consultada em <strong>toda</strong> Server Action.
+        Decisão centralizada em <code>requirePermission</code>.</p>
+      </div>
+      <div class="card">
+        <h4>Defesa em profundidade</h4>
+        <p>Row Level Security no Postgres garante que mesmo um bypass da camada de
+        aplicação não vaza dados fora do escopo permitido.</p>
+      </div>
+      <div class="card">
+        <h4>Auditoria imutável</h4>
+        <p>Toda ação crítica grava <code>audit_log</code> append-only na mesma transação
+        da operação. Nunca editável, nunca deletável.</p>
+      </div>
+      <div class="card">
+        <h4>Trilha de timeline</h4>
+        <p>Eventos de negócio relevantes ao contato vão para <code>timeline_event</code>
+        append-only, visível na UI como jornada consolidada.</p>
+      </div>
+      <div class="card">
+        <h4>Webhooks assinados</h4>
+        <p>Toda integração externa verifica assinatura criptográfica antes de aceitar
+        payload. Replay e payloads forjados são bloqueados.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- INTEGRAÇÕES -->
+<section id="integracoes">
+  <div class="wrap">
+    <h2>7. Integrações externas</h2>
+    <p class="lead">
+      Integrações prioritárias da Fase 1, todas via webhook assinado + adapter canônico.
+      Cada integração tem mapper puro (payload externo → modelo interno) e processor
+      assíncrono com retries e idempotência.
+    </p>
+
+    <div class="grid cols-3">
+      <div class="card">
+        <h4>Digital Guru</h4>
+        <p>Gateway de pagamento e checkout. Recebe webhooks de vendas, aprovação,
+        estornos e recorrência.</p>
+      </div>
+      <div class="card">
+        <h4>Brevo</h4>
+        <p>Disparo de e-mail transacional e marketing. Tracking de aberturas, cliques
+        e unsubscribes de volta à timeline.</p>
+      </div>
+      <div class="card">
+        <h4>WhatsApp API Oficial</h4>
+        <p>Mensageria bidirecional dentro do inbox, com templates aprovados e janela
+        de 24h tratada.</p>
+      </div>
+      <div class="card">
+        <h4>Notazz</h4>
+        <p>Emissão fiscal automatizada a partir do snapshot da venda.</p>
+      </div>
+      <div class="card">
+        <h4>Analytics (GA4 / Meta)</h4>
+        <p>Envio de eventos de conversão e jornada para plataformas de ads —
+        server-side, não vulnerável a bloqueadores.</p>
+      </div>
+      <div class="card">
+        <h4>Instagram</h4>
+        <p>Entrada de mensagens diretas unificada no inbox omnichannel.</p>
+      </div>
+    </div>
+
+    <h3 style="margin-top:32px">Padrão de integração</h3>
+    <ol>
+      <li>Route Handler recebe webhook em <code>/api/webhooks/&lt;provider&gt;</code></li>
+      <li><code>verifySignature</code> valida assinatura criptográfica</li>
+      <li>Payload bruto é gravado em <code>webhook_log</code> (rastreabilidade total)</li>
+      <li>Evento é enfileirado no Inngest</li>
+      <li>Handler devolve 200 em milissegundos — provedor não espera processamento</li>
+      <li>Worker Inngest processa com retries, idempotência e DLQ em caso de falha recorrente</li>
+    </ol>
+  </div>
+</section>
+
+<!-- ROADMAP -->
+<section id="roadmap" class="alt">
+  <div class="wrap">
+    <h2>8. Plano de desenvolvimento</h2>
+    <p class="lead">
+      Entrega por sprints curtos, cada sprint com critério de aceite objetivo. Substituição
+      progressiva das ferramentas externas. Dual-run até estabilização de cada módulo.
+    </p>
+
+    <div class="grid cols-4" style="margin-bottom:32px">
+      <div class="kpi"><div class="num">11</div><div class="label">Sprints</div></div>
+      <div class="kpi"><div class="num">~27</div><div class="label">Semanas</div></div>
+      <div class="kpi"><div class="num">9</div><div class="label">Entregas</div></div>
+      <div class="kpi"><div class="num">15</div><div class="label">Módulos</div></div>
+    </div>
+
+    <div class="timeline">
+
+      <div class="sprint">
+        <div class="head">
+          <h3><span class="badge">Sprint 0</span> Fundação</h3>
+          <div class="duration">2 semanas</div>
+        </div>
+        <p>Setup de repositório, CI/CD, observabilidade, autenticação, RBAC, auditoria
+        e núcleo organizacional (marcas, usuários internos). Esqueleto sobre o qual todos
+        os módulos seguintes se apoiam.</p>
+        <p><strong>Entrega:</strong> sistema com login, 2FA, primeiros usuários e ambiente dev/staging rodando.</p>
+      </div>
+
+      <div class="sprint">
+        <div class="head">
+          <h3><span class="badge">Sprint 1–2</span> CRM Core</h3>
+          <div class="duration">4 semanas</div>
+        </div>
+        <p>Cadastro global de contatos, regras de identidade, detecção e merge de duplicados,
+        tags, campos personalizados, notas, timeline unificada.</p>
+        <p><strong>Entrega:</strong> CRM funcional substituindo o fragmentado atual. Primeira migração de base.</p>
+      </div>
+
+      <div class="sprint">
+        <div class="head">
+          <h3><span class="badge">Sprint 3–4</span> Inbox + Tickets</h3>
+          <div class="duration">4 semanas</div>
+        </div>
+        <p>Inbox omnichannel (WhatsApp, Instagram, e-mail), atribuição, SLA, tickets
+        formais e integração com a timeline do contato.</p>
+        <p><strong>Entrega:</strong> operação de atendimento migrada do inbox externo atual.</p>
+      </div>
+
+      <div class="sprint">
+        <div class="head">
+          <h3><span class="badge">Sprint 5</span> Marketing + Funis</h3>
+          <div class="duration">3 semanas</div>
+        </div>
+        <p>Campanhas, criativos, links rastreáveis, UTMs, funis configuráveis com estágios,
+        histórico, score e oportunidades.</p>
+        <p><strong>Entrega:</strong> substituição da ferramenta de UTM e do gerenciamento de funil atual.</p>
+      </div>
+
+      <div class="sprint">
+        <div class="head">
+          <h3><span class="badge">Sprint 6–7</span> Motor de Ofertas</h3>
+          <div class="duration">4 semanas</div>
+        </div>
+        <p>Catálogo comercial, condições, regras de elegibilidade, cupons, opções de pagamento
+        e motor de decisão de melhor oferta.</p>
+        <p><strong>Entrega:</strong> substituição das planilhas de oferta. Vendedor opera 100% pelo sistema.</p>
+      </div>
+
+      <div class="sprint">
+        <div class="head">
+          <h3><span class="badge">Sprint 8</span> Snapshot + Digital Guru</h3>
+          <div class="duration">3 semanas</div>
+        </div>
+        <p>Integração com Digital Guru, snapshot imutável da venda, direitos adquiridos
+        (entitlement), reembolso formalizado.</p>
+        <p><strong>Entrega:</strong> conciliação automática de vendas. Fim do reconciliar manual.</p>
+      </div>
+
+      <div class="sprint">
+        <div class="head">
+          <h3><span class="badge">Sprint 9</span> Assinaturas & Inadimplência</h3>
+          <div class="duration">3 semanas</div>
+        </div>
+        <p>Gestão de assinaturas recorrentes, parcelamento de vendas, fluxo automatizado de
+        dunning e tratamento de inadimplência.</p>
+        <p><strong>Entrega:</strong> substituição da planilha de inadimplência. Automação de cobrança.</p>
+      </div>
+
+      <div class="sprint">
+        <div class="head">
+          <h3><span class="badge">Sprint 10</span> Analytics</h3>
+          <div class="duration">2 semanas</div>
+        </div>
+        <p>Dashboards gerenciais, materialized views de performance, relatórios cruzando
+        dados internos com integrações externas.</p>
+        <p><strong>Entrega:</strong> visão gerencial consolidada. Fim das exportações manuais para reporting.</p>
+      </div>
+
+      <div class="sprint">
+        <div class="head">
+          <h3><span class="badge">Sprint 11</span> Automações</h3>
+          <div class="duration">2 semanas</div>
+        </div>
+        <p>Editor visual de automações baseadas em eventos do sistema, executor Inngest
+        com retries, idempotência e DLQ observável.</p>
+        <p><strong>Entrega:</strong> usuários não-técnicos criam automações sem código.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ENTREGA -->
+<section id="entrega">
+  <div class="wrap">
+    <h2>9. Modelo de entrega e qualidade</h2>
+    <p class="lead">
+      Processo de engenharia otimizado para alta velocidade sem comprometer qualidade.
+      Testes automatizados em 3 camadas, code review, CI obrigatória e deploys contínuos
+      com rollback rápido.
+    </p>
+
+    <div class="grid cols-2">
+      <div class="card">
+        <h4>Desenvolvimento paralelo</h4>
+        <p>Cada tarefa do roadmap é marcada como <code>parallel-safe</code> ou serial. Módulos
+        com arquivos disjuntos podem ser desenvolvidos em paralelo por múltiplos agentes,
+        acelerando a entrega sem conflitos.</p>
+      </div>
+      <div class="card">
+        <h4>Contratos versionados</h4>
+        <p>Alterações em interfaces públicas, enums ou convenções de schema passam por
+        mudança controlada em <code>/docs/30-contracts</code> — nunca em paralelo.</p>
+      </div>
+      <div class="card">
+        <h4>Testes em 3 camadas</h4>
+        <p><strong>Unit:</strong> regras puras de domínio (Vitest). <strong>Integration:</strong>
+        schema + DB efêmero. <strong>E2E:</strong> jornadas críticas (Playwright, multi-browser).</p>
+      </div>
+      <div class="card">
+        <h4>CI obrigatória</h4>
+        <p>Todo PR roda typecheck, lint, testes unit e integration, e build sanity antes
+        de poder ser mergeado. E2E roda em main pré-deploy.</p>
+      </div>
+      <div class="card">
+        <h4>Code review</h4>
+        <p>Todo merge para main passa por review. Review de segurança obrigatório em
+        mudanças de auth, RBAC, webhooks e reembolso.</p>
+      </div>
+      <div class="card">
+        <h4>Deploy contínuo</h4>
+        <p>Vercel promove automaticamente. Preview por PR. Rollback em segundos.
+        Supabase mantém backups contínuos + PITR (Point-in-Time Recovery).</p>
+      </div>
+    </div>
+
+    <h3>Comandos padrão do desenvolvedor</h3>
+<pre class="ascii">
+pnpm typecheck            # tsc --noEmit
+pnpm lint                 # eslint
+pnpm test                 # vitest (unit + integration)
+pnpm test:e2e             # playwright
+pnpm drizzle-kit generate # gerar migration após mudar schema
+pnpm drizzle-kit push     # aplicar em dev
+</pre>
+
+    <div class="callout">
+      <strong>Critério de "pronto":</strong> typecheck limpo + lint limpo + testes verdes +
+      review aprovado + critério de aceite do sprint atingido. Não há "quase pronto" — ou
+      o incremento está em produção, ou não foi entregue.
+    </div>
+  </div>
+</section>
+
+<!-- RESULTADO -->
+<section id="resultado" class="alt">
+  <div class="wrap">
+    <h2>10. Resultado esperado ao final da Fase 1</h2>
+    <p class="lead">
+      Ao final dos 11 sprints, a CNE Educação opera 100% dentro do CNE-OS para as atividades
+      do núcleo operacional — com custo previsível, dados consistentes e base sólida para
+      evoluir para a Fase 2.
+    </p>
+
+    <div class="grid cols-2">
+      <div>
+        <h3>Ferramentas substituídas</h3>
+        <table>
+          <thead><tr><th>Ferramenta atual</th><th>Substituída no sprint</th></tr></thead>
+          <tbody>
+            <tr><td>CRM fragmentado</td><td>Sprints 1–2</td></tr>
+            <tr><td>Inbox externo</td><td>Sprints 3–4</td></tr>
+            <tr><td>Ferramenta de UTM/campanha</td><td>Sprint 5</td></tr>
+            <tr><td>Planilhas de oferta</td><td>Sprints 6–7</td></tr>
+            <tr><td>Conciliação manual de vendas</td><td>Sprint 8</td></tr>
+            <tr><td>Planilha de inadimplência</td><td>Sprint 9</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <h3>Ganhos diretos</h3>
+        <ul>
+          <li class="check">Jornada completa do contato visível em um único lugar</li>
+          <li class="check">Origem (marca, funil, campanha, criativo) rastreada desde o primeiro toque</li>
+          <li class="check">Ofertas construídas em segundos por regras, não em planilhas</li>
+          <li class="check">Vendas congeladas em snapshot imutável — direitos preservados</li>
+          <li class="check">Cobrança e inadimplência automatizadas</li>
+          <li class="check">Auditoria total de ações críticas</li>
+          <li class="check">Redução de custo recorrente de SaaS externos</li>
+          <li class="check">Base pronta para Fase 2 (área de membros, LMS, certificação)</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>Evolução prevista — Fase 2</h3>
+    <p>Arquitetura já preparada para receber, quando houver tração de uso do núcleo:</p>
+    <div class="pill-row">
+      <span class="pill">Área de membros / login do aluno</span>
+      <span class="pill">Cadastro acadêmico profundo (cursos, módulos, aulas, trilhas)</span>
+      <span class="pill">Catálogo educacional</span>
+      <span class="pill">Eventos presenciais</span>
+      <span class="pill">Certificados</span>
+      <span class="pill">Gestão editorial avançada</span>
+      <span class="pill">Comissão comercial</span>
+      <span class="pill">B2B multiusuário</span>
+      <span class="pill">LGPD avançada (portal do titular)</span>
+      <span class="pill">API pública</span>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="brand">CNE-OS</div>
+  <div>Sistema Operacional da CNE Educação — Proposta Fase 1</div>
+  <div style="margin-top:8px">Documento comercial · Escopo funcional e arquitetural · Versão preliminar sem valores</div>
+</footer>
+
+</body>
+</html>

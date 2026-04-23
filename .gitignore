@@ -1,0 +1,67 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Next.js
+.next/
+out/
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+next-env.d.ts
+
+# Vercel
+.vercel/
+
+# Turbo
+.turbo/
+
+# Testing
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+blob-report/
+playwright/.cache/
+
+# Environment
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Drizzle
+drizzle/meta/
+
+# Supabase
+supabase/.branches/
+supabase/.temp/
+
+# Sentry
+.sentryclirc
+
+# Misc
+.cache/
+tmp/
+temp/

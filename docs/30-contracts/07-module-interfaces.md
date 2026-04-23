@@ -1,0 +1,794 @@
+# Interfaces públicas dos módulos
+
+Contrato fixo de interoperação entre módulos. Cada módulo do CNE-OS expõe um conjunto pequeno e estável de funções públicas que outros módulos consomem. Toda interação cruza a interface; **nunca** via SELECT direto em tabela alheia.
+
+> **Regra de ouro:** se sua tarefa precisa de dado de outro módulo, chame a interface pública. Se a interface não existe, abra [OQ](../90-meta/03-open-questions-log.md) e serialize a mudança no contrato — nunca faça query ad-hoc em tabela de outro módulo.
+
+## Princípios
+
+1. **Ownership rígido.** Cada tabela pertence a um módulo (ver `Ownership` no doc de cada agregado em `../20-domain/`). Escrita nesta tabela só via funções desse módulo.
+2. **Leitura também cruza interface.** Listagens, joins cross-module e projeções só via função pública (ou view materializada explicitamente publicada).
+3. **Interface = TypeScript assinado.** Toda função pública tem assinatura em arquivo `lib/domain/<mod>/index.ts` ou `actions.ts`.
+4. **Transação compartilhada.** Funções que mutam aceitam `tx: DbTx` opcional ou obrigatório, para compor atomicidade com a Server Action chamadora.
+5. **Sem I/O oculto.** Funções puras de domínio ficam em `lib/domain/<mod>/` e não têm efeito externo. Orquestração vai para `actions.ts` ou Inngest.
+
+## Formato por função
+
+| Campo | Uso |
+|---|---|
+| Assinatura | TypeScript completo, com tipos nomeados |
+| Onde vive | caminho do arquivo |
+| Contrato | pré e pós-condições |
+| BRs | regras reforçadas |
+
+---
+
+## MOD-ORGANIZATION
+
+Onde vive: `lib/domain/organization/index.ts`.
+
+### `listBrandsForUser`
+
+```ts
+export async function listBrandsForUser(userId: string): Promise<Brand[]>;
+```
+- **Contrato:** retorna marcas visíveis ao usuário (Fase 1: todas).
+- **BRs:** [BR-RBAC](../50-business-rules/BR-RBAC.md).
+
+### `resolveLegalEntityForSale`
+
+```ts
+export async function resolveLegalEntityForSale(
+  brandId: string,
+  offerId: string,
+): Promise<LegalEntity>;
+```
+- **Contrato:** usado por MOD-TRANSACTION para carimbar snapshot. Resolve CNPJ emissor da nota.
+- **BRs:** [BR-SNAPSHOT-IMMUTABILITY](../50-business-rules/BR-SNAPSHOT-IMMUTABILITY.md).
+
+### `hasRole`
+
+```ts
+export function hasRole(userId: string, role: RoleKind): Promise<boolean>;
+```
+
+---
+
+## MOD-CONTACT
+
+Onde vive: `lib/domain/contact/index.ts` + `app/(app)/contacts/actions.ts`.
+
+### `resolveContactIdentity`
+
+```ts
+export type IdentityInput = {
+  brandId: string;
+  name?: string;
+  email?: string | null;
+  phone?: string | null;
+  cpf?: string | null;
+};
+
+export type IdentityResolution = {
+  matchedContactId: string | null;
+  confidence: 'exact' | 'strong' | 'weak' | 'none';
+  conflict: boolean;            // true quando múltiplos matches fortes divergentes
+  candidates: { contactId: string; reason: string }[];
+};
+
+export async function resolveContactIdentity(
+  tx: DbTx,
+  input: IdentityInput,
+): Promise<IdentityResolution>;
+```
+- **Pré:** input já normalizado (e-mail lowercase, phone E.164, CPF 11 dígitos).
+- **Pós:** não cria contato; apenas resolve.
+- **BRs:** [BR-IDENTITY](../50-business-rules/BR-IDENTITY.md).
+
+### `classifyContact`
+
+```ts
+export async function classifyContact(
+  contactId: string,
+): Promise<ContactClassification>;
+```
+- **Pós:** retorna classificação derivada (`lead`/`customer`/`student`/`paid_lead`) sem persistir.
+- **BRs:** [BR-CONTACT-CLASSIFICATION](../50-business-rules/BR-CONTACT-CLASSIFICATION.md).
+
+### `upsertContact`
+
+```ts
+export type UpsertContactInput = IdentityInput & {
+  origin: 'checkout' | 'message' | 'import' | 'manual' | 'integration';
+  sourceRef?: string | null;
+};
+
+export async function upsertContact(
+  tx: DbTx,
+  input: UpsertContactInput,
+): Promise<Contact>;
+```
+- **Pós:** cria ou reaproveita contato; emite `TE-CONTACT-CREATED` (quando novo) ou nada.
+- **BRs:** [BR-IDENTITY](../50-business-rules/BR-IDENTITY.md).
+
+### `addTag`, `removeTag`
+
+```ts
+export async function addTag(
+  tx: DbTx,
+  contactId: string,
+  tag: string,
+  source: 'manual' | 'benefit' | 'automation',
+): Promise<void>;
+
+export async function removeTag(
+  tx: DbTx,
+  contactId: string,
+  tag: string,
+): Promise<void>;
+```
+- **Pós:** emite `TE-CONTACT-TAG-ADDED` / `TE-CONTACT-TAG-REMOVED`.
+
+### `changeContactStatus`
+
+```ts
+export async function changeContactStatus(
+  tx: DbTx,
+  contactId: string,
+  to: ContactStatus,
+  reason: string,
+  actorUserId: string,
+): Promise<void>;
+```
+- **Pós:** insere em `contact_status_history`; emite `TE-CONTACT-UPDATED` ou `TE-CONTACT-BLACKLISTED`.
+
+### `openIssue`, `resolveIssue`
+
+```ts
+export async function openIssue(
+  tx: DbTx,
+  input: {
+    contactId: string;
+    kind: ContactIssueKind;
+    detail: string;
+  },
+): Promise<ContactIssue>;
+
+export async function resolveIssue(
+  tx: DbTx,
+  issueId: string,
+  resolution: string,
+): Promise<void>;
+```
+- **Pós:** emite `TE-CONTACT-ISSUE-OPENED` / `TE-CONTACT-ISSUE-RESOLVED`.
+
+---
+
+## MOD-MERGE
+
+Onde vive: `lib/domain/contact-merge/index.ts`.
+
+### `mergeContacts`
+
+```ts
+export type MergeResult = {
+  mergeId: string;
+  principalId: string;
+  secondaryId: string;
+};
+
+export async function mergeContacts(
+  tx: DbTx,
+  input: {
+    principalId: string;
+    secondaryId: string;
+    reason: string;
+    actorUserId: string;
+  },
+): Promise<MergeResult>;
+```
+- **Pré:** `principalId !== secondaryId`; ambos existem e não estão blacklisted.
+- **Pós:** secondary aponta para principal via `merged_into_id`; histórico preservado (não destrutivo); emite `TE-CONTACT-MERGED`.
+- **BRs:** [BR-MERGE](../50-business-rules/BR-MERGE.md). **Proibido** destruir o contato secundário.
+
+### `unmergeContacts`
+
+```ts
+export async function unmergeContacts(
+  tx: DbTx,
+  mergeId: string,
+  actorUserId: string,
+): Promise<void>;
+```
+- **Pós:** emite `TE-CONTACT-UNMERGED`; audita (`action_kind='unmerge'`).
+
+---
+
+## MOD-TIMELINE
+
+Onde vive: `lib/timeline/emit.ts`.
+
+### `emitTimelineEvent` (canônico — ÚNICO ponto de escrita)
+
+```ts
+export type TimelineEventInput = {
+  contactId: string;
+  brandId?: string | null;
+  kind: string;                    // 'sale_approved', 'contact_merged', ...
+  source: string;                  // MOD-* emissor
+  actorUserId?: string | null;
+  actorSystem?: string | null;
+  subjectKind?: string | null;
+  subjectId?: string | null;
+  payload?: Record<string, unknown>;
+  occurredAt?: Date;
+};
+
+export async function emitTimelineEvent(
+  tx: DbTx,
+  input: TimelineEventInput,
+): Promise<TimelineEvent>;
+```
+- **Pré:** `actorUserId || actorSystem` truthy.
+- **Pós:** linha em `timeline_event`; tabela append-only (trigger).
+- **BRs:** ver [`03-timeline-event-catalog.md`](./03-timeline-event-catalog.md). **Proibido** escrever em `timeline_event` por qualquer outra função.
+
+### `listTimelineEvents`
+
+```ts
+export async function listTimelineEvents(
+  contactId: string,
+  filters: {
+    brandId?: string;
+    kinds?: string[];
+    channel?: ChannelKind;
+    from?: Date;
+    to?: Date;
+    cursor?: string;
+    limit?: number;
+  },
+): Promise<{ items: TimelineEvent[]; nextCursor: string | null }>;
+```
+
+---
+
+## MOD-INBOX
+
+Onde vive: `lib/domain/inbox/index.ts`.
+
+### `openOrReopenConversation`
+
+```ts
+export async function openOrReopenConversation(
+  tx: DbTx,
+  input: {
+    contactId: string;
+    brandId: string;
+    channel: ChannelKind;
+    initiatedBy: 'customer' | 'team';
+  },
+): Promise<Conversation>;
+```
+- **Pós:** se conversa fechada existe, reabre (`TE-CONVERSATION-REOPENED`); senão cria (`TE-CONVERSATION-OPENED`).
+
+### `appendMessage`
+
+```ts
+export async function appendMessage(
+  tx: DbTx,
+  input: {
+    conversationId: string;
+    direction: 'inbound' | 'outbound';
+    body: string;
+    externalMessageId?: string;
+    actorUserId?: string;
+    actorSystem?: string;
+  },
+): Promise<Message>;
+```
+- **Pós:** emite `TE-MESSAGE-INBOUND` ou `TE-MESSAGE-OUTBOUND`.
+- **BRs:** [BR-INTEGRATION-IDEMPOTENCY](../50-business-rules/BR-INTEGRATION-IDEMPOTENCY.md) quando `externalMessageId` informado.
+
+### `assignConversation`
+
+```ts
+export async function assignConversation(
+  tx: DbTx,
+  conversationId: string,
+  userId: string,
+): Promise<void>;
+```
+
+---
+
+## MOD-TICKET
+
+Onde vive: `lib/domain/ticket/index.ts`.
+
+### `openTicket`
+
+```ts
+export async function openTicket(
+  tx: DbTx,
+  input: {
+    contactId: string;
+    brandId: string;
+    category: TicketCategory;
+    priority: TicketPriority;
+    title: string;
+    description: string;
+    openedByUserId: string;
+  },
+): Promise<Ticket>;
+```
+- **Pós:** emite `TE-TICKET-OPENED`.
+
+### `changeTicketStatus`
+
+```ts
+export async function changeTicketStatus(
+  tx: DbTx,
+  ticketId: string,
+  to: TicketStatus,
+  reason?: string,
+  actorUserId?: string,
+): Promise<void>;
+```
+- **Pós:** insere `ticket_status_history`; emite `TE-TICKET-STATUS-CHANGED` / `TE-TICKET-RESOLVED` / `TE-TICKET-REOPENED`.
+
+### `assignTicket`
+
+```ts
+export async function assignTicket(
+  tx: DbTx,
+  ticketId: string,
+  userId: string,
+): Promise<void>;
+```
+
+---
+
+## MOD-CAMPAIGN
+
+Onde vive: `lib/domain/campaign/index.ts`.
+
+### `generateUtm` (pura)
+
+```ts
+export type Utm = {
+  source: string;
+  medium: string;
+  campaign: string;
+  content?: string;
+  term?: string;
+};
+
+export function generateUtm(input: {
+  campaignSlug: string;
+  creativeSlug?: string;
+  channel: string;
+}): Utm;
+```
+
+### `createTrackableLink`
+
+```ts
+export async function createTrackableLink(
+  tx: DbTx,
+  input: {
+    campaignId: string;
+    creativeId?: string;
+    destinationUrl: string;
+  },
+): Promise<TrackableLink>;
+```
+
+### `recordClick`
+
+```ts
+export async function recordClick(
+  tx: DbTx,
+  input: {
+    trackableLinkId: string;
+    contactId?: string;
+    utm: Utm;
+    userAgent?: string;
+    ip?: string;
+  },
+): Promise<void>;
+```
+- **Pós:** emite `TE-CAMPAIGN-CLICK` quando `contactId` resolvível.
+
+---
+
+## MOD-FUNNEL
+
+Onde vive: `lib/domain/funnel/index.ts`.
+
+### `enterFunnel`
+
+```ts
+export async function enterFunnel(
+  tx: DbTx,
+  input: {
+    contactId: string;
+    funnelId: string;
+    entryCampaignId?: string;
+    entryCreativeId?: string;
+  },
+): Promise<FunnelEntry>;
+```
+- **Pós:** emite `TE-FUNNEL-ENTERED`.
+
+### `moveStage`
+
+```ts
+export async function moveStage(
+  tx: DbTx,
+  entryId: string,
+  toStageId: string,
+  reason?: string,
+): Promise<void>;
+```
+- **Pós:** emite `TE-FUNNEL-STAGE-CHANGED`.
+
+### `markWon`, `markLost`
+
+```ts
+export async function markWon(
+  tx: DbTx,
+  entryId: string,
+  transactionId: string,
+): Promise<void>;
+
+export async function markLost(
+  tx: DbTx,
+  entryId: string,
+  reason: string,
+): Promise<void>;
+```
+- **Pós:** emite `TE-OPPORTUNITY-WON` / `TE-OPPORTUNITY-LOST`.
+
+### `updateScore`
+
+```ts
+export async function updateScore(
+  tx: DbTx,
+  entryId: string,
+): Promise<number>;
+```
+
+---
+
+## MOD-CATALOG
+
+Onde vive: `lib/domain/catalog/index.ts`.
+
+### `upsertProduct`
+
+```ts
+export async function upsertProduct(
+  tx: DbTx,
+  input: {
+    brandId: string;
+    kind: ProductKind;
+    name: string;
+    externalRefs?: Record<string, string>;
+  },
+): Promise<Product>;
+```
+
+### `upsertBenefit`
+
+```ts
+export async function upsertBenefit(
+  tx: DbTx,
+  input: {
+    brandId: string;
+    name: string;
+    autoTag?: string;
+    deliveryHint?: string;
+  },
+): Promise<CommercialBenefit>;
+```
+
+Leitura: `getProduct(id)`, `getCommercialBenefit(id)`, `resolveAutoTag(benefitId)` expostas para MOD-TRANSACTION.
+
+---
+
+## MOD-OFFER
+
+Onde vive: `lib/domain/offer/index.ts`. **Módulo crítico.**
+
+### `selectCondition` (CRÍTICO)
+
+```ts
+export type DecisionContext = {
+  brandId: string;
+  channel: OfferDecisionChannel;
+  campaignId?: string;
+  creativeId?: string;
+  contactId?: string;
+  now: Date;
+};
+
+export type DecisionResult = {
+  conditionId: string;
+  reason: string;                  // 'campaign_match' | 'channel_match' | 'fallback' | ...
+  score: number;
+  tiebreakers: string[];
+};
+
+export async function selectCondition(
+  offerId: string,
+  ctx: DecisionContext,
+): Promise<DecisionResult>;
+```
+- **Pós:** escolhe condição ativa, elegível, de maior score.
+- **BRs:** [BR-OFFER-DECISION](../50-business-rules/BR-OFFER-DECISION.md), [BR-OFFER-ELIGIBILITY](../50-business-rules/BR-OFFER-ELIGIBILITY.md).
+
+### `evaluateEligibility`
+
+```ts
+export async function evaluateEligibility(
+  conditionId: string,
+  ctx: DecisionContext,
+): Promise<boolean>;
+```
+
+### `incrementSalesCounter`
+
+```ts
+export async function incrementSalesCounter(
+  tx: DbTx,
+  offerId: string,
+): Promise<number>;
+```
+- **Pré:** chamado **dentro** da transação da venda (atomicidade com `approveTransaction`).
+- **BRs:** [BR-OFFER-DECISION](../50-business-rules/BR-OFFER-DECISION.md) contador.
+
+---
+
+## MOD-TRANSACTION
+
+Onde vive: `lib/domain/transaction/index.ts`.
+
+### `createTransaction`
+
+```ts
+export type CreateTransactionInput = {
+  contactId: string;
+  brandId: string;
+  offerId: string;
+  conditionId: string;
+  amount: string;                  // numeric(12,2) como string
+  paymentMethod: OfferPaymentMethod;
+  externalRef?: string;
+};
+
+export async function createTransaction(
+  tx: DbTx,
+  input: CreateTransactionInput,
+): Promise<Transaction>;
+```
+- **Pós:** transação `pending`; emite `TE-SALE-PENDING`.
+
+### `approveTransaction`
+
+```ts
+export async function approveTransaction(
+  tx: DbTx,
+  transactionId: string,
+  externalRef?: string,
+): Promise<Transaction>;
+```
+- **Pós atômico:** `status='approved'` + `createSnapshot` + `incrementSalesCounter` + `grantEntitlement` (via MOD-ENTITLEMENT) + `TE-SALE-APPROVED`.
+- **BRs:** [BR-SNAPSHOT-IMMUTABILITY](../50-business-rules/BR-SNAPSHOT-IMMUTABILITY.md).
+
+### `refuseTransaction`
+
+```ts
+export async function refuseTransaction(
+  tx: DbTx,
+  transactionId: string,
+  reason: string,
+): Promise<Transaction>;
+```
+- **Pós:** emite `TE-SALE-REFUSED`.
+
+### `createSnapshot` (internal)
+
+```ts
+// Apenas chamável de dentro de MOD-TRANSACTION. Não exportado.
+async function createSnapshot(tx: DbTx, transactionId: string): Promise<TransactionSnapshot>;
+```
+- **Pós:** snapshot em `transaction_snapshot` imutável ([BR-SNAPSHOT-IMMUTABILITY](../50-business-rules/BR-SNAPSHOT-IMMUTABILITY.md)).
+
+---
+
+## MOD-ENTITLEMENT
+
+Onde vive: `lib/domain/entitlement/index.ts`.
+
+### `grantEntitlement`
+
+```ts
+export async function grantEntitlement(
+  tx: DbTx,
+  input: {
+    contactId: string;
+    kind: EntitlementKind;
+    refId: string;                 // ex.: product_id ou benefit_id
+    sourceTransactionId: string;
+    endsAt?: Date | null;
+  },
+): Promise<Entitlement>;
+```
+- **Pós:** emite `TE-ENTITLEMENT-GRANTED` ou `TE-ENTITLEMENT-EXTENDED`.
+
+### `consolidateEntitlement` (pura)
+
+```ts
+export function consolidateEntitlement(
+  existing: Entitlement | null,
+  incoming: Omit<Entitlement, 'id' | 'createdAt'>,
+): ConsolidationResult;
+```
+- Função pura, testável sem DB.
+
+### `revokeEntitlement`
+
+```ts
+export async function revokeEntitlement(
+  tx: DbTx,
+  entitlementId: string,
+  reason: string,
+): Promise<void>;
+```
+- **Pós:** emite `TE-ENTITLEMENT-REVOKED`.
+
+---
+
+## MOD-BILLING
+
+Onde vive: `lib/domain/billing/index.ts`.
+
+### `startSubscription`
+
+```ts
+export async function startSubscription(
+  tx: DbTx,
+  input: { transactionId: string; plan: BillingPlan },
+): Promise<Subscription>;
+```
+- **Pós:** emite `TE-SUBSCRIPTION-STARTED`.
+
+### `advanceSubscription`
+
+```ts
+export async function advanceSubscription(
+  tx: DbTx,
+  subscriptionId: string,
+): Promise<SubscriptionStatus>;
+```
+- Chamado por cron Inngest.
+
+### `cancelSubscription`
+
+```ts
+export async function cancelSubscription(
+  tx: DbTx,
+  subscriptionId: string,
+  reason: string,
+): Promise<Subscription>;
+```
+
+### `recordInstallment`
+
+```ts
+export async function recordInstallment(
+  tx: DbTx,
+  input: {
+    subscriptionId?: string;
+    transactionId: string;
+    externalInstallmentId: string;
+    status: InstallmentStatus;
+    amount: string;
+    dueAt: Date;
+  },
+): Promise<Installment>;
+```
+- **BRs:** [BR-INTEGRATION-IDEMPOTENCY](../50-business-rules/BR-INTEGRATION-IDEMPOTENCY.md) via `externalInstallmentId`.
+
+---
+
+## MOD-REFUND
+
+Onde vive: `lib/domain/refund/index.ts`.
+
+### `requestRefund`
+
+```ts
+export async function requestRefund(
+  tx: DbTx,
+  input: {
+    transactionId: string;
+    requesterUserId: string;
+    amount: string;
+    reason: string;
+  },
+): Promise<Refund>;
+```
+
+### `approveRefund`
+
+```ts
+export async function approveRefund(
+  tx: DbTx,
+  input: { refundId: string; approverUserId: string; note?: string },
+): Promise<Refund>;
+```
+- **Pós atômico:** `revokeEntitlement` (via MOD-ENTITLEMENT) + `flagSnapshotRefunded` (via MOD-TRANSACTION) + `TE-SALE-REFUNDED`.
+- **BRs:** [BR-REFUND](../50-business-rules/BR-REFUND.md), [BR-RBAC](../50-business-rules/BR-RBAC.md).
+
+### `rejectRefund`
+
+```ts
+export async function rejectRefund(
+  tx: DbTx,
+  input: { refundId: string; approverUserId: string; reason: string },
+): Promise<Refund>;
+```
+
+---
+
+## MOD-AUTOMATION
+
+Onde vive: `lib/domain/automation/index.ts` + `inngest/functions/automation.ts`.
+
+### `triggerFlow`
+
+```ts
+export async function triggerFlow(
+  kind: AutomationTriggerKind,
+  subject: {
+    contactId?: string;
+    subjectKind?: string;
+    subjectId?: string;
+    context?: Record<string, unknown>;
+  },
+): Promise<void>;
+```
+- **Contrato:** chamado por qualquer módulo após emitir evento que é gatilho de automação. Enfileira execução; não executa síncrono.
+
+### `executeFlow` (internal)
+
+```ts
+// Chamado pelo Inngest job. Não exportado para outros módulos.
+async function executeFlow(
+  flowId: string,
+  context: Record<string, unknown>,
+): Promise<AutomationExecution>;
+```
+- **Pós:** emite `TE-AUTOMATION-EXECUTED`.
+
+---
+
+## Regra final
+
+> **Se sua tarefa precisa de dado ou efeito de outro módulo, chame a interface pública. Nunca faça SELECT na tabela alheia, nem UPDATE, nem INSERT.** A violação dessa regra é bug de arquitetura e bloqueia merge.
+
+Se a interface que você precisa não existe:
+
+1. Pare.
+2. Registre em [`../90-meta/03-open-questions-log.md`](../90-meta/03-open-questions-log.md).
+3. Proponha extensão **serial** deste contrato.
+4. Só então implemente.
+
+---
+
+## Open Questions
+
+- `OQ-IFACE-01`: interfaces que retornam `Promise<T>` vs `Promise<Result<T, E>>` — uniformizar retorno de erro na camada de domínio?
+- `OQ-IFACE-02`: como expor queries de leitura cross-module otimizadas (ex.: "timeline + tickets + transações de um contato") sem violar boundary — views materializadas ou função de aggregator em MOD-CONTACT?
+- `OQ-IFACE-03`: `tx: DbTx` opcional vs obrigatório — padrão atual mistura; definir convenção.
