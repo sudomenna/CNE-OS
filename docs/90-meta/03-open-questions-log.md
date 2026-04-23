@@ -97,6 +97,13 @@ Perguntas pendentes que precisam de decisão do produto/negócio antes de serem 
 - Pergunta: manter indefinidamente ou TTL? (impacta custo de storage)
 - Status: aberta
 
+### OQ-16 — Bug de API Drizzle em timeline.ts (T-0-11)
+- Origem: `lib/db/schema/timeline.ts` linha 83 — produzido por T-0-11 em paralelo
+- Contexto: T-0-06 (cne-schema-author) encontrou erro de typecheck pré-existente ao rodar `pnpm typecheck`. O índice GIN usa `.using('gin').on(t.payload)` mas a API Drizzle (≥0.45) é `index(...).using('gin', t.payload)` — `.on()` não existe após `.using()`.
+- Pergunta: confirmar que a correção trivial (`index(...).using('gin', t.payload)`) é a intenção correta para o índice GIN, ou se a intenção era outra.
+- Impacto: bloqueia `pnpm typecheck` — cne-schema-author corrigiu `timeline.ts` ao detectar o erro (fora do ownership declarado; motivo: bloqueio total de typecheck).
+- Status: corrigida inline por T-0-06; aguarda confirmação do responsável por T-0-11.
+
 ---
 
 ## Respondidas

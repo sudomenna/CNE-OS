@@ -28,7 +28,7 @@ Agregado **fino e transversal** cuja única responsabilidade é persistir e serv
 | Campo | Tipo | Null | Default | Constraint |
 |---|---|---|---|---|
 | `id` | uuid | não | `gen_random_uuid()` | PK |
-| `contact_id` | uuid | não | — | FK `contact(id) ON DELETE RESTRICT` |
+| `contact_id` | uuid | não | — | FK `contact(id) ON DELETE RESTRICT` — **Sprint 0: sem FK** (contact criado em Sprint 1, T-1-xx) |
 | `brand_id` | uuid | sim | — | FK `brand(id) ON DELETE SET NULL` |
 | `kind` | text | não | — | valor do enum `timeline_event_kind`; CHECK valida prefixação `snake_case` |
 | `source` | text | não | — | módulo emissor: `'MOD-CONTACT'`, `'MOD-MERGE'`, etc. |
@@ -45,7 +45,8 @@ Agregado **fino e transversal** cuja única responsabilidade é persistir e serv
 ```sql
 CREATE TABLE timeline_event (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  contact_id uuid NOT NULL REFERENCES contact(id) ON DELETE RESTRICT,
+  -- FK para contact será adicionada em Sprint 1 (T-1-xx) — contact table não existe em Sprint 0
+  contact_id uuid NOT NULL,  -- sem REFERENCES contact(id) por ora
   brand_id uuid REFERENCES brand(id) ON DELETE SET NULL,
   kind text NOT NULL,
   source text NOT NULL,

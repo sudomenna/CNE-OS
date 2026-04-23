@@ -1,17 +1,18 @@
 /**
- * MOD-ORG — Organization schema (partial: T-0-05)
+ * MOD-ORG — Organization schema (T-0-05 + T-0-06)
  *
- * Tables in this file: brand, legal_entity, brand_legal_entity
- * Tables NOT in this file (T-0-06): user_account, role, user_role
+ * Tables in this file: brand, legal_entity, brand_legal_entity,
+ *                      user_account, role, user_role
  *
  * Specs:
- *   docs/20-domain/01-organization.md §3.1–§3.3
+ *   docs/20-domain/01-organization.md §3.1–§3.6
  *   docs/30-contracts/02-db-schema-conventions.md
  */
 import {
   boolean,
   check,
   index,
+  pgEnum,
   pgTable,
   primaryKey,
   text,
@@ -121,3 +122,94 @@ export const brandLegalEntity = pgTable(
 
 export type BrandLegalEntity = InferSelectModel<typeof brandLegalEntity>
 export type NewBrandLegalEntity = InferInsertModel<typeof brandLegalEntity>
+
+// ---------------------------------------------------------------------------
+// role_kind enum
+// docs/30-contracts/01-enums.md
+// ---------------------------------------------------------------------------
+
+export const roleKindEnum = pgEnum('role_kind', [
+  'admin',
+  'financial',
+  'marketing',
+  'support',
+  'commercial',
+])
+
+// ---------------------------------------------------------------------------
+// user_account
+// docs/20-domain/01-organization.md §3.4
+// ---------------------------------------------------------------------------
+
+export const userAccount = pgTable(
+  'user_account',
+  {
+    // id mirrors auth.users.id from Supabase — no default generated here
+    id: uuid('id').primaryKey(),
+    email: text('email').notNull(),
+    fullName: text('full_name').notNull(),
+    phone: text('phone'),
+    isActive: boolean('is_active').notNull().default(true),
+    totpEnabled: boolean('totp_enabled').notNull().default(false),
+    lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    // Soft-delete — docs/30-contracts/02-db-schema-conventions.md §4
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  },
+  (t) => ({
+    uqUserAccountEmail: uniqueIndex('uq_user_account_email').on(t.email),
+  }),
+)
+
+export type UserAccount = InferSelectModel<typeof userAccount>
+export type NewUserAccount = InferInsertModel<typeof userAccount>
+
+// ---------------------------------------------------------------------------
+// role  (fixed catalogue seeded by lib/db/seed/roles.ts)
+// docs/20-domain/01-organization.md §3.5
+// ---------------------------------------------------------------------------
+
+export const role = pgTable(
+  'role',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    kind: roleKindEnum('kind').notNull(),
+    description: text('description'),
+  },
+  (t) => ({
+    uqRoleKind: uniqueIndex('uq_role_kind').on(t.kind),
+  }),
+)
+
+export type Role = InferSelectModel<typeof role>
+export type NewRole = InferInsertModel<typeof role>
+
+// ---------------------------------------------------------------------------
+// user_role  (many-to-many, user_account ↔ role)
+// docs/20-domain/01-organization.md §3.6
+// ---------------------------------------------------------------------------
+
+export const userRole = pgTable(
+  'user_role',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => userAccount.id, { onDelete: 'cascade' }),
+    roleId: uuid('role_id')
+      .notNull()
+      .references(() => role.id, { onDelete: 'restrict' }),
+    // grantedBy is nullable — SET NULL when the granting user is deleted
+    grantedBy: uuid('granted_by').references(() => userAccount.id, {
+      onDelete: 'set null',
+    }),
+    grantedAt: timestamp('granted_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.userId, t.roleId] }),
+    idxUserRoleUser: index('idx_user_role_user').on(t.userId),
+  }),
+)
+
+export type UserRole = InferSelectModel<typeof userRole>
+export type NewUserRole = InferInsertModel<typeof userRole>

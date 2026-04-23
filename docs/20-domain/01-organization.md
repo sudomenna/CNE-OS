@@ -64,7 +64,7 @@ PK composta `(brand_id, legal_entity_id)`. Índice parcial `uq_brand_legal_entit
 
 | Campo | Tipo | Null | Default | Constraint |
 |---|---|---|---|---|
-| `id` | uuid | não | `gen_random_uuid()` | PK; igual ao `auth.users.id` do Supabase |
+| `id` | uuid | não | — (sem default) | PK; igual ao `auth.users.id` do Supabase — caller fornece |
 | `email` | text | não | — | `uq_user_account_email` |
 | `full_name` | text | não | — | — |
 | `phone` | text | sim | — | — |
