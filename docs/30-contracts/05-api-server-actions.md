@@ -482,6 +482,32 @@ Testes vivem em `tests/integration/actions/<module>.test.ts` + `tests/unit/actio
 
 ---
 
+## 14. Server Actions implementadas por módulo (T-0-16)
+
+### MOD-ORGANIZATION — `app/(app)/settings/brands/actions.ts`
+
+| Função | Guard | Audit | Revalida |
+|---|---|---|---|
+| `createBrand(rawInput)` | `user.write` (admin+2FA) | `create / brand` | `/settings/brands` |
+| `listBrands()` | `requireSession` | — | — |
+
+### MOD-ORGANIZATION — `app/(app)/settings/legal-entities/actions.ts`
+
+| Função | Guard | Audit | Revalida |
+|---|---|---|---|
+| `createLegalEntity(rawInput)` | `user.write` (admin+2FA) | `create / legal_entity` | `/settings/legal-entities` |
+| `listLegalEntities()` | `requireSession` | — | — |
+| `listBrandsForSelect()` | `requireSession` | — | — |
+
+### MOD-ORGANIZATION — `app/(app)/settings/users/actions.ts`
+
+| Função | Guard | Audit | Revalida |
+|---|---|---|---|
+| `inviteUser(rawInput)` | `user.write` (admin+2FA) | `create / user_account` | `/settings/users` |
+| `listUsers()` | `requireSession` | — | — |
+
+---
+
 ## 13. Open Questions
 
 - `OQ-SA-01`: formulários complexos com optimistic UI — quando usar `useActionState` vs mutação manual?
