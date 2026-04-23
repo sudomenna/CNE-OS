@@ -27,6 +27,11 @@ Documentação spec-driven do Sistema Operacional da CNE Educação, projetada p
 - **"Como implementar o módulo Oferta?"** → [`20-domain/10-offer-engine.md`](./20-domain/10-offer-engine.md) + BRs linkadas ali
 - **"Em qual sprint está a tarefa X?"** → [`80-roadmap/README.md`](./80-roadmap/README.md)
 - **"Está ambíguo. E agora?"** → abrir [`90-meta/03-open-questions-log.md`](./90-meta/03-open-questions-log.md) e escalar
+- **"O que testar neste sprint?"** → [`80-roadmap/98-test-matrix-by-sprint.md`](./80-roadmap/98-test-matrix-by-sprint.md)
+- **"Quais arquivos este módulo pode tocar?"** → [`80-roadmap/97-ownership-matrix.md`](./80-roadmap/97-ownership-matrix.md)
+- **"Como fazer rollback do banco?"** → [`10-architecture/11-migration-rollback.md`](./10-architecture/11-migration-rollback.md)
+- **"Qual subagent usar para esta tarefa?"** → [`90-meta/05-subagent-playbook.md §11`](./90-meta/05-subagent-playbook.md) ou `CLAUDE.md §11`
+- **"Decisões e bugs desta sessão?"** → [`../MEMORY.md`](../MEMORY.md)
 
 ## Protocolo de IDs
 
