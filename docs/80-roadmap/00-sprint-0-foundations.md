@@ -20,6 +20,39 @@ Preparar o repositório para que todos os demais sprints rodem em paralelo com s
 
 - Nenhum. É o sprint inaugural.
 
+## Status atual
+
+> Última atualização: 2026-04-23 — atualizar ao fechar cada T-ID.
+
+| T-ID | Título curto | Onda | Status | Commit |
+|---|---|---|---|---|
+| T-0-01 | Bootstrap Next.js 15 + TS + Tailwind + shadcn | A | ✅ done | `1a24c99` |
+| T-0-02 | Supabase + Auth + Drizzle config | A | ✅ done | `1a24c99` |
+| T-0-03 | Inngest setup + handler base | A | ✅ done | `1a24c99` |
+| T-0-04 | Sentry + Axiom + Vercel Analytics | A | ✅ done | `1a24c99` |
+| T-0-05 | Schema brand, legal_entity, brand_legal_entity | B | ✅ done | `f14563b` |
+| T-0-06 | Schema user_account, role, user_role + seed | C | ⏳ pending | — |
+| T-0-07 | Schema permission + role_permission + matriz | D | ⏳ pending | — |
+| T-0-08 | Supabase RLS policies Fase 1 | E | ⏳ pending | — |
+| T-0-09 | Helpers requireSession, requirePermission | E | ⏳ pending | — |
+| T-0-10 | Schema audit_log + trigger append-only | C | ⏳ pending | — |
+| T-0-11 | Schema timeline_event + trigger append-only | C | ⏳ pending | — |
+| T-0-12 | Schema webhook_log + UNIQUE idempotency | D | ⏳ pending | — |
+| T-0-13 | Helper emitTimelineEvent (zod por kind) | E | ⏳ pending | — |
+| T-0-14 | Shell do app: sidebar + topbar + command palette | F | ⏳ pending | — |
+| T-0-15 | UI Auth: login, magic link, recuperação | F | ⏳ pending | — |
+| T-0-16 | UI Settings: marcas, CNPJs, usuários | G | ⏳ pending | — |
+| T-0-17 | CI GitHub Actions | A | ✅ done | `1a24c99` |
+| T-0-18 | Test fixtures + factories base | F | ⏳ pending | — |
+
+**Próxima onda:** C — disparar T-0-06, T-0-10, T-0-11 em paralelo.
+
+**Pendências antes de avançar:**
+- [ ] Configurar chaves Inngest, Sentry, Axiom no `.env.local` (e secrets Vercel/GitHub) antes de validar observabilidade em staging
+- [ ] Configurar secrets Vercel (`VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`) no GitHub para o workflow de preview
+
+---
+
 ## Tarefas
 
 | ID | Título | Módulo | Tipo | Parallel-safe | Depends-on | Specs referenciadas | Arquivos editados (Ownership) | Critério de aceite |
