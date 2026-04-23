@@ -22,7 +22,7 @@ Preparar o repositório para que todos os demais sprints rodem em paralelo com s
 
 ## Status atual
 
-> Última atualização: 2026-04-23 — atualizar ao fechar cada T-ID.
+> Última atualização: 2026-04-23 — Sprint 0 concluído (todas as 18 tarefas ✅).
 
 | T-ID | Título curto | Onda | Status | Commit |
 |---|---|---|---|---|
@@ -41,11 +41,11 @@ Preparar o repositório para que todos os demais sprints rodem em paralelo com s
 | T-0-13 | Helper emitTimelineEvent (zod por kind) | E | ✅ done | (Onda E) |
 | T-0-14 | Shell do app: sidebar + topbar + command palette | F | ✅ done | (Onda F) |
 | T-0-15 | UI Auth: login, magic link, recuperação | F | ✅ done | (Onda F) |
-| T-0-16 | UI Settings: marcas, CNPJs, usuários | G | ⏳ pending | — |
+| T-0-16 | UI Settings: marcas, CNPJs, usuários | G | ✅ done | `5e6c303` |
 | T-0-17 | CI GitHub Actions | A | ✅ done | `1a24c99` |
 | T-0-18 | Test fixtures + factories base | F | ✅ done | (Onda F) |
 
-**Próxima onda:** G — T-0-16 (UI Settings: marcas, CNPJs, usuários) — serial.
+**Próxima onda:** Sprint 0 concluído — verificar DoD e aplicar migrations em staging.
 
 **Pendências antes de avançar:**
 - [ ] Configurar chaves Inngest, Sentry, Axiom no `.env.local` (e secrets Vercel/GitHub) antes de validar observabilidade em staging
