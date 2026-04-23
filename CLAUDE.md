@@ -124,6 +124,7 @@ if (!isValidEmail(x)) ...
 - Proposta de mudança em `docs/30-contracts/*` vinda de uma tarefa de outro módulo (sempre serializar)
 - Necessidade de novo enum
 - Mudança de versão major na stack
+- **Qualquer item da stack que não conseguir instalar, configurar ou usar** (ver §12 abaixo)
 
 ## 9. Interação com memória (`.claude/memory/`)
 
@@ -182,3 +183,49 @@ Cada subagent tem ownership declarado — não edita fora do escopo. Carregam co
 - **`general-purpose`** para tarefas únicas ou exploratórias que não casam com um papel.
 - **`Explore`** para busca/research sem edição.
 - **`Plan`** para design de implementação antes de codar.
+
+## 12. Conformidade de stack — obrigatório seguir, obrigatório escalar
+
+A stack em [`docs/10-architecture/02-stack.md`](docs/10-architecture/02-stack.md) é **mandatória**. Cada item foi escolhido com justificativa explícita. Usar alternativa sem aprovação humana é proibido — mesmo que a alternativa pareça mais simples no momento.
+
+### Itens de stack com regra de uso obrigatória
+
+| Item | Regra | Bloqueio → escalar se |
+|---|---|---|
+| **shadcn/ui + Radix** | Toda UI usa componentes shadcn. Nunca edite `components/ui/*` manualmente — use o CLI: `pnpm shadcn add <name>` | shadcn CLI falha, componente não existe no shadcn, conflito de versão |
+| **Drizzle ORM** | Schema e queries sempre via Drizzle. Zero SQL cru em código de aplicação (exceto migrations e RLS policies em `.sql`) | drizzle-kit não gera migration correta, query Drizzle não suporta operação necessária |
+| **Supabase Auth** | Toda autenticação via Supabase Auth. Nunca implemente auth custom, JWT próprio ou session manual | integração Supabase Auth quebra, magic link não funciona, TOTP não disponível |
+| **Inngest** | Toda operação assíncrona (webhooks, jobs, crons) via Inngest. Nunca `setTimeout`, `setInterval` ou job runner alternativo | Inngest SDK não instala, evento não chega ao worker |
+| **Next.js App Router + Server Actions** | UI consome Server Actions. Nunca crie `/api` próprio para comunicação interna entre front e back (só `/api/webhooks/*` para entrada externa) | Server Action não funciona em determinado contexto |
+| **Tailwind CSS** | Estilização 100% via Tailwind utility classes. Zero CSS-in-JS, zero módulos CSS, zero `style={{}}` inline exceto valores dinâmicos que Tailwind não suporta | Tailwind não processa classe, token de design precisa de valor não-Tailwind |
+| **Vitest** | Testes unit e integration via Vitest. Nunca Jest, Mocha ou outro runner | Vitest não suporta feature necessária |
+| **Playwright** | E2E via Playwright. Nunca Cypress, Selenium | Playwright falha no ambiente |
+| **pnpm** | Gerenciador de pacotes. Nunca npm install, yarn add | pnpm não disponível no ambiente |
+
+### Protocolo quando um item de stack está bloqueado
+
+```
+1. PARE — não implemente workaround silencioso.
+2. Documente o bloqueio:
+   - O que você tentou (comandos, versões, mensagens de erro).
+   - Por que não funcionou.
+3. Registre em MEMORY.md §1 com tag [STACK-BLOQUEIO].
+4. CHAME O HUMANO com: "Bloqueio de stack: não consegui usar <X> porque <Y>.
+   Preciso da sua decisão antes de continuar."
+5. Aguarde decisão. Não avance na tarefa enquanto espera.
+```
+
+### Nunca use alternativa silenciosa
+
+Exemplos do que **NÃO** fazer:
+- ❌ `npm install` porque `pnpm` deu erro — chame o humano.
+- ❌ CSS module porque Tailwind não processou a classe — chame o humano.
+- ❌ `<div style={{color: '#abc'}}>` porque a cor não estava no tema — chame o humano.
+- ❌ Fetch para `/api/my-endpoint` porque Server Action não funcionou — chame o humano.
+- ❌ `setTimeout` porque Inngest estava offline — chame o humano.
+
+A alternativa pode parecer razoável, mas compromete a consistência do projeto e cria dívida técnica que outros subagents irão reproduzir.
+
+### Atualização de versão major
+
+Trocar versão major de qualquer dependência crítica (`next`, `react`, `drizzle-orm`, `@supabase/supabase-js`, `inngest`) exige **ADR aprovado** (ver `docs/90-meta/04-decision-log.md`) e decisão explícita do humano. Patch e minor podem ser atualizados via Dependabot sem ADR.

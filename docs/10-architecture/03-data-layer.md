@@ -2,6 +2,8 @@
 
 Drizzle, migrations, RLS, audit tables, soft-delete e jsonb snapshots. Complementa [`30-contracts/02-db-schema-conventions.md`](../30-contracts/02-db-schema-conventions.md) (convenções fixas) e [ADR-05](../90-meta/04-decision-log.md).
 
+Para estratégia de rollback de banco, down migrations, PITR e Supabase Branching, ver [`11-migration-rollback.md`](./11-migration-rollback.md).
+
 ---
 
 ## 1. Drizzle — organização
