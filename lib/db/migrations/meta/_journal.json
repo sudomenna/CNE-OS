@@ -8,6 +8,20 @@
       "when": 1776980079900,
       "tag": "0000_previous_luckman",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1777002894965,
+      "tag": "0001_hard_mimic",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1777003356612,
+      "tag": "0002_dazzling_living_mummy",
+      "breakpoints": true
     }
   ]
 }

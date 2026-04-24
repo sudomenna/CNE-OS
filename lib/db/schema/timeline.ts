@@ -14,6 +14,7 @@ import { check, index, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm
 import { sql } from 'drizzle-orm'
 import type { InferInsertModel, InferSelectModel } from 'drizzle-orm'
 import { brand, userAccount } from './organization'
+import { contact } from './contact'
 
 // ---------------------------------------------------------------------------
 // timeline_event
@@ -25,9 +26,10 @@ export const timelineEvent = pgTable(
   {
     id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
 
-    // FK para contact será adicionada em Sprint 1 (T-1-xx)
-    // contact table does not exist in Sprint 0 — no .references() here
-    contactId: uuid('contact_id').notNull(),
+    // Sprint 1 T-1-12: FK adicionada agora que contact table existe
+    contactId: uuid('contact_id')
+      .notNull()
+      .references(() => contact.id, { onDelete: 'restrict', onUpdate: 'cascade' }),
 
     // FK brand(id) ON DELETE SET NULL — docs/30-contracts/02-db-schema-conventions.md §14
     brandId: uuid('brand_id').references(() => brand.id, {

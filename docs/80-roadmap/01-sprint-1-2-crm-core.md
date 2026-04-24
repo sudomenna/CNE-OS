@@ -21,28 +21,41 @@ Entregar o núcleo do CRM: contato global com resolução determinística de ide
 
 ## Status atual
 
-> Última atualização: 2026-04-24 — Sprint 1 não iniciado.
+> Última atualização: 2026-04-24 — Sprint 1 concluído (todas as ondas A–H entregues).
 
 | T-ID | Título curto | Onda | Status |
 |---|---|---|---|
-| T-1-01 | Schema contact (tabela principal) | A | ⏳ pending |
-| T-1-02 | Schema contact_phone | A | ⏳ pending |
-| T-1-03 | Schema contact_email | A | ⏳ pending |
-| T-1-04 | Schema contact_document + tag + custom_field | A | ⏳ pending |
-| T-1-05 | Schema contact_note + status_history + trigger | A | ⏳ pending |
-| T-1-06 | Schema contact_identity_issue | A | ⏳ pending |
-| T-1-07 | Schema contact_merge_log | A | ⏳ pending |
-| T-1-08 | RLS contact (por brand_id) | B | ⏳ pending |
-| T-1-09 | resolveContactIdentity (domain) | B | ⏳ pending |
-| T-1-10 | classifyContact (domain) | B | ⏳ pending |
-| T-1-11 | mergeContacts + undoMerge (domain) | C | ⏳ pending |
-| T-1-12 | emitTimelineEvent FK contact_id | C | ⏳ pending |
-| T-1-13 | UI /contacts (lista + busca + filtros) | D | ⏳ pending |
-| T-1-14 | UI /contacts/[id] (detalhe + timeline) | D | ⏳ pending |
-| T-1-15 | UI /contacts/[id]/issues | D | ⏳ pending |
-| T-1-16 | E2E identity-resolution + merge-manual | E | ⏳ pending |
+| T-1-01 | Schema contact (tabela principal) | A | ✅ completed |
+| T-1-02 | Schema contact_phone | B | ✅ completed |
+| T-1-03 | Schema contact_email | B | ✅ completed |
+| T-1-04 | Schema contact_document + tag + custom_field | B | ✅ completed |
+| T-1-05 | Schema contact_note + status_history + trigger | B | ✅ completed |
+| T-1-06 | Normalizadores puros CPF/telefone/e-mail | C | ✅ completed |
+| T-1-07 | Schema contact_issue + contact_merge + contact_merge_undo | C | ✅ completed |
+| T-1-08 | resolveContactIdentity (domain, 9 casos BR-IDENTITY) | D | ✅ completed |
+| T-1-09 | classifyContact (domain) | E | ✅ completed |
+| T-1-10 | mergeContacts + undoMerge (domain) | E | ✅ completed |
+| T-1-11 | Server Actions: upsertContact, addTag, removeTag, changeStatus, addNote | F | ✅ completed |
+| T-1-12 | Server Actions: openIssue, resolveIssue, mergeContacts, undoMerge + FK timeline→contact | F | ✅ completed |
+| T-1-13 | listTimelineEvents com consolidação pós-merge | C | ✅ completed |
+| T-1-14 | UI /contacts (lista + busca + filtros) | G | ✅ completed |
+| T-1-15 | UI /contacts/[id] (detalhe + timeline) | G | ✅ completed |
+| T-1-16 | UI /contacts/[id]/issues (resolução de pendência) | G | ✅ completed |
+| T-1-17 | UI /contacts/merge (wizard diff + undo) | G | ✅ completed |
+| T-1-18 | E2E identity-resolution.spec.ts | H | ✅ completed |
+| T-1-19 | E2E merge-manual.spec.ts + undo | H | ✅ completed |
+| T-1-20 | Integration tests reclassificação + contact_status_history | H | ✅ completed |
 
-**Próxima onda:** A — T-1-01 a T-1-07 (schemas do agregado contact) — paralelo.
+**Sprint 1 CONCLUÍDO** — 20/20 T-IDs ✅ em 2026-04-24.
+
+**Pendências conhecidas para Sprint 2:**
+- RLS policies para tabelas `contact_*` e `contact_merge` (isolamento por brand — OQ-CONTACT-03)
+- Testes E2E requerem `SEED_E2E=true` + banco semeado (globalSetup comentado em playwright.config.ts)
+- `contact.write` ausente no RBAC_MATRIX (OQ anotado em contacts/actions.ts — todas as actions usam `contact.merge` como proxy)
+- `contact_classification_changed` timeline kind a registrar quando Server Action de venda integrar com classifyContact
+- Tabelas de outros módulos (transaction, conversation, ticket) ainda não existem — mergeContacts as omite com comentário
+
+**Próxima onda:** Sprint 2 — Inbox & Ticket (ver roadmap correspondente).
 
 ## Tarefas
 

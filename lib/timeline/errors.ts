@@ -25,3 +25,10 @@ export class TimelineOccurredAtError extends Error {
     this.name = 'TimelineOccurredAtError'
   }
 }
+
+export class ContactNotFoundError extends Error {
+  constructor(contactId: string) {
+    super(`Contact not found: ${contactId}`)
+    this.name = 'ContactNotFoundError'
+  }
+}

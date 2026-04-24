@@ -49,6 +49,43 @@ export const KIND_REGISTRY: KindRegistry = {
       reason: z.string(),
     }),
   },
+  contact_unmerged: {
+    source: 'MOD-MERGE',
+    schema: z.object({
+      merge_id: z.string().uuid(),
+      principal_contact_id: z.string().uuid(),
+      secondary_contact_id: z.string().uuid(),
+      reason: z.string(),
+    }),
+  },
+  contact_tag_removed: {
+    source: 'MOD-CONTACT',
+    schema: z.object({
+      tag: z.string(),
+    }),
+  },
+  contact_blacklisted: {
+    source: 'MOD-CONTACT',
+    schema: z.object({
+      from_status: z.string().optional(),
+      reason: z.string().optional(),
+    }),
+  },
+  contact_issue_opened: {
+    source: 'MOD-MERGE',
+    schema: z.object({
+      issue_id: z.string(),
+      kind: z.string(),
+      detail: z.string(),
+    }),
+  },
+  contact_issue_resolved: {
+    source: 'MOD-MERGE',
+    schema: z.object({
+      issue_id: z.string(),
+      resolution: z.string(),
+    }),
+  },
   sale_approved: {
     source: 'MOD-TRANSACTION',
     schema: z.object({

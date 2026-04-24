@@ -45,6 +45,12 @@ Motivo: <por que divergiu>
 Ação: <atualizar doc em <quando> | deliberadamente mantido>
 ```
 
+#### 2026-04-24 · @cne-domain-author · [SYNC-PENDING] · MOD-CONTACT · T-1-08
+Doc afetada: docs/30-contracts/07-module-interfaces.md (seção MOD-CONTACT · resolveContactIdentity)
+Divergência: a interface em 07-module-interfaces.md define `resolveContactIdentity(tx: DbTx, input: IdentityInput)` com retorno `{ matchedContactId, confidence, conflict, candidates }` — formato simplificado. A implementação efetiva em `lib/domain/contact/resolve-identity.ts` segue a BR-IDENTITY completa: assinatura `(input: IdentityInput, tx?: DbTx)` com retorno `IdentityResolution = create | update | noop` + `ContactIssueDraft[]` + `AppliedChange[]`. A BR é a fonte canônica; o contrato em 07-module-interfaces.md é a versão desatualizada.
+Motivo: T-1-08 implementou o contrato da BR-IDENTITY; 07-module-interfaces.md ainda reflete esboço anterior.
+Ação: atualizar docs/30-contracts/07-module-interfaces.md (tarefa serial) para refletir a assinatura real implementada.
+
 #### 2026-04-23 · @cne-domain-author · [SYNC-PENDING] · MOD-TIMELINE
 Doc afetada: docs/30-contracts/07-module-interfaces.md
 Divergência: `lib/timeline/emit.ts` expõe interface pública `emitTimelineEvent` + `ModuleSource` + `TimelineEventInput` que ainda não está listada na seção MOD-TIMELINE de 07-module-interfaces.md.
