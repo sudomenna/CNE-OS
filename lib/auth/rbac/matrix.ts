@@ -20,6 +20,13 @@ export const RBAC_MATRIX: Record<Action, MatrixEntry> = {
   'campaign.write':        { roles: ['admin', 'marketing', 'commercial'],                             requires2fa: false },
   'creative.write':        { roles: ['admin', 'marketing'],                                           requires2fa: false },
   'funnel.write':          { roles: ['admin', 'marketing', 'commercial'],                             requires2fa: false },
+  // BR-RBAC: funnel.create — criar funis e estágios (admin, marketing configura; commercial opera)
+  'funnel.create':         { roles: ['admin', 'marketing', 'commercial'],                             requires2fa: false },
+  // BR-RBAC: funnel.manage — movimentar oportunidades, alterar estágio e label; metas
+  'funnel.manage':         { roles: ['admin', 'marketing', 'commercial'],                             requires2fa: false },
+  // BR-RBAC: funnel.close — marcar oportunidade como won ou lost (comercial + admin)
+  'funnel.close':          { roles: ['admin', 'commercial'],                                          requires2fa: false },
+  'contact.write':         { roles: ['admin', 'financial', 'marketing', 'support', 'commercial'],     requires2fa: false },
   'contact.merge':         { roles: ['admin', 'financial', 'marketing', 'support', 'commercial'],     requires2fa: false },
   'contact.unmerge':       { roles: ['admin', 'financial'],                                           requires2fa: true  },
   'contact.impersonate':   { roles: ['admin', 'financial', 'support', 'commercial'],                  requires2fa: true  },

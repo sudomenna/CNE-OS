@@ -45,6 +45,40 @@ Motivo: <por que divergiu>
 Ação: <atualizar doc em <quando> | deliberadamente mantido>
 ```
 
+#### 2026-04-25 · @cne-docs-sync · [SYNCED] · Sprint 5 — Varredura final doc ↔ código
+Modules implementados: MOD-CAMPAIGN (T-5-01,02,03,04,05,06), MOD-FUNNEL (T-5-07,08,09,10,11,12,13,14), MOD-TIMELINE (T-5-15), RBAC (T-5-10,11).
+Ações de sincronização realizadas:
+1. **MOD-CAMPAIGN interface:** Expandida `docs/30-contracts/07-module-interfaces.md § MOD-CAMPAIGN` com assinaturas de `createCampaign`, `createCreative`, `issueTrackableLink`, `recordClick` (conforme código em `lib/domain/campaign/index.ts` e `app/(app)/campaigns/actions.ts`). Corrigida assinatura de `generateUtm` para refletir UtmContext real.
+2. **MOD-FUNNEL interface:** Adicionado `setOpportunityLabel` em `docs/30-contracts/07-module-interfaces.md § MOD-FUNNEL`. Expandidas pós-condições e BRs para todas as funções.
+3. **Timeline events:** Verificado que `lib/timeline/schemas/index.ts` registra corretamente todos os kinds emitidos: `funnel_entered`, `funnel_stage_changed`, `opportunity_label_changed`, `opportunity_won`, `opportunity_lost`, `campaign_link_clicked` (T-5-15 finalizado).
+4. **Enums:** Confirmado que `funnel_opportunity_label` em `docs/30-contracts/01-enums.md` cobre todos os 6 valores usados no código.
+5. **RBAC:** Verificado que `lib/auth/rbac/matrix.ts` e `docs/50-business-rules/BR-RBAC.md` alinhados com 3 novas ações de funnel (`funnel.create`, `funnel.manage`, `funnel.close`).
+Status: **SINCRONIA RESTAURADA** — todos os módulos Sprint 5 doc ↔ código alinhados. Nenhuma divergência residual.
+
+#### 2026-04-25 · @cne-docs-sync · [SYNCED] · MOD-FUNNEL · T-5-10 · MEMORY-2026-04-25a
+Referência: [SYNC-PENDING] 2026-04-25 anterior sobre MOD-FUNNEL.
+Ações executadas:
+1. Adicionado `setOpportunityLabel` em `docs/30-contracts/07-module-interfaces.md § MOD-FUNNEL` com assinatura correta.
+2. Verificado que `lib/timeline/schemas/index.ts` tem Kind Registry com `funnel_entered`, `funnel_stage_changed`, `opportunity_label_changed` registrados corretamente (T-5-15 concluído).
+3. Enums `funnel_opportunity_label` confirmado em `docs/30-contracts/01-enums.md`.
+Status: SINCRONIA RESTAURADA — doc e código alinhados.
+
+#### 2026-04-25 · @cne-domain-author · [SYNC-PENDING] · MOD-FUNNEL · T-5-10
+Doc afetada: `docs/30-contracts/07-module-interfaces.md` (seção MOD-FUNNEL) e `lib/timeline/schemas/index.ts`
+Divergências:
+1. `setOpportunityLabel` implementado em `lib/domain/funnel/label.ts` NÃO está listada em `docs/30-contracts/07-module-interfaces.md § MOD-FUNNEL`. O contrato atual lista apenas `enterFunnel`, `moveStage`, `markWon`, `markLost`, `updateScore`. Precisar adicionar `setOpportunityLabel(tx, input): Promise<void>`.
+2. Timeline kinds `funnel_entered`, `funnel_stage_changed`, `opportunity_label_changed` são emitidos pelas funções de T-5-10 mas NÃO estão registrados em `lib/timeline/schemas/index.ts` nem em `KIND_REGISTRY`. Em produção, `emitTimelineEvent` lançará `UnknownTimelineKindError`. T-5-15 deve criar `lib/timeline/schemas/funnel-events.ts` e registrar esses kinds.
+Motivo: T-5-15 é a tarefa designada para schemas de timeline de funil; T-5-10 não tem ownership de `lib/timeline/`.
+Ação:
+- T-5-15: criar `lib/timeline/schemas/funnel-events.ts`, registrar `funnel_entered`, `funnel_stage_changed`, `opportunity_label_changed` no KIND_REGISTRY.
+- Tarefa serial: adicionar `setOpportunityLabel` em `docs/30-contracts/07-module-interfaces.md`.
+
+#### 2026-04-24 · @cne-domain-author · [SYNC-PENDING] · MOD-TICKET · T-3-13
+Doc afetada: `lib/timeline/schemas/index.ts`
+Divergência: ticket event kinds (`ticket_opened`, `ticket_status_changed`, `ticket_resolved`, `ticket_reopened`, `ticket_assigned`, `ticket_unassigned`) foram adicionadas inline em `lib/timeline/schemas/index.ts` como parte de T-3-13. T-3-15 deve extraí-las para arquivos separados `lib/timeline/schemas/ticket-*.ts` e registrá-las via re-export.
+Motivo: `emitTimelineEvent` valida kinds no registry — sem registro os testes de T-3-13 falhariam. T-3-15 é dependência downstream mas não pré-requisito.
+Ação: T-3-15 deve mover as entradas de ticket do KIND_REGISTRY para `lib/timeline/schemas/ticket-*.ts` e importar de lá.
+
 #### 2026-04-24 · @cne-domain-author · [SYNC-PENDING] · MOD-CONTACT · T-1-08
 Doc afetada: docs/30-contracts/07-module-interfaces.md (seção MOD-CONTACT · resolveContactIdentity)
 Divergência: a interface em 07-module-interfaces.md define `resolveContactIdentity(tx: DbTx, input: IdentityInput)` com retorno `{ matchedContactId, confidence, conflict, candidates }` — formato simplificado. A implementação efetiva em `lib/domain/contact/resolve-identity.ts` segue a BR-IDENTITY completa: assinatura `(input: IdentityInput, tx?: DbTx)` com retorno `IdentityResolution = create | update | noop` + `ContactIssueDraft[]` + `AppliedChange[]`. A BR é a fonte canônica; o contrato em 07-module-interfaces.md é a versão desatualizada.

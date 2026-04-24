@@ -166,7 +166,7 @@ export async function resolveIssue(
 
 ## MOD-MERGE
 
-Onde vive: `lib/domain/contact-merge/index.ts`.
+Onde vive: `lib/domain/merge/index.ts`.
 
 ### `mergeContacts`
 
@@ -259,45 +259,57 @@ Onde vive: `lib/domain/inbox/index.ts`.
 ### `openOrReopenConversation`
 
 ```ts
+export type OpenConversationInput = {
+  contactId: string;
+  channelAccountId: string;
+  externalThreadId?: string | null;
+  actorSystem?: string;
+  actorUserId?: string | null;
+};
+
 export async function openOrReopenConversation(
   tx: DbTx,
-  input: {
-    contactId: string;
-    brandId: string;
-    channel: ChannelKind;
-    initiatedBy: 'customer' | 'team';
-  },
+  input: OpenConversationInput,
 ): Promise<Conversation>;
 ```
-- **Pós:** se conversa fechada existe, reabre (`TE-CONVERSATION-REOPENED`); senão cria (`TE-CONVERSATION-OPENED`).
+- **Pós:** se conversa ativa (`status != 'closed'`) já existe para `(contactId, channelAccountId)` → retorna idempotentemente. Se fechada → reabre (`TE-CONVERSATION-REOPENED`). Se não existe → cria (`TE-CONVERSATION-OPENED`).
+- `actorUserId` é nullable — operações de sistema (webhooks) passam apenas `actorSystem`.
 
 ### `appendMessage`
 
 ```ts
+export type AppendMessageInput = {
+  conversationId: string;
+  direction: 'inbound' | 'outbound';
+  body: string;
+  externalMessageId?: string | null;
+  actorUserId?: string | null;
+  actorSystem?: string | null;
+  sentAt?: Date | null;
+};
+
 export async function appendMessage(
   tx: DbTx,
-  input: {
-    conversationId: string;
-    direction: 'inbound' | 'outbound';
-    body: string;
-    externalMessageId?: string;
-    actorUserId?: string;
-    actorSystem?: string;
-  },
+  input: AppendMessageInput,
 ): Promise<Message>;
 ```
 - **Pós:** emite `TE-MESSAGE-INBOUND` ou `TE-MESSAGE-OUTBOUND`.
 - **BRs:** [BR-INTEGRATION-IDEMPOTENCY](../50-business-rules/BR-INTEGRATION-IDEMPOTENCY.md) quando `externalMessageId` informado.
+- **Proibido:** outbound em conversa `closed` lança `ConversationClosedError`.
 
-### `assignConversation`
+### `setConversationStatus`
 
 ```ts
-export async function assignConversation(
+export async function setConversationStatus(
   tx: DbTx,
   conversationId: string,
-  userId: string,
-): Promise<void>;
+  toStatus: 'open' | 'waiting_customer' | 'waiting_team' | 'closed',
+  changedByUserId: string | null,
+  reason?: string | null,
+): Promise<Conversation>;
 ```
+- **Transições válidas:** `open→waiting_*`, `open→closed`, `waiting_*→open`, `waiting_*→closed`, `closed→open`.
+- Transição inválida lança `InvalidConversationTransitionError`.
 
 ---
 
@@ -350,38 +362,81 @@ export async function assignTicket(
 
 ## MOD-CAMPAIGN
 
-Onde vive: `lib/domain/campaign/index.ts`.
+Onde vive: `lib/domain/campaign/index.ts` + `app/(app)/campaigns/actions.ts`.
 
 ### `generateUtm` (pura)
 
 ```ts
-export type Utm = {
-  source: string;
-  medium: string;
-  campaign: string;
-  content?: string;
-  term?: string;
+export type UtmContext = {
+  brand: { slug: string };
+  campaign: { slug: string };
+  creative?: { slug: string; channel?: string };
+  funnel?: { slug: string };
+  mediumOverride?: string;
 };
 
-export function generateUtm(input: {
-  campaignSlug: string;
-  creativeSlug?: string;
-  channel: string;
-}): Utm;
-```
+export type Utm = {
+  utm_source: string;
+  utm_medium: string;
+  utm_campaign: string;
+  utm_content?: string;
+  utm_term?: string;
+};
 
-### `createTrackableLink`
+export function generateUtm(ctx: UtmContext): Utm;
+```
+- **Determinismo:** INV-CAMPAIGN-04 — mesmos inputs sempre produzem o mesmo output.
+- **Regras:** utm_source=brand.slug, utm_medium=mediumOverride || creative.channel || 'organic', utm_campaign=campaign.slug, utm_content=creative.slug (opcional), utm_term=funnel.slug (opcional).
+
+### `createCampaign`
 
 ```ts
-export async function createTrackableLink(
-  tx: DbTx,
+export async function createCampaign(
+  input: {
+    brandId: string;
+    funnelId: string;
+    name: string;
+    slug: string;
+    startsAt?: Date;
+    endsAt?: Date;
+  },
+): Promise<Campaign>;
+```
+- **Pós:** persiste campanha; emite `TE-CAMPAIGN-CREATED` (quando implementado).
+- **BRs:** INV-CAMPAIGN-01 (brand + funnel obrigatórios).
+
+### `createCreative`
+
+```ts
+export async function createCreative(
   input: {
     campaignId: string;
+    name: string;
+    slug: string;
+    channel?: string;
+  },
+): Promise<Creative>;
+```
+- **Pós:** persiste criativo; emite `TE-CREATIVE-CREATED` (quando implementado).
+- **BRs:** INV-CAMPAIGN-02 (pertence a exatamente 1 campaign).
+
+### `issueTrackableLink`
+
+```ts
+export async function issueTrackableLink(
+  tx: DbTx,
+  input: {
+    brandId: string;
+    funnelId?: string;
+    campaignId?: string;
     creativeId?: string;
     destinationUrl: string;
+    slug?: string;
   },
 ): Promise<TrackableLink>;
 ```
+- **Pós:** gera slug curto (ou usa fornecido); calcula UTM via `generateUtm`; persiste snapshot em jsonb.
+- **BRs:** INV-CAMPAIGN-03 (slug globalmente único).
 
 ### `recordClick`
 
@@ -397,13 +452,13 @@ export async function recordClick(
   },
 ): Promise<void>;
 ```
-- **Pós:** emite `TE-CAMPAIGN-CLICK` quando `contactId` resolvível.
+- **Pós:** emite `TE-CAMPAIGN-CLICK` quando `contactId` resolvível (via webhook `/go/[slug]` assíncrono).
 
 ---
 
 ## MOD-FUNNEL
 
-Onde vive: `lib/domain/funnel/index.ts`.
+Onde vive: `lib/domain/funnel/index.ts` + `app/(app)/funnels/actions.ts`.
 
 ### `enterFunnel`
 
@@ -418,7 +473,9 @@ export async function enterFunnel(
   },
 ): Promise<FunnelEntry>;
 ```
-- **Pós:** emite `TE-FUNNEL-ENTERED`.
+- **Pós:** se oportunidade ativa já existe para (contact, funnel) → retorna a existente (idempotente). Senão cria nova.
+- **Emite:** `TE-FUNNEL-ENTERED`.
+- **BRs:** INV-FUNNEL-01 (máximo uma ativa por (contact, funnel)).
 
 ### `moveStage`
 
@@ -430,7 +487,25 @@ export async function moveStage(
   reason?: string,
 ): Promise<void>;
 ```
-- **Pós:** emite `TE-FUNNEL-STAGE-CHANGED`.
+- **Pós:** atualiza `current_stage_id`; insere linha em `funnel_entry_stage_history`.
+- **Emite:** `TE-FUNNEL-STAGE-CHANGED`.
+- **BRs:** INV-FUNNEL-03 (toda mudança registra em histórico e emite TE).
+
+### `setOpportunityLabel`
+
+```ts
+export async function setOpportunityLabel(
+  tx: DbTx,
+  input: {
+    entryId: string;
+    label: FunnelOpportunityLabel;
+    actorUserId?: string | null;
+    actorSystem?: string | null;
+  },
+): Promise<void>;
+```
+- **Pós:** atualiza `label` (macro); emite `TE-OPPORTUNITY-LABEL-CHANGED`.
+- **Nota:** labels `won` e `lost` têm restrições adicionais (INV-FUNNEL-05: `won` exige `transaction_id`, `lost` exige `lost_reason`); use `markWon` / `markLost` para fluxos controlados.
 
 ### `markWon`, `markLost`
 
@@ -447,16 +522,26 @@ export async function markLost(
   reason: string,
 ): Promise<void>;
 ```
-- **Pós:** emite `TE-OPPORTUNITY-WON` / `TE-OPPORTUNITY-LOST`.
+- **Pós:** `markWon` preenche `transaction_id` e `conversion_*` (campaign/creative); `markLost` preenche `lost_reason`.
+- **Emite:** `TE-OPPORTUNITY-WON` / `TE-OPPORTUNITY-LOST`.
+- **BRs:** INV-FUNNEL-05, INV-FUNNEL-06 (transição para `won`/`lost`).
 
-### `updateScore`
+### `updateScore` (alias: `recomputeScore`)
 
 ```ts
 export async function updateScore(
   tx: DbTx,
   entryId: string,
 ): Promise<number>;
+
+export async function recomputeScore(
+  tx: DbTx,
+  entryId: string,
+): Promise<number>;
 ```
+- **Pós:** recalcula score a partir das regras ativas (`funnel_score_rule`); insere linha em `funnel_entry_score_history`.
+- **Retorna:** novo score.
+- **BRs:** INV-FUNNEL-04 (toda mudança de score registra em histórico).
 
 ---
 

@@ -3,6 +3,7 @@ import { requireSession } from '@/lib/auth/session'
 import { Sidebar } from '@/components/layout/sidebar'
 import { Topbar } from '@/components/layout/topbar'
 import { CommandPalette } from '@/components/layout/command-palette'
+import { Toaster } from '@/components/ui/sonner'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   let session
@@ -20,6 +21,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <main className="flex-1 overflow-auto p-6">{children}</main>
       </div>
       <CommandPalette />
+      <Toaster richColors position="bottom-right" />
     </div>
   )
 }

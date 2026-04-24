@@ -506,6 +506,37 @@ Testes vivem em `tests/integration/actions/<module>.test.ts` + `tests/unit/actio
 | `inviteUser(rawInput)` | `user.write` (admin+2FA) | `create / user_account` | `/settings/users` |
 | `listUsers()` | `requireSession` | — | — |
 
+### MOD-CAMPAIGN — `app/(app)/campaigns/actions.ts`
+
+| Função | Guard | Audit | Revalida |
+|---|---|---|---|
+| `createCampaign(rawInput)` | `campaign.write` (admin, marketing, commercial) | `create / campaign` | `/campaigns` |
+| `createCreative(rawInput)` | `creative.write` (admin, marketing) | `create / creative` | `/campaigns` |
+| `issueTrackableLink(rawInput)` | `campaign.write` (admin, marketing, commercial) | `create / trackable_link` | `/campaigns` |
+
+Nota: `issueTrackableLink` gera slug via `crypto.randomBytes(8).toString('hex')` (16 chars hex) e persiste `utm_snapshot` jsonb via `generateUtm` (função pura — `lib/domain/campaign/generate-utm.ts`).
+
+### MOD-FUNNEL — `app/(app)/funnels/actions.ts`
+
+| Função | Guard | Audit | Revalida |
+|---|---|---|---|
+| `createFunnelAction(rawInput)` | `funnel.create` (admin, marketing, commercial) | `create / funnel` | `/funnels` |
+| `createFunnelStageAction(rawInput)` | `funnel.create` (admin, marketing, commercial) | `create / funnel_stage` | `/funnels/[id]` |
+| `enterFunnelAction(rawInput)` | `funnel.manage` (admin, marketing, commercial) | `create / funnel_entry` (só se criada) | `/funnels/[id]` |
+| `moveStageAction(rawInput)` | `funnel.manage` (admin, marketing, commercial) | `update / funnel_entry` | `/funnels` (layout) |
+| `setOpportunityLabelAction(rawInput)` | `funnel.manage` (admin, marketing, commercial) | `update / funnel_entry` | `/funnels` (layout) |
+| `markWonAction(rawInput)` | `funnel.close` (admin, commercial) | `update / funnel_entry` | `/funnels` (layout) |
+| `markLostAction(rawInput)` | `funnel.close` (admin, commercial) | `update / funnel_entry` | `/funnels` (layout) |
+
+Nota: `moveStageAction` inclui comentário `// BR-FUNNEL-OPPORTUNITY: drag-drop usa SELECT FOR UPDATE via tx` — a transação SQL garante consistência de leitura de `current_stage_id` sem dupla-atualização.
+
+### MOD-FUNNEL — `app/(app)/funnels/[id]/targets/actions.ts`
+
+| Função | Guard | Audit | Revalida |
+|---|---|---|---|
+| `createSalesTargetAction(rawInput)` | `funnel.manage` (admin, marketing, commercial) | `create / sales_target` | `/funnels/[id]/targets`, `/funnels/[id]` |
+| `updateSalesTargetAction(rawInput)` | `funnel.manage` (admin, marketing, commercial) | `update / sales_target` | `/funnels/[id]/targets`, `/funnels/[id]` |
+
 ---
 
 ## 13. Open Questions

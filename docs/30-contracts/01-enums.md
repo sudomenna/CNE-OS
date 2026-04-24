@@ -114,7 +114,7 @@ Referenciado em [`BR-CONTACT-CLASSIFICATION`](../50-business-rules/BR-CONTACT-CL
 ## Integração
 
 ### `integration_provider`
-`digital_guru`, `brevo`, `whatsapp_official`, `notazz`, `analytics`
+`digital_guru`, `brevo`, `whatsapp_official`, `instagram`, `email`, `notazz`, `analytics`
 
 ### `webhook_status`
 `received`, `processed`, `failed`, `dead_letter`

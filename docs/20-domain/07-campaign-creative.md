@@ -1,5 +1,17 @@
 # Campaign & Creative (Módulo MOD-CAMPAIGN)
 
+## Status de implementação
+
+| Tabela | T-ID | Status |
+|---|---|---|
+| `campaign` | T-5-01 | implementado — `lib/db/schema/campaign.ts` |
+| `creative` | T-5-01 | implementado — `lib/db/schema/campaign.ts` |
+| `creative_asset` | T-5-01 | implementado — `lib/db/schema/campaign.ts` |
+| `trackable_link` | T-5-02 | pendente |
+| `content_library_item` | T-5-02 | pendente (stub) |
+
+Migration: `lib/db/migrations/0003_clean_spitfire.sql`
+
 ## 1. Finalidade
 
 Organizar peças de marketing (campanhas e criativos) e links rastreáveis, produzindo UTMs canônicas para aferição. Entrega a origem de entrada e de conversão de cada oportunidade em funil. Criativo é a **menor unidade de análise** da operação.

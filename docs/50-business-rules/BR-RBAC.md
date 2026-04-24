@@ -41,6 +41,10 @@ export type Action =
   | 'campaign.write'
   | 'creative.write'
   | 'funnel.write'
+  | 'funnel.create'
+  | 'funnel.manage'
+  | 'funnel.close'
+  | 'contact.write'
   | 'contact.merge'
   | 'contact.unmerge'
   | 'contact.impersonate'
@@ -85,6 +89,10 @@ A função é **pura** e consulta a tabela abaixo. Ações marcadas como "2FA" e
 | `campaign.write` | ✅ | ❌ | ✅ | ❌ | ✅ | — |
 | `creative.write` | ✅ | ❌ | ✅ | ❌ | ❌ | — |
 | `funnel.write` | ✅ | ❌ | ✅ | ❌ | ✅ | — |
+| `funnel.create` | ✅ | ❌ | ✅ | ❌ | ✅ | — |
+| `funnel.manage` | ✅ | ❌ | ✅ | ❌ | ✅ | — |
+| `funnel.close` | ✅ | ❌ | ❌ | ❌ | ✅ | — |
+| `contact.write` | ✅ | ✅ | ✅ | ✅ | ✅ | — |
 | `contact.merge` | ✅ | ✅ | ✅ | ✅ | ✅ | — |
 | `contact.unmerge` | ✅ | ✅ | ❌ | ❌ | ❌ | sim |
 | `contact.impersonate` | ✅ | ✅ | ❌ | ✅ | ✅ | sim |
