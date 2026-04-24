@@ -17,7 +17,32 @@ Entregar o núcleo do CRM: contato global com resolução determinística de ide
 
 ## Pré-requisitos (sprints anteriores concluídos)
 
-- Sprint 0 verde (schemas ORG, `timeline_event`, `audit_log`, RLS, helpers de auth).
+- Sprint 0 verde (schemas ORG, `timeline_event`, `audit_log`, RLS, helpers de auth). ✅ concluído em 2026-04-23.
+
+## Status atual
+
+> Última atualização: 2026-04-24 — Sprint 1 não iniciado.
+
+| T-ID | Título curto | Onda | Status |
+|---|---|---|---|
+| T-1-01 | Schema contact (tabela principal) | A | ⏳ pending |
+| T-1-02 | Schema contact_phone | A | ⏳ pending |
+| T-1-03 | Schema contact_email | A | ⏳ pending |
+| T-1-04 | Schema contact_document + tag + custom_field | A | ⏳ pending |
+| T-1-05 | Schema contact_note + status_history + trigger | A | ⏳ pending |
+| T-1-06 | Schema contact_identity_issue | A | ⏳ pending |
+| T-1-07 | Schema contact_merge_log | A | ⏳ pending |
+| T-1-08 | RLS contact (por brand_id) | B | ⏳ pending |
+| T-1-09 | resolveContactIdentity (domain) | B | ⏳ pending |
+| T-1-10 | classifyContact (domain) | B | ⏳ pending |
+| T-1-11 | mergeContacts + undoMerge (domain) | C | ⏳ pending |
+| T-1-12 | emitTimelineEvent FK contact_id | C | ⏳ pending |
+| T-1-13 | UI /contacts (lista + busca + filtros) | D | ⏳ pending |
+| T-1-14 | UI /contacts/[id] (detalhe + timeline) | D | ⏳ pending |
+| T-1-15 | UI /contacts/[id]/issues | D | ⏳ pending |
+| T-1-16 | E2E identity-resolution + merge-manual | E | ⏳ pending |
+
+**Próxima onda:** A — T-1-01 a T-1-07 (schemas do agregado contact) — paralelo.
 
 ## Tarefas
 
