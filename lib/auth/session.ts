@@ -8,7 +8,7 @@ import { cookies, headers } from 'next/headers'
 import { eq } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import { userAccount, userRole, role } from '@/lib/db/schema/organization'
-import { createSupabaseServerClient } from '@/lib/auth/supabase'
+import { createSupabaseServerClient } from '@/lib/auth/supabase-server'
 import { ActionError } from '@/lib/actions/errors'
 import type { Role } from '@/lib/auth/rbac/types'
 

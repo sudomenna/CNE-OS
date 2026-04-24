@@ -14,7 +14,7 @@ import { requireSession } from '@/lib/auth/session'
 import { requirePermission } from '@/lib/auth/permissions'
 import { logAudit } from '@/lib/audit/log'
 import { toActionResult } from '@/lib/actions/result'
-import { createSupabaseServiceClient } from '@/lib/auth/supabase'
+import { createSupabaseServiceClient } from '@/lib/auth/supabase-server'
 
 // ---------------------------------------------------------------------------
 // Schemas de validação

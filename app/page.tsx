@@ -1,7 +1,5 @@
+import { redirect } from 'next/navigation'
+
 export default function Home() {
-  return (
-    <main className="flex min-h-screen flex-col items-center justify-center">
-      <h1 className="text-2xl font-bold">CNE-OS</h1>
-    </main>
-  )
+  redirect('/contacts')
 }
