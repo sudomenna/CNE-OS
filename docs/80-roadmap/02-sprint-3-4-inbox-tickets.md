@@ -20,6 +20,51 @@ Entregar a **inbox omnichannel** (WhatsApp oficial, Instagram Direct, e-mail) co
 - Sprint 0 (schemas base, Inngest, `timeline_event`, `webhook_log`).
 - Sprint 1-2 (`contact` + `resolveContactIdentity` + timeline).
 
+## Status atual
+
+> Última atualização: 2026-04-25 — Sprint 3-4 concluído (todas as ondas A–G entregues).
+
+| T-ID | Título curto | Onda | Status |
+|---|---|---|---|
+| T-3-01 | Schema channel + channel_account + seed | A | ✅ completed |
+| T-3-02 | Schema conversation + uq_conversation_active | B | ✅ completed |
+| T-3-03 | Schema message + message_attachment | B | ✅ completed |
+| T-3-04 | Schema conversation history + triggers | B | ✅ completed |
+| T-3-05 | openOrReopenConversation + appendMessage | C | ✅ completed |
+| T-3-06 | assignConversation + setConversationStatus | D | ✅ completed |
+| T-3-07 | Adapter WhatsApp webhook | D | ✅ completed |
+| T-3-08 | Adapter Instagram Direct | D | ✅ completed |
+| T-3-09 | Adapter e-mail IMAP/SMTP | E | ✅ completed |
+| T-3-10 | Server Actions inbox | E | ✅ completed |
+| T-3-11 | UI /inbox 3 colunas + realtime | F | ✅ completed |
+| T-3-12 | Schema ticket + histórico + triggers | A | ✅ completed |
+| T-3-13 | Funções domínio ticket | C | ✅ completed |
+| T-3-14 | Server Actions + UI /tickets | F | ✅ completed |
+| T-3-15 | Timeline schemas inbox + ticket | D | ✅ completed |
+| T-3-16 | E2E flow-02-omnichannel | G | ✅ completed |
+| T-3-17 | E2E flow-13-ticket | G | ✅ completed |
+| T-3-18 | Integration tests idempotência webhooks | G | ✅ completed |
+
+**Sprint 3-4 CONCLUÍDO** — 18/18 T-IDs ✅ em 2026-04-25.
+
+**Migrations aplicadas no Supabase remoto:**
+- `20260425000002_conversation_schema.sql` — channel + channel_account
+- `20260425000003_ticket_schema.sql` — ticket + histórico
+- `20260425000004_conversation_table.sql` — conversation
+- `20260425000005_message_schema.sql` — message + message_attachment
+- `20260425000006_conversation_history.sql` — conversation history tables
+- `20260425000007_conversation_status_history_nullable_actor.sql` — changed_by_user_id nullable
+- `20260425000008_email_provider_enum.sql` — email no enum integration_provider
+
+**Suite:** 427 testes passando | typecheck limpo
+
+**Pendências para Sprint 5+:**
+- E2E specs requerem `SEED_E2E=true` com banco semeado (padrão Sprint 1)
+- `sendMessage` Server Action não chama adapter externo (Fase 1: apenas registra outbound na DB)
+- Merge reassign list: adicionar `conversation` e `ticket` quando integração com mergeContacts for evoluída
+- RLS: tabelas conversation/message/ticket ainda sem policies (Fase 1 — mesmo padrão de sprint anterior)
+- `contact_classification_changed` timeline kind: registrar quando MOD-TRANSACTION integrar com classifyContact
+
 ## Tarefas
 
 | ID | Título | Módulo | Tipo | Parallel-safe | Depends-on | Specs referenciadas | Arquivos editados (Ownership) | Critério de aceite |

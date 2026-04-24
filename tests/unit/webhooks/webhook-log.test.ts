@@ -21,12 +21,14 @@ describe('webhook_log schema', () => {
     expect(webhookLog).toBeDefined()
   })
 
-  it('integration_provider enum has all 5 providers', () => {
+  it('integration_provider enum has all 7 providers', () => {
     const values = integrationProviderEnum.enumValues
-    expect(values).toHaveLength(5)
+    expect(values).toHaveLength(7)
     expect(values).toContain('digital_guru')
     expect(values).toContain('brevo')
     expect(values).toContain('whatsapp_official')
+    expect(values).toContain('instagram')
+    expect(values).toContain('email')
     expect(values).toContain('notazz')
     expect(values).toContain('analytics')
   })
@@ -81,10 +83,12 @@ describe('webhook_log schema', () => {
       'digital_guru',
       'brevo',
       'whatsapp_official',
+      'instagram',
+      'email',
       'notazz',
       'analytics',
     ]
-    expect(providers).toHaveLength(5)
+    expect(providers).toHaveLength(7)
   })
 
   it('typed insert accepts all status values', () => {

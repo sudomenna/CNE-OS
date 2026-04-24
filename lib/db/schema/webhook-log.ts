@@ -25,6 +25,8 @@ export const integrationProviderEnum = pgEnum('integration_provider', [
   'digital_guru',
   'brevo',
   'whatsapp_official',
+  'instagram',
+  'email',
   'notazz',
   'analytics',
 ])

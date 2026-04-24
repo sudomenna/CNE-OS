@@ -33,57 +33,64 @@ Registrar formalmente demandas, problemas e solicitações que exigem acompanham
 
 ### DDL sketch
 
+> Implementado em `lib/db/schema/ticket.ts` + `supabase/migrations/20260425000003_ticket_schema.sql` (T-3-12).
+
 ```sql
 CREATE TABLE ticket (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  number bigserial NOT NULL,                       -- número humano sequencial (único)
-  brand_id uuid NULL REFERENCES brand(id),
-  contact_id uuid NOT NULL REFERENCES contact(id),
-  origin_conversation_id uuid NULL REFERENCES conversation(id),
-  category ticket_category NOT NULL,
-  priority ticket_priority NOT NULL DEFAULT 'medium',
-  status ticket_status NOT NULL DEFAULT 'open',
-  assigned_user_id uuid NULL REFERENCES user_account(id),
-  due_at timestamptz NULL,
-  subject text NOT NULL,
-  description text NULL,
-  created_by uuid NULL REFERENCES user_account(id),
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now(),
-  closed_at timestamptz NULL,
+  id                     uuid            PRIMARY KEY DEFAULT gen_random_uuid(),
+  number                 bigserial       NOT NULL,  -- número humano sequencial (único)
+  contact_id             uuid            NOT NULL REFERENCES contact(id)       ON DELETE RESTRICT ON UPDATE CASCADE,
+  brand_id               uuid            NULL     REFERENCES brand(id)         ON DELETE SET NULL ON UPDATE CASCADE,
+  -- origin_conversation_id: sem FK formal por ora; será adicionada em migration posterior
+  -- quando conversation existir no mesmo banco (INV-TICKET-02).
+  origin_conversation_id uuid            NULL,
+  status                 ticket_status   NOT NULL DEFAULT 'open',
+  priority               ticket_priority NOT NULL DEFAULT 'medium',
+  category               ticket_category NOT NULL,
+  title                  text            NOT NULL,
+  description            text            NULL,
+  assigned_user_id       uuid            NULL     REFERENCES user_account(id)  ON DELETE SET NULL  ON UPDATE CASCADE,
+  opened_by_user_id      uuid            NOT NULL REFERENCES user_account(id)  ON DELETE RESTRICT  ON UPDATE CASCADE,
+  resolved_at            timestamptz     NULL,
+  created_at             timestamptz     NOT NULL DEFAULT now(),
+  updated_at             timestamptz     NOT NULL DEFAULT now(),
+  deleted_at             timestamptz     NULL,      -- soft-delete
   CONSTRAINT uq_ticket_number UNIQUE (number)
 );
 
 CREATE TABLE ticket_note (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  ticket_id uuid NOT NULL REFERENCES ticket(id) ON DELETE CASCADE,
-  author_user_id uuid NOT NULL REFERENCES user_account(id),
-  body text NOT NULL,
-  created_at timestamptz NOT NULL DEFAULT now()
+  id             uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  ticket_id      uuid        NOT NULL REFERENCES ticket(id)        ON DELETE CASCADE  ON UPDATE CASCADE,
+  author_user_id uuid        NOT NULL REFERENCES user_account(id)  ON DELETE RESTRICT ON UPDATE CASCADE,
+  body           text        NOT NULL,
+  is_internal    boolean     NOT NULL DEFAULT true,  -- true = nota privada para agentes
+  created_at     timestamptz NOT NULL DEFAULT now()
+  -- APPEND-ONLY: trigger bloqueia UPDATE e DELETE
 );
 
 CREATE TABLE ticket_status_history (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  ticket_id uuid NOT NULL REFERENCES ticket(id),
-  from_status ticket_status NULL,
-  to_status ticket_status NOT NULL,
-  changed_by uuid NULL REFERENCES user_account(id),
-  reason text NULL,
-  created_at timestamptz NOT NULL DEFAULT now()
+  id                  uuid          PRIMARY KEY DEFAULT gen_random_uuid(),
+  ticket_id           uuid          NOT NULL REFERENCES ticket(id) ON DELETE RESTRICT ON UPDATE CASCADE,
+  from_status         ticket_status NULL,
+  to_status           ticket_status NOT NULL,
+  changed_by_user_id  uuid          NULL REFERENCES user_account(id) ON DELETE SET NULL ON UPDATE CASCADE,
+  reason              text          NULL,
+  created_at          timestamptz   NOT NULL DEFAULT now()
+  -- APPEND-ONLY: trigger bloqueia UPDATE e DELETE
 );
 
 CREATE TABLE ticket_assignment_history (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  ticket_id uuid NOT NULL REFERENCES ticket(id),
-  from_user_id uuid NULL REFERENCES user_account(id),
-  to_user_id uuid NULL REFERENCES user_account(id),
-  changed_by uuid NULL REFERENCES user_account(id),
-  reason text NULL,
-  created_at timestamptz NOT NULL DEFAULT now()
+  id                  uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  ticket_id           uuid        NOT NULL REFERENCES ticket(id)        ON DELETE RESTRICT ON UPDATE CASCADE,
+  from_user_id        uuid        NULL     REFERENCES user_account(id) ON DELETE SET NULL ON UPDATE CASCADE,
+  to_user_id          uuid        NULL     REFERENCES user_account(id) ON DELETE SET NULL ON UPDATE CASCADE,
+  assigned_by_user_id uuid        NOT NULL REFERENCES user_account(id) ON DELETE RESTRICT ON UPDATE CASCADE,
+  created_at          timestamptz NOT NULL DEFAULT now()
+  -- APPEND-ONLY: trigger bloqueia UPDATE e DELETE
 );
 ```
 
-Triggers bloqueiam UPDATE/DELETE em `ticket_status_history` e `ticket_assignment_history`.
+Triggers bloqueiam UPDATE/DELETE em `ticket_note`, `ticket_status_history` e `ticket_assignment_history`.
 
 ## 4. Relações (ASCII)
 

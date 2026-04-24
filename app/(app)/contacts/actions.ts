@@ -21,7 +21,6 @@ import { toActionResult } from '@/lib/actions/result'
 import { emitTimelineEvent } from '@/lib/timeline/emit'
 import { ActionError } from '@/lib/actions/errors'
 
-// OQ: falta contact.write no RBAC_MATRIX — usando contact.merge como proxy para mutações de contato
 
 // ---------------------------------------------------------------------------
 // Schemas de validação
@@ -70,7 +69,7 @@ const addNoteSchema = z.object({
 
 /**
  * upsertContact — resolve identidade e cria ou atualiza contato.
- * Guard: contact.merge (proxy para mutações de contato — OQ: falta contact.write no RBAC_MATRIX)
+ * Guard: contact.write
  */
 export async function upsertContact(rawInput: unknown): Promise<ReturnType<typeof toActionResult<{
   contactId: string
@@ -79,8 +78,7 @@ export async function upsertContact(rawInput: unknown): Promise<ReturnType<typeo
 }>>> {
   return toActionResult(async () => {
     const ctx = await requireSession()
-    // OQ: contact.write não existe no RBAC_MATRIX; usando contact.merge como proxy
-    await requirePermission(ctx, 'contact.merge', { kind: 'global' })
+    await requirePermission(ctx, 'contact.write', { kind: 'global' })
 
     const input = upsertContactSchema.parse(rawInput)
 
@@ -212,12 +210,12 @@ export async function upsertContact(rawInput: unknown): Promise<ReturnType<typeo
 
 /**
  * addTag — adiciona tag a um contato (idempotente).
- * Guard: contact.merge
+ * Guard: contact.write
  */
 export async function addTag(contactId: string, tag: string, source?: string) {
   return toActionResult(async () => {
     const ctx = await requireSession()
-    await requirePermission(ctx, 'contact.merge', { kind: 'global' })
+    await requirePermission(ctx, 'contact.write', { kind: 'global' })
 
     const input = addTagSchema.parse({ contactId, tag, source })
 
@@ -253,12 +251,12 @@ export async function addTag(contactId: string, tag: string, source?: string) {
 
 /**
  * removeTag — remove tag de um contato.
- * Guard: contact.merge
+ * Guard: contact.write
  */
 export async function removeTag(contactId: string, tag: string) {
   return toActionResult(async () => {
     const ctx = await requireSession()
-    await requirePermission(ctx, 'contact.merge', { kind: 'global' })
+    await requirePermission(ctx, 'contact.write', { kind: 'global' })
 
     const input = removeTagSchema.parse({ contactId, tag })
 
@@ -292,13 +290,13 @@ export async function removeTag(contactId: string, tag: string) {
 
 /**
  * changeStatus — altera status do contato com histórico e audit.
- * Guard: contact.merge
+ * Guard: contact.write
  * BR-MERGE: contato mesclado é imutável.
  */
 export async function changeStatus(contactId: string, toStatus: string, reason?: string) {
   return toActionResult(async () => {
     const ctx = await requireSession()
-    await requirePermission(ctx, 'contact.merge', { kind: 'global' })
+    await requirePermission(ctx, 'contact.write', { kind: 'global' })
 
     const input = changeStatusSchema.parse({ contactId, toStatus, reason })
 
@@ -380,12 +378,12 @@ export async function changeStatus(contactId: string, toStatus: string, reason?:
 
 /**
  * addNote — adiciona nota a um contato.
- * Guard: contact.merge
+ * Guard: contact.write
  */
 export async function addNote(contactId: string, body: string, pinned?: boolean) {
   return toActionResult(async () => {
     const ctx = await requireSession()
-    await requirePermission(ctx, 'contact.merge', { kind: 'global' })
+    await requirePermission(ctx, 'contact.write', { kind: 'global' })
 
     const input = addNoteSchema.parse({ contactId, body, pinned })
 

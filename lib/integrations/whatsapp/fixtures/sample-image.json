@@ -1,0 +1,42 @@
+{
+  "object": "whatsapp_business_account",
+  "entry": [
+    {
+      "id": "102290129340398",
+      "changes": [
+        {
+          "value": {
+            "messaging_product": "whatsapp",
+            "metadata": {
+              "display_phone_number": "15550100000",
+              "phone_number_id": "106540352242922"
+            },
+            "contacts": [
+              {
+                "profile": {
+                  "name": "Maria Santos"
+                },
+                "wa_id": "5511900000002"
+              }
+            ],
+            "messages": [
+              {
+                "from": "5511900000002",
+                "id": "wamid.HBgLNTUxMTkwMDAwMDACFQIAERgSREVGMTIzNDU2Nzg5MAAAAA==",
+                "timestamp": "1700001000",
+                "image": {
+                  "caption": "Segue meu comprovante",
+                  "mime_type": "image/jpeg",
+                  "sha256": "aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899",
+                  "id": "1234567890123456"
+                },
+                "type": "image"
+              }
+            ]
+          },
+          "field": "messages"
+        }
+      ]
+    }
+  ]
+}

@@ -20,8 +20,8 @@ Centralizar conversas omnichannel (WhatsApp, Instagram, e-mail) entre contatos e
 - Interfaces públicas expostas:
   - `openOrReopenConversation(input): Promise<Conversation>`
   - `appendMessage(input): Promise<Message>`
-  - `assignConversation(conversationId, userId): Promise<void>`
-  - `setConversationStatus(conversationId, to: ConversationStatus, reason?): Promise<void>`
+  - `assignConversation(conversationId, toUserId, assignedByUserId): Promise<void>`
+  - `setConversationStatus(conversationId, to, changedByUserId, reason?): Promise<Conversation>`
 
 ## 3. Entidades e campos
 
@@ -42,22 +42,22 @@ Centralizar conversas omnichannel (WhatsApp, Instagram, e-mail) entre contatos e
 CREATE TABLE channel (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   kind channel_kind NOT NULL,
-  label text NOT NULL,
+  name text NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  CONSTRAINT uq_channel_kind UNIQUE (kind)
 );
 
 CREATE TABLE channel_account (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   channel_id uuid NOT NULL REFERENCES channel(id),
-  brand_id uuid NULL REFERENCES brand(id),
+  brand_id uuid NOT NULL REFERENCES brand(id),
   external_id text NOT NULL,             -- identificador no provedor (nº, handle, endereço)
-  display_name text NOT NULL,
-  config jsonb NOT NULL DEFAULT '{}',
+  display_name text NULL,
+  credentials jsonb NULL,                -- chaves/tokens (criptografar na Fase 2)
   is_active boolean NOT NULL DEFAULT true,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT uq_channel_account UNIQUE (channel_id, external_id)
+  CONSTRAINT uq_channel_account UNIQUE (channel_id, brand_id, external_id)
 );
 
 CREATE TABLE conversation (
@@ -67,31 +67,32 @@ CREATE TABLE conversation (
   brand_id uuid NULL REFERENCES brand(id),       -- pode permanecer NULL até classificação manual
   status conversation_status NOT NULL DEFAULT 'open',
   assigned_user_id uuid NULL REFERENCES user_account(id),
+  external_thread_id text NULL,          -- ID do thread no provedor
   last_message_at timestamptz NULL,
-  opened_at timestamptz NOT NULL DEFAULT now(),
-  closed_at timestamptz NULL,
-  funnel_entry_id uuid NULL,
-  transaction_id uuid NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  deleted_at timestamptz NULL
 );
--- Invariante INV-INBOX-01: no máximo 1 conversa ativa por (contact_id, channel_account_id).
+-- INV-INBOX-01: no máximo 1 conversa ativa por (contact_id, channel_account_id).
 CREATE UNIQUE INDEX uq_conversation_active
   ON conversation (contact_id, channel_account_id)
-  WHERE status <> 'closed';
+  WHERE status != 'closed' AND deleted_at IS NULL;
 
 CREATE TABLE message (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  conversation_id uuid NOT NULL REFERENCES conversation(id) ON DELETE CASCADE,
+  conversation_id uuid NOT NULL REFERENCES conversation(id) ON DELETE RESTRICT,
   direction text NOT NULL CHECK (direction IN ('inbound','outbound')),
-  author_user_id uuid NULL REFERENCES user_account(id),
-  external_message_id text NULL,
   body text NOT NULL,
-  payload jsonb NOT NULL DEFAULT '{}',
-  sent_at timestamptz NOT NULL DEFAULT now(),
-  created_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT uq_message_external UNIQUE (conversation_id, external_message_id)
+  external_message_id text NULL,         -- ID único no provedor (idempotência)
+  actor_user_id uuid NULL REFERENCES user_account(id),  -- outbound por humano
+  actor_system text NULL,                -- outbound/inbound por sistema ('whatsapp-webhook')
+  sent_at timestamptz NULL,              -- confirmação de entrega pelo provedor
+  created_at timestamptz NOT NULL DEFAULT now()
 );
+-- INV-INBOX-02: external_message_id único por conversa quando informado.
+CREATE UNIQUE INDEX uq_message_external
+  ON message (conversation_id, external_message_id)
+  WHERE external_message_id IS NOT NULL;
 
 CREATE TABLE message_attachment (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -105,28 +106,27 @@ CREATE TABLE message_attachment (
 
 CREATE TABLE conversation_assignment_history (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  conversation_id uuid NOT NULL REFERENCES conversation(id),
-  from_user_id uuid NULL REFERENCES user_account(id),
-  to_user_id uuid NULL REFERENCES user_account(id),
-  changed_by uuid NULL REFERENCES user_account(id),
-  reason text NULL,
+  conversation_id uuid NOT NULL REFERENCES conversation(id) ON DELETE RESTRICT,
+  from_user_id uuid NULL REFERENCES user_account(id) ON DELETE SET NULL,
+  to_user_id uuid NULL REFERENCES user_account(id) ON DELETE SET NULL,
+  assigned_by_user_id uuid NOT NULL REFERENCES user_account(id) ON DELETE RESTRICT,
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE TABLE conversation_internal_note (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  conversation_id uuid NOT NULL REFERENCES conversation(id) ON DELETE CASCADE,
-  author_user_id uuid NOT NULL REFERENCES user_account(id),
+  conversation_id uuid NOT NULL REFERENCES conversation(id) ON DELETE RESTRICT,
+  author_user_id uuid NOT NULL REFERENCES user_account(id) ON DELETE RESTRICT,
   body text NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE TABLE conversation_status_history (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  conversation_id uuid NOT NULL REFERENCES conversation(id),
+  conversation_id uuid NOT NULL REFERENCES conversation(id) ON DELETE RESTRICT,
   from_status conversation_status NULL,
   to_status conversation_status NOT NULL,
-  changed_by uuid NULL REFERENCES user_account(id),
+  changed_by_user_id uuid NULL REFERENCES user_account(id) ON DELETE SET NULL,  -- NULL quando ator é sistema
   reason text NULL,
   created_at timestamptz NOT NULL DEFAULT now()
 );
