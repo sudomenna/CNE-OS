@@ -35,7 +35,7 @@ Executar regras operacionais, comerciais e de atendimento por meio de fluxos con
 | `automation_execution` | Instância de execução de um fluxo. |
 | `automation_execution_log` | Log append-only por nó executado. |
 
-### DDL sketch
+### DDL sketch (Fase 1 implementada)
 
 ```sql
 CREATE TABLE automation_flow (
@@ -44,7 +44,7 @@ CREATE TABLE automation_flow (
   name text NOT NULL,
   description text NULL,
   is_active boolean NOT NULL DEFAULT false,
-  start_node_id uuid NULL,                       -- FK definida após criação dos nós
+  start_node_id uuid NULL,                       -- FK DEFERRABLE INITIALLY DEFERRED (circular)
   version int NOT NULL DEFAULT 1,
   created_by uuid NULL REFERENCES user_account(id),
   created_at timestamptz NOT NULL DEFAULT now(),
@@ -61,6 +61,8 @@ CREATE TABLE automation_node (
   next_on_true_id uuid NULL REFERENCES automation_node(id),   -- só condition
   next_on_false_id uuid NULL REFERENCES automation_node(id),  -- só condition
   config jsonb NOT NULL DEFAULT '{}',
+  position_x numeric(10,2) NOT NULL DEFAULT 0,               -- coordenada X (editor visual)
+  position_y numeric(10,2) NOT NULL DEFAULT 0,               -- coordenada Y (editor visual)
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
@@ -75,7 +77,7 @@ CREATE TABLE automation_trigger (
 CREATE TABLE automation_condition (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   node_id uuid NOT NULL UNIQUE REFERENCES automation_node(id) ON DELETE CASCADE,
-  expression jsonb NOT NULL,                    -- DSL JSON (ver §8)
+  expr jsonb NOT NULL,                          -- DSL JSON (ver §8)
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
@@ -89,28 +91,31 @@ CREATE TABLE automation_action (
 
 CREATE TABLE automation_execution (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  flow_id uuid NOT NULL REFERENCES automation_flow(id),
-  trigger_kind automation_trigger_kind NOT NULL,
-  trigger_subject_kind text NULL,
-  trigger_subject_id uuid NULL,
+  flow_id uuid NOT NULL REFERENCES automation_flow(id) ON DELETE RESTRICT,
+  subject_kind text NULL,                       -- tipo do subject (ex: 'contact', 'transaction')
+  subject_id uuid NULL,                         -- ID do subject
   status automation_execution_status NOT NULL DEFAULT 'pending',
-  attempts int NOT NULL DEFAULT 0,
-  started_at timestamptz NULL,
-  finished_at timestamptz NULL,
-  last_error text NULL,
+  triggered_at timestamptz NOT NULL DEFAULT now(),  -- quando o evento disparou
+  started_at timestamptz NULL,                  -- quando Inngest começou a executar
+  finished_at timestamptz NULL,                 -- quando terminou (sucesso/falha)
+  error text NULL,                              -- mensagem de erro se falhou
+  retry_count int NOT NULL DEFAULT 0,           -- tentativas realizadas (máx 5)
   idempotency_key text NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT uq_automation_execution_idem UNIQUE (flow_id, idempotency_key)
 );
 
 CREATE TABLE automation_execution_log (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   execution_id uuid NOT NULL REFERENCES automation_execution(id) ON DELETE CASCADE,
-  node_id uuid NOT NULL REFERENCES automation_node(id),
-  status text NOT NULL,                         -- entered, skipped, ok, failed
-  output jsonb NOT NULL DEFAULT '{}',
-  error text NULL,
-  created_at timestamptz NOT NULL DEFAULT now()
+  node_id uuid NOT NULL,                        -- referência informativa do nó
+  node_kind text NOT NULL CHECK (node_kind IN ('trigger', 'condition', 'action')),
+  status text NOT NULL CHECK (status IN ('ok', 'skipped', 'error')),
+  input jsonb,                                  -- contexto de entrada do nó
+  output jsonb,                                 -- resultado produzido pelo nó
+  error text,                                   -- mensagem de erro se o nó falhou
+  executed_at timestamptz NOT NULL DEFAULT now()
 );
 ```
 
@@ -202,7 +207,10 @@ Operadores mínimos: `and`, `or`, `not`, `eq`, `neq`, `gte`, `lte`, `gt`, `lt`, 
 
 ## 11. Eventos de timeline emitidos
 
-- `TE-AUTOMATION-EXECUTED` — payload `{ flow_id, execution_id, status, trigger_kind }`.
+- `TE-AUTOMATION-EXECUTED` — emitido ao fim da execução de um fluxo. Payload: `{ flow_id: string, execution_id: string, action_kind?: string, body?: Record<string, unknown> }` (docs/30-contracts/03-timeline-event-catalog.md).
+- `TE-USER-NOTIFICATION` — emitido pela ação `notify_user`. Payload: `{ user_id: string, message: string, flow_id?: string, execution_id?: string }`.
+
+**Nota (T-11-09):** Hook pós-emissão de qualquer evento mapeado em `TE_KIND_TO_TRIGGER_KIND` dispara `dispatchTrigger`. Kinds `automation_executed` e `user_notification` são exclusos de redisparo (BR-AUTOMATION-LOOP) para evitar loop de auto-reativação.
 
 ## 12. Fluxos relacionados
 

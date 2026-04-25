@@ -44,6 +44,11 @@ export const RBAC_MATRIX: Record<Action, MatrixEntry> = {
   'ticket.cancel':         { roles: ['admin', 'financial', 'support', 'commercial'],                  requires2fa: false },
   // BR-RBAC: catalog.write — criar/arquivar produtos, categorias e benefícios (admin e marketing)
   'catalog.write':         { roles: ['admin', 'marketing'],                                           requires2fa: false },
+  // BR-RBAC: automation.write — criar/editar/publicar/despublicar/deletar fluxos de automação
+  // Commercial não opera automações (operações de configuração de fluxo = admin e marketing)
+  'automation.write':      { roles: ['admin', 'marketing'],                                           requires2fa: false },
+  // BR-RBAC: automation.reprocess — reenfileirar execução com falha na DLQ (admin)
+  'automation.reprocess':  { roles: ['admin'],                                                        requires2fa: false },
 }
 
 /**

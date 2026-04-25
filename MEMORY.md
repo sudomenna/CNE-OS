@@ -45,6 +45,15 @@ Motivo: <por que divergiu>
 Ação: <atualizar doc em <quando> | deliberadamente mantido>
 ```
 
+#### 2026-04-25 · @cne-domain-author · [SYNC-PENDING] · MOD-AUTOMATION · T-11-08
+Doc afetada: `lib/timeline/schemas/index.ts` (KIND_REGISTRY — fora do ownership de MOD-AUTOMATION)
+Divergência: T-11-08 adicionou dois kinds ao KIND_REGISTRY de MOD-TIMELINE:
+  - `automation_executed` (source: MOD-AUTOMATION) — exigido pela action `emit_timeline_event`
+  - `user_notification` (source: MOD-AUTOMATION) — exigido pela action `notify_user` (Fase 1)
+Estes kinds não estavam documentados em `docs/30-contracts/03-timeline-event-catalog.md`.
+Motivo: sem adicionar os kinds ao registry, `emitTimelineEvent` lançaria `UnknownTimelineKindError` bloqueando as actions. A adição é additive/não-destrutiva.
+Ação: T-11-09 ou tarefa de docs-sync deve registrar `TE-AUTOMATION-EXECUTED` e `TE-USER-NOTIFICATION` em `docs/30-contracts/03-timeline-event-catalog.md`.
+
 #### 2026-04-25 · @cne-docs-sync · [SYNCED] · MOD-ANALYTICS · Sprint 10
 Doc afetada: `docs/30-contracts/07-module-interfaces.md` (nova seção MOD-ANALYTICS), `docs/80-roadmap/07-sprint-10-analytics.md` (DoD checklist)
 Ações executadas:

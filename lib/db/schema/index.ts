@@ -16,4 +16,5 @@ export * from './transaction'
 export * from './entitlement'
 export * from './refund'
 export * from './billing'
+export * from './automation'
 

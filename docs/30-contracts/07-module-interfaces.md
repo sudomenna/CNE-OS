@@ -1045,33 +1045,79 @@ export class InvalidRefundStatusError extends RefundDomainError;
 
 ## MOD-AUTOMATION
 
-Onde vive: `lib/domain/automation/index.ts` + `inngest/functions/automation.ts`.
+Onde vive: `lib/domain/automation/dispatch.ts`, `lib/domain/automation/run-flow.ts` + `app/(app)/automations/actions.ts` (Server Actions).
 
-### `triggerFlow`
+### `dispatchTrigger`
 
 ```ts
-export async function triggerFlow(
+export async function dispatchTrigger(
+  tx: DbTx,
   kind: AutomationTriggerKind,
-  subject: {
-    contactId?: string;
-    subjectKind?: string;
-    subjectId?: string;
-    context?: Record<string, unknown>;
-  },
+  subject: TriggerSubject,
+  triggeredAt?: Date,
+): Promise<string[]>;
+```
+- **Contrato:** dispara todos os fluxos ativos com trigger do kind compatível e filter casado. Cria `automation_execution` via inserts (com constraint de idempotência).
+- **Pré:** chamado dentro de transação SQL (pós-emissão em `emitTimelineEvent`, T-11-09).
+- **Pós:** retorna array de `executionIds` criados. Conflitos na constraint `uq_automation_execution_idem` são silenciosos (idempotência).
+- **BRs:** [BR-AUTOMATION-LOOP](../50-business-rules/BR-AUTOMATION-LOOP.md) — kinds `automation_executed` e `user_notification` nunca redisparam.
+- **Tipos:**
+  ```ts
+  export type TriggerSubject = {
+    subjectKind: string;    // ex: 'contact', 'transaction'
+    subjectId: string;
+    data: Record<string, unknown>;  // para filter matching
+  };
+  
+  type AutomationTriggerKind = 'funnel_enter' | 'funnel_stage_change' | 'new_message' | 'checkout_abandoned' | 'sale_approved' | 'ticket_opened' | 'brevo_event' | 'integration_event';
+  ```
+
+### `runFlow`
+
+```ts
+export async function runFlow(
+  executionId: string,
+  ctx: RunFlowContext,
+  options: RunFlowOptions,
+  tx: DbTx,
 ): Promise<void>;
 ```
-- **Contrato:** chamado por qualquer módulo após emitir evento que é gatilho de automação. Enfileira execução; não executa síncrono.
+- **Contrato:** executa uma `automation_execution` já criada (status=pending) nó a nó, registrando logs e atualizando status final.
+- **Chamador:** Inngest job `automation/run`.
+- **Pós:** emite `TE-AUTOMATION-EXECUTED` via `emitTimelineEvent` (dentro da tx).
+- **Erros:** lança `AutomationDomainError` (subtipo: `AutomationNotFoundError`, `AutomationFlowNotFoundError`, `AutomationLoopDetectedError`).
+- **Tipos:**
+  ```ts
+  export type RunFlowContext = {
+    subject: Record<string, unknown>;
+    subjectKind: string;
+    subjectId: string;
+  };
+  
+  export type ActionHandler = (
+    kind: string,
+    params: unknown,
+    ctx: RunFlowContext,
+    tx: DbTx,
+  ) => Promise<unknown>;
+  
+  export type RunFlowOptions = {
+    actionHandler: ActionHandler;
+  };
+  ```
 
-### `executeFlow` (internal)
+### `evalCondition` (pura)
 
 ```ts
-// Chamado pelo Inngest job. Não exportado para outros módulos.
-async function executeFlow(
-  flowId: string,
-  context: Record<string, unknown>,
-): Promise<AutomationExecution>;
+export function evalCondition(
+  expr: ConditionExpr,
+  ctx: Record<string, unknown>,
+): boolean;
 ```
-- **Pós:** emite `TE-AUTOMATION-EXECUTED`.
+- **Contrato:** avalia expressão DSL JSON recursivamente contra contexto. Retorna `true` se condição atende.
+- **Pura:** sem I/O, sem DB.
+- **Operadores suportados:** `and`, `or`, `not`, `eq`, `neq`, `gte`, `lte`, `gt`, `lt`, `in`, `contains`, `has_tag`.
+- **BRs:** docs/20-domain/15-automation.md §8.
 
 ---
 

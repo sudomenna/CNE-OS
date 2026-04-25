@@ -32,6 +32,8 @@ export type Action =
   | 'ticket.open'
   | 'ticket.cancel'
   | 'catalog.write'
+  | 'automation.write'
+  | 'automation.reprocess'
 
 export type Resource =
   | { kind: 'global' }
@@ -42,3 +44,4 @@ export type Resource =
   | { kind: 'campaign'; id: string }
   | { kind: 'funnel'; id: string }
   | { kind: 'catalog' }
+  | { kind: 'automation'; id: string }

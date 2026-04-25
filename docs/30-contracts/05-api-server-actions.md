@@ -619,6 +619,36 @@ Nota: `reprocessWebhook` aplica `SELECT FOR UPDATE` para evitar corrida (FLOW-12
 
 Nota RBAC: `webhook.reprocess` é nova ação na matriz (admin, financial, requires2fa=true). Adicionada em `lib/auth/rbac/types.ts` e `lib/auth/rbac/matrix.ts` para satisfazer FLOW-12 §pré-condições.
 
+### MOD-AUTOMATION — `app/(app)/automations/actions.ts`
+
+| Função | Guard | Audit | Revalida |
+|---|---|---|---|
+| `createFlow(rawInput)` | `automation.write` (admin, marketing) | `create / automation_flow` | `/automations` |
+| `updateFlow(rawInput)` | `automation.write` (admin, marketing) | `update / automation_flow` | `/automations`, `/automations/[id]` |
+| `publishFlow(rawInput)` | `automation.write` (admin, marketing) | `update / automation_flow` | `/automations`, `/automations/[id]` |
+| `unpublishFlow(rawInput)` | `automation.write` (admin, marketing) | `update / automation_flow` | `/automations`, `/automations/[id]` |
+| `deleteFlow(rawInput)` | `automation.write` (admin, marketing) | `delete / automation_flow` | `/automations` |
+| `createNode(rawInput)` | `automation.write` (admin, marketing) | `create / automation_node` | `/automations/[id]` |
+| `updateNode(rawInput)` | `automation.write` (admin, marketing) | `update / automation_node` | `/automations/[id]` |
+| `deleteNode(rawInput)` | `automation.write` (admin, marketing) | `delete / automation_node` | `/automations/[id]` |
+| `upsertTrigger(rawInput)` | `automation.write` (admin, marketing) | `update / automation_trigger` | — |
+| `upsertCondition(rawInput)` | `automation.write` (admin, marketing) | `update / automation_condition` | — |
+| `upsertAction(rawInput)` | `automation.write` (admin, marketing) | `update / automation_action` | — |
+| `reprocessExecution(rawInput)` | `automation.reprocess` (admin) | `other / automation_execution` | `/automations/[id]/executions` |
+
+Notas:
+- `publishFlow` rejeita com `VALIDATION` + `rule: 'INV-AUTOMATION-01'` se `startNodeId IS NULL`.
+- `deleteFlow` é soft-delete (`deletedAt = now(), isActive = false`) — nunca DELETE físico.
+- `deleteNode` é DELETE físico (nó é filho subordinado com `ON DELETE CASCADE` do flow).
+- `upsertCondition` valida `expr` com `conditionExprSchema` antes de persistir (INV-AUTOMATION-04).
+- `upsertAction` valida `params` com `actionParamsSchema` (discriminatedUnion por kind) antes de persistir (INV-AUTOMATION-04).
+- `upsertTrigger` valida `filter` com `triggerFilterSchema` (discriminatedUnion por kind) quando fornecido.
+- `reprocessExecution` só aceita `status='failed'`; cria nova `automation_execution` com `idempotencyKey = "reprocess:<id>:<timestamp>"` e enfileira `automation/run` no Inngest fora da transação SQL.
+
+RBAC novas ações adicionadas em `lib/auth/rbac/types.ts` e `lib/auth/rbac/matrix.ts`:
+- `automation.write`: roles `admin`, `marketing`, `requires2fa: false`
+- `automation.reprocess`: roles `admin`, `requires2fa: false`
+
 ---
 
 ## 13. Open Questions
