@@ -85,7 +85,7 @@ export interface FlowNode {
   actionParams?: Record<string, unknown> | null
 }
 
-interface FlowEditorProps {
+export interface FlowEditorProps {
   flowId: string
   nodes: FlowNode[]
 }

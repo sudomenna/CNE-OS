@@ -8,7 +8,6 @@
 
 import { notFound } from 'next/navigation'
 import { eq, and, isNull, inArray } from 'drizzle-orm'
-import nextDynamic from 'next/dynamic'
 import Link from 'next/link'
 import type { Route } from 'next'
 
@@ -22,19 +21,10 @@ import {
 } from '@/lib/db/schema/automation'
 import { Badge } from '@/components/ui/badge'
 import { FlowPublishButton } from '@/components/automation/flow-publish-button'
+import { FlowEditorLoader } from '@/components/automation/flow-editor-loader'
 import type { FlowNode } from '@/components/automation/flow-editor'
 
 export const dynamic = 'force-dynamic'
-
-// Lazy-load FlowEditor — react-flow não deve ir no bundle SSR
-// docs/80-roadmap/08-sprint-11-automations.md Riscos: "react-flow grande no bundle"
-const FlowEditor = nextDynamic(
-  () =>
-    import('@/components/automation/flow-editor').then((m) => ({
-      default: m.FlowEditor,
-    })),
-  { ssr: false },
-)
 
 // ---------------------------------------------------------------------------
 // Metadata
@@ -192,7 +182,7 @@ function AutomationEditorLayout({
 
       {/* Editor canvas — ocupa o restante da altura */}
       <div className="flex-1 overflow-hidden">
-        <FlowEditor flowId={flowId} nodes={enrichedNodes} />
+        <FlowEditorLoader flowId={flowId} nodes={enrichedNodes} />
       </div>
     </div>
   )
