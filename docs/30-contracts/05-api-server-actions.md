@@ -537,6 +537,61 @@ Nota: `moveStageAction` inclui comentário `// BR-FUNNEL-OPPORTUNITY: drag-drop 
 | `createSalesTargetAction(rawInput)` | `funnel.manage` (admin, marketing, commercial) | `create / sales_target` | `/funnels/[id]/targets`, `/funnels/[id]` |
 | `updateSalesTargetAction(rawInput)` | `funnel.manage` (admin, marketing, commercial) | `update / sales_target` | `/funnels/[id]/targets`, `/funnels/[id]` |
 
+### MOD-CATALOG — `app/(app)/settings/catalog/products/actions.ts`
+
+| Função | Guard | Audit | Revalida |
+|---|---|---|---|
+| `createProductAction(rawInput)` | `catalog.write` (admin, marketing) | `create / product` | `/settings/catalog/products` |
+| `archiveProductAction(rawInput)` | `catalog.write` (admin, marketing) | `update / product` | `/settings/catalog/products` |
+| `listProductsAction(brandId?)` | `requireSession` | — | — |
+| `listBrandsForSelectAction()` | `requireSession` | — | — |
+| `listCategoriesForSelectAction(brandId?)` | `requireSession` | — | — |
+
+Nota: `archiveProductAction` rejeita com `FORBIDDEN` + `rule: 'INV-CATALOG-05'` se o produto estiver referenciado em `offer_condition_item` com condição `status='active'`.
+
+### MOD-CATALOG — `app/(app)/settings/catalog/categories/actions.ts`
+
+| Função | Guard | Audit | Revalida |
+|---|---|---|---|
+| `createCategoryAction(rawInput)` | `catalog.write` (admin, marketing) | `create / product_category` | `/settings/catalog/categories` |
+| `archiveCategoryAction(rawInput)` | `catalog.write` (admin, marketing) | `delete / product_category` | `/settings/catalog/categories` |
+| `listCategoriesAction(brandId?)` | `requireSession` | — | — |
+| `listBrandsForCategorySelectAction()` | `requireSession` | — | — |
+
+Nota: `archiveCategoryAction` efetua exclusão física (DELETE). `product.category_id` e `product_category.parent_id` têm `ON DELETE SET NULL` — nenhuma FK bloqueia a operação. Produtos vinculados ficam sem categoria.
+
+### MOD-CATALOG — `app/(app)/settings/catalog/benefits/actions.ts`
+
+| Função | Guard | Audit | Revalida |
+|---|---|---|---|
+| `createBenefitAction(rawInput)` | `catalog.write` (admin, marketing) | `create / commercial_benefit` | `/settings/catalog/benefits` |
+| `archiveBenefitAction(rawInput)` | `catalog.write` (admin, marketing) | `update / commercial_benefit` | `/settings/catalog/benefits` |
+| `listBenefitsAction(brandId?)` | `requireSession` | — | — |
+| `listBrandsForBenefitSelectAction()` | `requireSession` | — | — |
+
+Nota: `archiveBenefitAction` rejeita com `FORBIDDEN` se o benefício estiver referenciado em condição ativa (`offer_condition.status='active'`).
+
+### MOD-OFFER — `app/(app)/offers/actions.ts`
+
+| Função | Guard | Audit | Revalida |
+|---|---|---|---|
+| `createOfferAction(rawInput)` | `offer.write` (admin, commercial — 2FA) | `create / offer` | `/offers` |
+| `publishOfferAction(rawInput)` | `offer.write` (admin, commercial — 2FA) | `update / offer` | `/offers`, `/offers/[id]` |
+| `archiveOfferAction(rawInput)` | `offer.write` (admin, commercial — 2FA) | `update / offer` | `/offers`, `/offers/[id]` |
+| `createConditionAction(rawInput)` | `offer.write` (admin, commercial — 2FA) | `create / offer_condition` | `/offers/[offerId]` |
+| `updateConditionPriorityAction(rawInput)` | `offer.write` (admin, commercial — 2FA) | `update / offer_condition` | `/offers/[offerId]` |
+| `createRuleGroupAction(rawInput)` | `offer.write` (admin, commercial — 2FA) | `create / offer_condition_rule_group` | `/offers/[offerId]` |
+| `createRuleAction(rawInput)` | `offer.write` (admin, commercial — 2FA) | `create / offer_condition_rule` | `/offers/[offerId]` |
+| `addConditionItemAction(rawInput)` | `offer.write` (admin, commercial — 2FA) | `create / offer_condition_item` | `/offers/[offerId]` |
+| `addPaymentOptionAction(rawInput)` | `offer.write` (admin, commercial — 2FA) | `create / offer_payment_option` | `/offers/[offerId]` |
+
+Notas:
+- `publishOfferAction` rejeita com `VALIDATION_FAILED` + `rule: 'INV-OFFER-01'` se não existir condição padrão (`is_default=true`) com `status='active'`.
+- `createRuleAction` chama `validateRuleParams(kind, params)` antes de persistir; rejeita com `VALIDATION_FAILED` se params não conformam ao schema canônico do kind.
+- `updateConditionPriorityAction` registra em `offer_condition_priority_history` (INV-OFFER-02) na mesma transação.
+- `createOfferAction` faz seed de `offer_sales_counter` com `onConflictDoNothing` (defesa em profundidade contra trigger duplicado de T-6-11).
+- Todas as actions usam `offer.write` que exige 2FA (`requires2fa: true` na RBAC_MATRIX).
+
 ---
 
 ## 13. Open Questions

@@ -549,35 +549,56 @@ export async function recomputeScore(
 
 Onde vive: `lib/domain/catalog/index.ts`.
 
-### `upsertProduct`
+### `normalizeSlug` (pura)
 
 ```ts
-export async function upsertProduct(
-  tx: DbTx,
-  input: {
-    brandId: string;
-    kind: ProductKind;
-    name: string;
-    externalRefs?: Record<string, string>;
-  },
-): Promise<Product>;
+export function normalizeSlug(input: string): string;
 ```
+- **Contrato:** converte qualquer string para kebab-case (lowercase, hífens únicos, sem caracteres especiais).
+- **Pós:** string pronta para validação; não lança erro.
+- **BRs:** INV-CATALOG-03, INV-CATALOG-06.
 
-### `upsertBenefit`
+### `validateSlug` (pura)
 
 ```ts
-export async function upsertBenefit(
-  tx: DbTx,
-  input: {
-    brandId: string;
-    name: string;
-    autoTag?: string;
-    deliveryHint?: string;
-  },
-): Promise<CommercialBenefit>;
+export function validateSlug(slug: string): boolean;
+```
+- **Contrato:** retorna `true` se o slug já normalizado bate com `^[a-z0-9][a-z0-9-]*$`.
+- **Pura:** sem I/O.
+
+### `ensureValidSlug` (pura)
+
+```ts
+export function ensureValidSlug(input: string): string;
+```
+- **Contrato:** normaliza o input e valida; retorna slug válido.
+- **Pós:** lança `InvalidSlugError` se normalizado não passar em `validateSlug`.
+- **BRs:** INV-CATALOG-03, INV-CATALOG-06.
+
+### `resolveAutoTag` (pura)
+
+```ts
+export type AutoTagInput = {
+  auto_tag: string | null | undefined;
+};
+
+export function resolveAutoTag(benefit: AutoTagInput): string | null;
+```
+- **Contrato:** extrai `auto_tag` de um benefício comercial; retorna `null` se vazio, undefined ou null.
+- **Pura:** sem I/O.
+- **Consumidor:** MOD-TRANSACTION ao aprovar venda com benefício.
+- **BRs:** FLOW-BENEFIT-AUTO-TAG.
+
+### Tipos de erro
+
+```ts
+export class CatalogDomainError extends Error;
+export class InvalidSlugError extends CatalogDomainError;
 ```
 
-Leitura: `getProduct(id)`, `getCommercialBenefit(id)`, `resolveAutoTag(benefitId)` expostas para MOD-TRANSACTION.
+### Leitura (Server Actions — T-6-04)
+
+`upsertProduct`, `upsertBenefit`, `getProduct`, `getCommercialBenefit` serão expostas em T-6-04 quando Server Actions forem implementadas.
 
 ---
 
@@ -585,41 +606,65 @@ Leitura: `getProduct(id)`, `getCommercialBenefit(id)`, `resolveAutoTag(benefitId
 
 Onde vive: `lib/domain/offer/index.ts`. **Módulo crítico.**
 
+### `evaluateEligibility` (pura)
+
+```ts
+export type EligibilityContext = {
+  now: Date;
+  contactId: string;
+  campaignId?: string;
+  creativeId?: string;
+  channel?: 'whatsapp' | 'instagram' | 'email';
+  salesCount?: number;              // valor atual de offer_sales_counter.approved_count
+  isInternalUse?: boolean;
+};
+
+export type RuleGroup = {
+  id: string;
+  operator: 'and' | 'or';
+  rules: Rule[];
+  children: RuleGroup[];
+};
+
+export type Rule = {
+  id: string;
+  kind: 'date_range' | 'sales_count_reached' | 'campaign' | 'channel' | 'creative' | 'internal_use';
+  params: unknown;
+};
+
+export function evaluateEligibility(group: RuleGroup, ctx: EligibilityContext): boolean;
+export function evaluateRuleGroup(group: RuleGroup, ctx: EligibilityContext): boolean;
+export function evaluateRule(rule: Rule, ctx: EligibilityContext): boolean;
+```
+- **Contrato:** avalia regra/grupo recursivamente contra contexto; retorna `true` se elegível.
+- **Pura:** sem I/O, sem DB.
+- **BRs:** [BR-OFFER-ELIGIBILITY](../50-business-rules/BR-OFFER-ELIGIBILITY.md).
+
 ### `selectCondition` (CRÍTICO)
 
 ```ts
-export type DecisionContext = {
-  brandId: string;
-  channel: OfferDecisionChannel;
-  campaignId?: string;
-  creativeId?: string;
-  contactId?: string;
-  now: Date;
+export type EligibleCondition = {
+  id: string;
+  priority: number;
+  advantageScore: number;
+  createdAt: Date;
+  isDefault: boolean;
 };
 
-export type DecisionResult = {
-  conditionId: string;
-  reason: string;                  // 'campaign_match' | 'channel_match' | 'fallback' | ...
-  score: number;
-  tiebreakers: string[];
-};
+export type SelectConditionResult =
+  | { kind: 'selected'; conditionId: string }
+  | { kind: 'default'; conditionId: string }
+  | { kind: 'conflict'; conditionIds: string[] }
+  | { kind: 'none' };
 
-export async function selectCondition(
-  offerId: string,
-  ctx: DecisionContext,
-): Promise<DecisionResult>;
+export function selectCondition(
+  conditions: EligibleCondition[],
+): SelectConditionResult;
 ```
-- **Pós:** escolhe condição ativa, elegível, de maior score.
-- **BRs:** [BR-OFFER-DECISION](../50-business-rules/BR-OFFER-DECISION.md), [BR-OFFER-ELIGIBILITY](../50-business-rules/BR-OFFER-ELIGIBILITY.md).
-
-### `evaluateEligibility`
-
-```ts
-export async function evaluateEligibility(
-  conditionId: string,
-  ctx: DecisionContext,
-): Promise<boolean>;
-```
+- **Contrato:** dado lista de condições elegíveis, seleciona 1 via desempate (priority DESC → advantageScore DESC → createdAt DESC).
+- **Pura:** sem I/O, sem DB.
+- **Pós:** `kind='selected'` → vencedor único; `kind='default'` → nenhum candidato mas default existe; `kind='conflict'` → 2+ empatados em tudo; `kind='none'` → nenhum candidato e sem default.
+- **BRs:** [BR-OFFER-DECISION](../50-business-rules/BR-OFFER-DECISION.md).
 
 ### `incrementSalesCounter`
 
@@ -629,8 +674,54 @@ export async function incrementSalesCounter(
   offerId: string,
 ): Promise<number>;
 ```
+- **Contrato:** incrementa atomicamente `offer_sales_counter.approved_count` via `UPDATE ... RETURNING`.
 - **Pré:** chamado **dentro** da transação da venda (atomicidade com `approveTransaction`).
-- **BRs:** [BR-OFFER-DECISION](../50-business-rules/BR-OFFER-DECISION.md) contador.
+- **Pós:** retorna novo valor de `approved_count`; lança `OfferCounterNotFoundError` se linha não existe (oferta sem seed).
+- **BRs:** [BR-OFFER-DECISION](../50-business-rules/BR-OFFER-DECISION.md) contador; [ADR-07](../90-meta/04-decision-log.md) (aceita excesso em race).
+
+### `recordPriorityChange`
+
+```ts
+export type RecordPriorityChangeInput = {
+  conditionId: string;
+  previousPriority: number;
+  newPriority: number;
+  previousAdvantageScore: number;
+  newAdvantageScore: number;
+  changedByUserId: string;
+};
+
+export async function recordPriorityChange(
+  tx: DbTx,
+  input: RecordPriorityChangeInput,
+): Promise<void>;
+```
+- **Contrato:** insere linha em `offer_condition_priority_history` registrando mudança.
+- **Pós:** lança `NoPriorityChangeError` se nenhum campo mudou de fato (sem-op).
+- **BRs:** INV-OFFER-02 (histórico append-only).
+
+### `guardLegalEntityImmutable`
+
+```ts
+export async function guardLegalEntityImmutable(
+  tx: DbTx,
+  offerId: string,
+  newLegalEntityId: string,
+): Promise<void>;
+```
+- **Contrato:** verifica que `issuing_legal_entity_id` pode ser alterado; lança se houver transação approved/pending.
+- **Comportamento atual (pré-Sprint 8):** retorna imediatamente se tabela `transaction` não existe (stub).
+- **Pós:** lança `OfferLegalEntityImmutableError` se há transação blocking.
+- **BRs:** INV-OFFER-03.
+
+### Tipos de erro
+
+```ts
+export class OfferDomainError extends Error;
+export class OfferCounterNotFoundError extends OfferDomainError;
+export class OfferLegalEntityImmutableError extends OfferDomainError;
+export class NoPriorityChangeError extends OfferDomainError;
+```
 
 ---
 

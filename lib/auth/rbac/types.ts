@@ -28,6 +28,7 @@ export type Action =
   | 'inbox.reply'
   | 'ticket.open'
   | 'ticket.cancel'
+  | 'catalog.write'
 
 export type Resource =
   | { kind: 'global' }
@@ -37,3 +38,4 @@ export type Resource =
   | { kind: 'ticket'; id: string }
   | { kind: 'campaign'; id: string }
   | { kind: 'funnel'; id: string }
+  | { kind: 'catalog' }

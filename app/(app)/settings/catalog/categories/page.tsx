@@ -1,0 +1,102 @@
+/**
+ * MOD-CATALOG — Página de Categorias de Produto
+ * Server Component: lista categorias + Client Component para criar/arquivar.
+ * Spec: docs/20-domain/09-catalog.md §3.2, T-6-04
+ */
+
+import { listCategoriesAction, listBrandsForCategorySelectAction } from './actions'
+import { CategoriesClient } from './categories-client'
+
+export const metadata = {
+  title: 'Categorias — Catálogo',
+}
+
+export default async function CategoriesPage() {
+  const [categoriesResult, brandsResult] = await Promise.all([
+    listCategoriesAction(),
+    listBrandsForCategorySelectAction(),
+  ])
+
+  const categories = categoriesResult.ok ? categoriesResult.data : []
+  const brands = brandsResult.ok ? brandsResult.data : []
+
+  // Monta mapa id→name para exibir pai
+  const categoryMap = new Map(categories.map((c) => [c.id, c.name]))
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Categorias</h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Organize os produtos em categorias hierárquicas por marca.
+          </p>
+        </div>
+        <CategoriesClient brands={brands} categories={categories} mode="create-only" />
+      </div>
+
+      {!categoriesResult.ok && (
+        <div
+          role="alert"
+          className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+        >
+          Não foi possível carregar as categorias. Tente recarregar a página.
+        </div>
+      )}
+
+      <div className="rounded-lg border border-slate-200 bg-white overflow-hidden">
+        <table className="w-full text-sm" aria-label="Lista de categorias de produto">
+          <thead className="border-b border-slate-200 bg-slate-50">
+            <tr>
+              <th scope="col" className="px-4 py-3 text-left font-medium text-slate-600">Nome</th>
+              <th scope="col" className="px-4 py-3 text-left font-medium text-slate-600">Slug</th>
+              <th scope="col" className="px-4 py-3 text-left font-medium text-slate-600">Categoria pai</th>
+              <th scope="col" className="px-4 py-3 text-left font-medium text-slate-600">Criado em</th>
+              <th scope="col" className="px-4 py-3 text-left font-medium text-slate-600">
+                <span className="sr-only">Ações</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {categories.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-4 py-8 text-center text-slate-400">
+                  Nenhuma categoria cadastrada.
+                </td>
+              </tr>
+            ) : (
+              categories.map((cat) => (
+                <tr
+                  key={cat.id}
+                  className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors"
+                >
+                  <td className="px-4 py-3 font-medium text-slate-900">{cat.name}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-slate-500">{cat.slug}</td>
+                  <td className="px-4 py-3 text-slate-500">
+                    {cat.parentId ? (
+                      <span>{categoryMap.get(cat.parentId) ?? cat.parentId}</span>
+                    ) : (
+                      <span className="text-slate-300">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-slate-500">
+                    {new Date(cat.createdAt).toLocaleDateString('pt-BR')}
+                  </td>
+                  <td className="px-4 py-3">
+                    <CategoriesClient
+                      brands={brands}
+                      categories={categories}
+                      mode="archive-only"
+                      categoryId={cat.id}
+                      categoryName={cat.name}
+                    />
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}

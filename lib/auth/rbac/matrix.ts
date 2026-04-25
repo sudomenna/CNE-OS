@@ -36,6 +36,8 @@ export const RBAC_MATRIX: Record<Action, MatrixEntry> = {
   'inbox.reply':           { roles: ['admin', 'financial', 'marketing', 'support', 'commercial'],     requires2fa: false },
   'ticket.open':           { roles: ['admin', 'financial', 'marketing', 'support', 'commercial'],     requires2fa: false },
   'ticket.cancel':         { roles: ['admin', 'financial', 'support', 'commercial'],                  requires2fa: false },
+  // BR-RBAC: catalog.write — criar/arquivar produtos, categorias e benefícios (admin e marketing)
+  'catalog.write':         { roles: ['admin', 'marketing'],                                           requires2fa: false },
 }
 
 /**

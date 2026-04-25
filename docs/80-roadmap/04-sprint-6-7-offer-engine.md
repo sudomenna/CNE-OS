@@ -113,3 +113,22 @@ Este sprint estabelece a forma do módulo mais crítico do produto — nenhum ou
 - `OQ-SPRINT67-01` — editor visual usa JSON canônico para regras ou forma tabelar? Hoje JSON-tree (mais flexível).
 - `OQ-SPRINT67-02` — simulador deveria permitir criar contexto a partir de um contato real (auto-fill)? Fase 1 não; campo manual.
 - `OQ-SPRINT67-03` — counter tem "reset" manual para reuso em próxima campanha? Hoje não, cria oferta nova.
+
+## Status atual
+
+**Sprint 6-7 CONCLUÍDO em 2026-04-25.** 25/25 T-IDs ✅. 611 testes Vitest passando, typecheck limpo. Migration `supabase/migrations/20260425000010_offer_engine_full.sql` consolidada e aplicada no Supabase remoto.
+
+**Entregue:**
+- Schema completo MOD-CATALOG (`product_category`, `product`, `commercial_benefit`) e MOD-OFFER (9 tabelas) com partial unique indexes e triggers append-only.
+- Domain puro: `evaluateEligibility` (AND/OR recursivo), `selectCondition` (priority DESC → score DESC → createdAt DESC → conflict), `incrementSalesCounter` (atômico, ADR-07), `recordPriorityChange`, `validateRuleParams` (Zod por kind), `guardLegalEntityImmutable` (stub até Sprint 8).
+- UI completa: lista/criação/detalhe de ofertas, editor visual AND/OR (@dnd-kit), editor de itens com kind exclusivo, simulador de decisão.
+- Catálogo: CRUD produtos/categorias/benefícios.
+- Testes: 10 unit eligibility, 10 unit decision, 6 integration priority-history, integration sales-counter com concorrência, 13 integration complex-offer, E2E flow-04 (6 cenários).
+- Documentação sincronizada: `docs/30-contracts/07-module-interfaces.md` atualizado com todas as assinaturas MOD-CATALOG + MOD-OFFER.
+
+**Pendências transferidas para sprints seguintes:**
+- `guardLegalEntityImmutable` completo (depende de MOD-TRANSACTION, Sprint 8).
+- Drag-drop rearrange de grupos no `rule-group-editor` (TODO Sprint 7 remanescente).
+- `recomputeScore` sem gatilho automático de webhook de compra.
+- RLS das tabelas offer/catalog (multi-tenant real, Sprint 8+).
+- E2E `flow-04` com banco semeado (SEED_E2E).

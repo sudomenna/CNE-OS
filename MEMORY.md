@@ -45,6 +45,15 @@ Motivo: <por que divergiu>
 Ação: <atualizar doc em <quando> | deliberadamente mantido>
 ```
 
+#### 2026-04-25 · @cne-docs-sync · [SYNCED] · Sprint 6-7 — Offer Engine (MOD-CATALOG + MOD-OFFER)
+Modules: MOD-CATALOG (T-6-01..04), MOD-OFFER (T-6-05..25).
+Ações executadas:
+1. **MOD-CATALOG interface:** Adicionadas assinaturas de `normalizeSlug`, `validateSlug`, `ensureValidSlug`, `resolveAutoTag` + erros (`CatalogDomainError`, `InvalidSlugError`).
+2. **MOD-OFFER interface:** Documentados `evaluateEligibility`, `evaluateRuleGroup`, `evaluateRule`, `selectCondition`, `incrementSalesCounter`, `recordPriorityChange`, `guardLegalEntityImmutable` + erros (`OfferDomainError`, `OfferCounterNotFoundError`, `OfferLegalEntityImmutableError`, `NoPriorityChangeError`).
+3. **Enums verificados:** `offer_status`, `offer_condition_status`, `offer_rule_kind`, `offer_rule_operator`, `offer_payment_method`, `offer_condition_item_kind`, `product_kind` já presentes em `docs/30-contracts/01-enums.md`.
+4. **Server Actions:** `docs/30-contracts/05-api-server-actions.md` atualizada com ações de offer + catalog.
+Status: **SINCRONIA RESTAURADA** — Sprint 6-7 doc ↔ código alinhados. SYNC-PENDING T-6-25 resolvido.
+
 #### 2026-04-25 · @cne-docs-sync · [SYNCED] · Sprint 5 — Varredura final doc ↔ código
 Modules implementados: MOD-CAMPAIGN (T-5-01,02,03,04,05,06), MOD-FUNNEL (T-5-07,08,09,10,11,12,13,14), MOD-TIMELINE (T-5-15), RBAC (T-5-10,11).
 Ações de sincronização realizadas:

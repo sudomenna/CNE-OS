@@ -10,4 +10,6 @@ export * from './conversation'
 export * from './ticket'
 export * from './funnel'
 export * from './campaign'
+export * from './catalog'
+export * from './offer'
 
