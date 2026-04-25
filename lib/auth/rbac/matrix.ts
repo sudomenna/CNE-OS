@@ -32,6 +32,8 @@ export const RBAC_MATRIX: Record<Action, MatrixEntry> = {
   'contact.impersonate':   { roles: ['admin', 'financial', 'support', 'commercial'],                  requires2fa: true  },
   'contact.bulk_edit':     { roles: ['admin', 'financial', 'support', 'commercial'],                  requires2fa: true  },
   'integration.configure': { roles: ['admin'],                                                        requires2fa: true  },
+  // BR-RBAC: webhook.reprocess — reprocessar webhook DLQ pode disparar venda/entitlement (FLOW-12)
+  'webhook.reprocess':     { roles: ['admin', 'financial'],                                           requires2fa: true  },
   'user.write':            { roles: ['admin'],                                                        requires2fa: true  },
   'inbox.reply':           { roles: ['admin', 'financial', 'marketing', 'support', 'commercial'],     requires2fa: false },
   'ticket.open':           { roles: ['admin', 'financial', 'marketing', 'support', 'commercial'],     requires2fa: false },

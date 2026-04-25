@@ -97,6 +97,15 @@ Formato: `TE-<KIND>` — `kind` na tabela vira `snake_case` do KIND (ex.: `TE-SA
 | `TE-ENTITLEMENT-EXTENDED` | MOD-ENTITLEMENT | expiração estendida | `{ entitlement_id, from, to }` |
 | `TE-ENTITLEMENT-REVOKED` | MOD-ENTITLEMENT | revogado (por reembolso etc.) | `{ entitlement_id, reason }` |
 
+### Reembolso
+
+| ID | Emissor | Quando | Payload |
+|---|---|---|---|
+| `TE-REFUND-OPENED` | MOD-REFUND | solicitação de reembolso aberta | `{ refund_id, transaction_id, amount, reason, opened_by_user_id }` |
+| `TE-REFUND-APPROVED` | MOD-REFUND | reembolso aprovado por admin/financial | `{ refund_id, transaction_id, approved_by_user_id, note? }` |
+| `TE-REFUND-REJECTED` | MOD-REFUND | reembolso rejeitado | `{ refund_id, transaction_id, rejected_by_user_id, reason }` |
+| `TE-REFUND-PROCESSED` | MOD-REFUND | webhook do provedor confirmou estorno | `{ refund_id, transaction_id, external_refund_id, external_provider }` |
+
 ### Assinatura / Cobrança
 
 | ID | Emissor | Quando |

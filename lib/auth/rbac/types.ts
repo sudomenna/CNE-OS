@@ -24,6 +24,7 @@ export type Action =
   | 'contact.impersonate'
   | 'contact.bulk_edit'
   | 'integration.configure'
+  | 'webhook.reprocess'
   | 'user.write'
   | 'inbox.reply'
   | 'ticket.open'

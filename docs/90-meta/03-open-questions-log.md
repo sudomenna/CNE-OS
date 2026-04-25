@@ -104,6 +104,17 @@ Perguntas pendentes que precisam de decisão do produto/negócio antes de serem 
 - Impacto: bloqueia `pnpm typecheck` — cne-schema-author corrigiu `timeline.ts` ao detectar o erro (fora do ownership declarado; motivo: bloqueio total de typecheck).
 - Status: corrigida inline por T-0-06; aguarda confirmação do responsável por T-0-11.
 
+### OQ-17 — T-8-20: Notazz outbound — suposições documentadas (Fase 1)
+- Origem: `lib/integrations/notazz/send.ts`, `inngest/functions/notazz-send.ts`
+- Contexto: T-8-20 implementou o stub outbound de emissão de NF. Algumas decisões foram necessárias.
+- Perguntas:
+  1. `unit_price` por item: Fase 1 repassa `amount` total para cada item com produto. Fase 2 deve ratear por item?
+  2. `issuingIe` (Inscrição Estadual): Fase 1 não envia — o campo existe em `NotazzIssuer` mas não é populado. Notazz aceita ausência de IE?
+  3. Retry count: `docs/40-integrations/04-notazz.md` define 5×, T-8-20 especificou 3×. Confirmar valor correto para Fase 1.
+  4. CPF fallback via `contact_document.kind='cpf'`: suposição razoável? Alternativa: buscar direto do campo `contact.cpf`.
+- Impacto: OQ-NZ-01 (NCM/CFOP), quantidade de retries, dados fiscais corretos.
+- Status: aberta — implementado com campos mínimos conforme T-8-20 scope.
+
 ---
 
 ## Respondidas

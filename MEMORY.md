@@ -45,6 +45,49 @@ Motivo: <por que divergiu>
 Ação: <atualizar doc em <quando> | deliberadamente mantido>
 ```
 
+#### 2026-04-25 · @cne-docs-sync · [SYNC-PENDING] · MOD-ENTITLEMENT · T-8-08..T-8-10
+Doc afetada: `docs/30-contracts/07-module-interfaces.md` §MOD-ENTITLEMENT
+Divergência: 
+1. Arquivo `lib/domain/entitlement/revoke.ts` implementa `revokeByTransaction(tx, transactionId, reason): Promise<CustomerEntitlement[]>`, mas **NÃO está re-exportado** em `lib/domain/entitlement/index.ts`. Consumo real (MOD-REFUND.approveRefund linha 30) faz direct import: `from '@/lib/domain/entitlement/revoke'`.
+2. Documentação em `docs/30-contracts/07-module-interfaces.md` lista `revokeEntitlement(tx, entitlementId, reason): Promise<void>` como interface pública — assinatura DIFERENTE da implementação real.
+3. Implementação real: `revokeByTransaction(tx: DbTx, transactionId: string, reason: string): Promise<CustomerEntitlement[]>` — revoga **todos os ativos de uma transação**, não um entitlement individual.
+Motivo: T-8-09 implementou interface por transação (conserte com MOD-REFUND que revoga em lote); 07-module-interfaces.md tem stubs antigos de T-0-xx.
+Ação: 
+- Atualizar `docs/30-contracts/07-module-interfaces.md` com assinatura real: `revokeByTransaction(tx, transactionId, reason)` com tipo correto.
+- Decidir: deveria `revokeByTransaction` estar re-exportada em `lib/domain/entitlement/index.ts`? Padrão projeto recomenda tudo no index.ts. Se sim, adicionar ao exports; senão, documentar pattern de "direct import de submodulo".
+
+#### 2026-04-25 · @cne-docs-sync · [SYNCED] · MOD-TRANSACTION, MOD-ENTITLEMENT · T-8-07..T-8-10
+Doc afetada: `docs/30-contracts/07-module-interfaces.md` §MOD-TRANSACTION e §MOD-ENTITLEMENT
+Ações executadas:
+1. **MOD-TRANSACTION interface:**
+   - Renomeado `createTransaction` → `createPendingTransaction` (refletindo assinatura real em `lib/domain/transaction/create-pending.ts`).
+   - Expandida descrição com pré-condição BR-OFFER-UNIQUENESS e campos reais (offerConditionId, offerPaymentOptionId em vez de conditionId).
+   - Adicionada função pura `composeSnapshot(offer, condition, items, paymentOption, context): TransactionSnapshotPayload`.
+   - Adicionada função `flagSnapshotRefunded(tx, snapshotId, refundId): Promise<void>` consumida por MOD-REFUND (T-8-19).
+2. **MOD-ENTITLEMENT interface:**
+   - Renomeado `grantEntitlement` → `grantFromTransaction` (refletindo assinatura real de T-8-08).
+   - Adicionada função `revokeByTransaction(tx, transactionId, reason): Promise<CustomerEntitlement[]>` (T-8-09) — **revoga todos de uma transação**, não individual.
+   - Mantida função pura `consolidate` com assinatura correta.
+   - Adicionados tipos de erro: `EntitlementDomainError`, `TransactionSnapshotNotFoundError`, `TransactionNotFoundError`, `EntitlementNotFoundError`.
+3. **Nota de design:** `revokeByTransaction` está implementada em `lib/domain/entitlement/revoke.ts` mas NÃO re-exportada em `index.ts`. Consumo é via direct import (padrão projeto — pendente decisão se deveria estar em index.ts).
+Status: **ALINHAMENTO PARCIAL** — assinaturas documentadas. Pendência: decidir se `revokeByTransaction` deveria estar em `index.ts` exports (escalar para cne-br-auditor).
+
+#### 2026-04-25 · @cne-docs-sync · [SYNCED] · MOD-REFUND · T-8-18..T-8-20
+Referência: [SYNC-PENDING] 2026-04-25 anterior sobre MOD-REFUND.
+Doc afetada: `docs/30-contracts/07-module-interfaces.md` §MOD-REFUND, `docs/20-domain/14-refund.md` §2, `docs/30-contracts/03-timeline-event-catalog.md` §Reembolso
+Ações executadas:
+1. Atualizado `docs/30-contracts/07-module-interfaces.md § MOD-REFUND`:
+   - Corrigido nome de `requestRefund` → `openRefund` (nome canônico implementado em T-8-18).
+   - Expandidas assinaturas de `approveRefund` (8 efeitos atômicos listados), `rejectRefund`, `markProcessed` refletindo código real.
+   - Adicionados tipos de erro: `RefundDomainError`, `RefundNotFoundError`, `RefundTransactionNotFoundError`, `TransactionNotApprovedError`, `ActiveRefundExistsError`, `InvalidRefundStatusError`.
+2. Atualizado `docs/20-domain/14-refund.md` §2:
+   - Adicionada `refund_status_history` ao ownership de `lib/db/schema/refund.ts`.
+   - Atualizada seção de interfaces públicas com assinaturas reais e parametrização de funções.
+3. Adicionada seção **Reembolso** em `docs/30-contracts/03-timeline-event-catalog.md`:
+   - Documentados 4 novos kinds de timeline: `TE-REFUND-OPENED`, `TE-REFUND-APPROVED`, `TE-REFUND-REJECTED`, `TE-REFUND-PROCESSED`.
+   - Payloads e emissores especificados.
+Status: **SINCRONIA RESTAURADA** — MOD-REFUND doc ↔ código alinhados. SYNC-PENDING de 2026-04-25 resolvido.
+
 #### 2026-04-25 · @cne-docs-sync · [SYNCED] · Sprint 6-7 — Offer Engine (MOD-CATALOG + MOD-OFFER)
 Modules: MOD-CATALOG (T-6-01..04), MOD-OFFER (T-6-05..25).
 Ações executadas:

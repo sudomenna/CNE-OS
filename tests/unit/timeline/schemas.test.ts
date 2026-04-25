@@ -3,7 +3,7 @@
  *
  * docs/30-contracts/03-timeline-event-catalog.md
  * docs/20-domain/04-timeline.md INV-TIMELINE-04
- * T-3-15
+ * T-3-15, T-8-21
  *
  * For every kind registered: valid payload passes, invalid payload fails.
  */
@@ -23,16 +23,21 @@ function valid(kind: string, payload: Record<string, unknown>) {
   const entry = KIND_REGISTRY[kind]
   if (!entry) throw new Error(`KIND_REGISTRY has no entry for kind "${kind}"`)
   const result = entry.schema.safeParse(payload)
-  expect(result.success, `Expected "${kind}" to accept payload: ${JSON.stringify(payload)} — errors: ${
-    result.success ? '' : JSON.stringify((result as { error: unknown }).error)
-  }`).toBe(true)
+  expect(
+    result.success,
+    `Expected "${kind}" to accept payload: ${JSON.stringify(payload)} — errors: ${
+      result.success ? '' : JSON.stringify((result as { error: unknown }).error)
+    }`,
+  ).toBe(true)
 }
 
 function invalid(kind: string, payload: Record<string, unknown>) {
   const entry = KIND_REGISTRY[kind]
   if (!entry) throw new Error(`KIND_REGISTRY has no entry for kind "${kind}"`)
   const result = entry.schema.safeParse(payload)
-  expect(result.success, `Expected "${kind}" to REJECT payload: ${JSON.stringify(payload)}`).toBe(false)
+  expect(result.success, `Expected "${kind}" to REJECT payload: ${JSON.stringify(payload)}`).toBe(
+    false,
+  )
 }
 
 // ---------------------------------------------------------------------------
@@ -135,17 +140,211 @@ describe('BR-TIMELINE — contact_unmerged schema', () => {
 })
 
 // ---------------------------------------------------------------------------
-// Transaction
+// Sale events (T-8-21)
 // ---------------------------------------------------------------------------
-describe('BR-TIMELINE — sale_approved schema', () => {
-  it('given valid transaction fields when parsed then success', () => {
-    valid('sale_approved', { transaction_id: UUID_A, amount: 99.9, offer_id: UUID_B })
+describe('BR-TIMELINE — sale_pending schema', () => {
+  it('given valid transaction, offer and condition when parsed then success', () => {
+    valid('sale_pending', {
+      transaction_id: UUID_A,
+      offer_id: UUID_B,
+      condition_id: UUID_A,
+    })
   })
-  it('given negative amount when parsed then fails', () => {
-    invalid('sale_approved', { transaction_id: UUID_A, amount: -50, offer_id: UUID_B })
+  it('given missing condition_id when parsed then fails', () => {
+    invalid('sale_pending', { transaction_id: UUID_A, offer_id: UUID_B })
+  })
+  it('given non-UUID transaction_id when parsed then fails', () => {
+    invalid('sale_pending', { transaction_id: 'bad', offer_id: UUID_B, condition_id: UUID_A })
+  })
+})
+
+describe('BR-TIMELINE — sale_approved schema', () => {
+  it('given valid transaction, offer, condition and snapshot when parsed then success', () => {
+    valid('sale_approved', {
+      transaction_id: UUID_A,
+      offer_id: UUID_B,
+      condition_id: UUID_A,
+      snapshot_id: UUID_B,
+    })
+  })
+  it('given missing snapshot_id when parsed then fails', () => {
+    invalid('sale_approved', {
+      transaction_id: UUID_A,
+      offer_id: UUID_B,
+      condition_id: UUID_A,
+    })
   })
   it('given missing offer_id when parsed then fails', () => {
-    invalid('sale_approved', { transaction_id: UUID_A, amount: 50 })
+    invalid('sale_approved', {
+      transaction_id: UUID_A,
+      condition_id: UUID_A,
+      snapshot_id: UUID_B,
+    })
+  })
+})
+
+describe('BR-TIMELINE — sale_refused schema', () => {
+  it('given valid transaction and reason when parsed then success', () => {
+    valid('sale_refused', { transaction_id: UUID_A, reason: 'insufficient funds' })
+  })
+  it('given empty reason when parsed then fails', () => {
+    invalid('sale_refused', { transaction_id: UUID_A, reason: '' })
+  })
+  it('given missing transaction_id when parsed then fails', () => {
+    invalid('sale_refused', { reason: 'card declined' })
+  })
+})
+
+describe('BR-TIMELINE — sale_refunded schema', () => {
+  it('given valid transaction, refund and reason when parsed then success', () => {
+    valid('sale_refunded', {
+      transaction_id: UUID_A,
+      refund_id: UUID_B,
+      reason: 'customer request',
+    })
+  })
+  it('given missing refund_id when parsed then fails', () => {
+    invalid('sale_refunded', { transaction_id: UUID_A, reason: 'request' })
+  })
+  it('given empty reason when parsed then fails', () => {
+    invalid('sale_refunded', { transaction_id: UUID_A, refund_id: UUID_B, reason: '' })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Entitlement events (T-8-21)
+// ---------------------------------------------------------------------------
+describe('BR-TIMELINE — entitlement_granted schema', () => {
+  it('given required fields when parsed then success', () => {
+    valid('entitlement_granted', {
+      entitlement_id: UUID_A,
+      kind: 'product_access',
+      ref_id: UUID_B,
+    })
+  })
+  it('given optional ends_at when parsed then success', () => {
+    valid('entitlement_granted', {
+      entitlement_id: UUID_A,
+      kind: 'benefit',
+      ref_id: UUID_B,
+      ends_at: '2027-01-01T00:00:00.000Z',
+    })
+  })
+  it('given invalid kind enum when parsed then fails', () => {
+    invalid('entitlement_granted', {
+      entitlement_id: UUID_A,
+      kind: 'unknown_kind',
+      ref_id: UUID_B,
+    })
+  })
+  it('given missing ref_id when parsed then fails', () => {
+    invalid('entitlement_granted', { entitlement_id: UUID_A, kind: 'other' })
+  })
+})
+
+describe('BR-TIMELINE — entitlement_extended schema', () => {
+  it('given valid entitlement and datetime range when parsed then success', () => {
+    valid('entitlement_extended', {
+      entitlement_id: UUID_A,
+      from: '2026-01-01T00:00:00.000Z',
+      to: '2027-01-01T00:00:00.000Z',
+    })
+  })
+  it('given missing from when parsed then fails', () => {
+    invalid('entitlement_extended', {
+      entitlement_id: UUID_A,
+      to: '2027-01-01T00:00:00.000Z',
+    })
+  })
+  it('given invalid datetime string when parsed then fails', () => {
+    invalid('entitlement_extended', {
+      entitlement_id: UUID_A,
+      from: 'not-a-datetime',
+      to: '2027-01-01T00:00:00.000Z',
+    })
+  })
+})
+
+describe('BR-TIMELINE — entitlement_revoked schema', () => {
+  it('given valid entitlement and reason when parsed then success', () => {
+    valid('entitlement_revoked', {
+      entitlement_id: UUID_A,
+      reason: 'refund processed',
+    })
+  })
+  it('given empty reason when parsed then fails', () => {
+    invalid('entitlement_revoked', { entitlement_id: UUID_A, reason: '' })
+  })
+  it('given missing entitlement_id when parsed then fails', () => {
+    invalid('entitlement_revoked', { reason: 'refund processed' })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Subscription stub (T-8-21)
+// ---------------------------------------------------------------------------
+describe('BR-TIMELINE — te_subscription_stub schema', () => {
+  it('given subscription_id and event_type when parsed then success', () => {
+    valid('te_subscription_stub', {
+      subscription_id: 'sub_abc123',
+      event_type: 'TE-SUBSCRIPTION-STARTED',
+    })
+  })
+  it('given missing event_type when parsed then fails', () => {
+    invalid('te_subscription_stub', { subscription_id: 'sub_abc123' })
+  })
+  it('given empty subscription_id when parsed then fails', () => {
+    invalid('te_subscription_stub', {
+      subscription_id: '',
+      event_type: 'TE-SUBSCRIPTION-RENEWED',
+    })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Refund lifecycle events (T-8-21)
+// ---------------------------------------------------------------------------
+describe('BR-TIMELINE — refund_opened schema', () => {
+  it('given valid refund, transaction and reason when parsed then success', () => {
+    valid('refund_opened', {
+      refund_id: UUID_A,
+      transaction_id: UUID_B,
+      reason: 'product not delivered',
+    })
+  })
+  it('given missing reason when parsed then fails', () => {
+    invalid('refund_opened', { refund_id: UUID_A, transaction_id: UUID_B })
+  })
+  it('given empty reason when parsed then fails', () => {
+    invalid('refund_opened', { refund_id: UUID_A, transaction_id: UUID_B, reason: '' })
+  })
+})
+
+describe('BR-TIMELINE — refund_approved schema', () => {
+  it('given valid refund and transaction when parsed then success', () => {
+    valid('refund_approved', { refund_id: UUID_A, transaction_id: UUID_B })
+  })
+  it('given missing transaction_id when parsed then fails', () => {
+    invalid('refund_approved', { refund_id: UUID_A })
+  })
+  it('given non-UUID refund_id when parsed then fails', () => {
+    invalid('refund_approved', { refund_id: 'not-uuid', transaction_id: UUID_B })
+  })
+})
+
+describe('BR-TIMELINE — refund_rejected schema', () => {
+  it('given valid refund, transaction and reason when parsed then success', () => {
+    valid('refund_rejected', {
+      refund_id: UUID_A,
+      transaction_id: UUID_B,
+      reason: 'policy violation',
+    })
+  })
+  it('given missing reason when parsed then fails', () => {
+    invalid('refund_rejected', { refund_id: UUID_A, transaction_id: UUID_B })
+  })
+  it('given empty reason when parsed then fails', () => {
+    invalid('refund_rejected', { refund_id: UUID_A, transaction_id: UUID_B, reason: '' })
   })
 })
 
@@ -558,24 +757,55 @@ describe('KIND_REGISTRY — structural invariants', () => {
 
   const expectedKinds = [
     // contact
-    'contact_created', 'contact_updated', 'contact_tag_added', 'contact_tag_removed',
-    'contact_blacklisted', 'contact_issue_opened', 'contact_issue_resolved',
-    'contact_merged', 'contact_unmerged',
-    // transaction
+    'contact_created',
+    'contact_updated',
+    'contact_tag_added',
+    'contact_tag_removed',
+    'contact_blacklisted',
+    'contact_issue_opened',
+    'contact_issue_resolved',
+    'contact_merged',
+    'contact_unmerged',
+    // sale events (T-8-21)
+    'sale_pending',
     'sale_approved',
+    'sale_refused',
+    'sale_refunded',
+    // entitlement events (T-8-21)
+    'entitlement_granted',
+    'entitlement_extended',
+    'entitlement_revoked',
+    // subscription stub (T-8-21)
+    'te_subscription_stub',
+    // refund events (T-8-21)
+    'refund_opened',
+    'refund_approved',
+    'refund_rejected',
     // inbox messages
-    'message_inbound', 'message_outbound',
+    'message_inbound',
+    'message_outbound',
     // inbox conversation
-    'conversation_opened', 'conversation_reopened', 'conversation_closed',
-    'conversation_assigned', 'conversation_unassigned', 'conversation_status_changed',
+    'conversation_opened',
+    'conversation_reopened',
+    'conversation_closed',
+    'conversation_assigned',
+    'conversation_unassigned',
+    'conversation_status_changed',
     // ticket
-    'ticket_opened', 'ticket_status_changed', 'ticket_resolved',
-    'ticket_reopened', 'ticket_assigned', 'ticket_unassigned',
+    'ticket_opened',
+    'ticket_status_changed',
+    'ticket_resolved',
+    'ticket_reopened',
+    'ticket_assigned',
+    'ticket_unassigned',
     // campaign
     'campaign_link_clicked',
     // funnel / opportunity
-    'funnel_entered', 'funnel_stage_changed', 'opportunity_label_changed',
-    'opportunity_won', 'opportunity_lost',
+    'funnel_entered',
+    'funnel_stage_changed',
+    'opportunity_label_changed',
+    'opportunity_won',
+    'opportunity_lost',
   ]
 
   it('given KIND_REGISTRY when checked then all expected kinds are present', () => {

@@ -727,27 +727,32 @@ export class NoPriorityChangeError extends OfferDomainError;
 
 ## MOD-TRANSACTION
 
-Onde vive: `lib/domain/transaction/index.ts`.
+Onde vive: `lib/domain/transaction/index.ts`. **Módulo crítico — gerencia transações com snapshot imutável e atomicidade.**
 
-### `createTransaction`
+### `createPendingTransaction`
 
 ```ts
 export type CreateTransactionInput = {
   contactId: string;
   brandId: string;
   offerId: string;
-  conditionId: string;
+  offerConditionId: string;
+  offerPaymentOptionId: string;
   amount: string;                  // numeric(12,2) como string
-  paymentMethod: OfferPaymentMethod;
-  externalRef?: string;
+  currency?: string;               // default 'BRL'
+  externalProvider?: string | null;
+  externalId?: string | null;
+  externalFee?: string | null;
 };
 
-export async function createTransaction(
+export async function createPendingTransaction(
   tx: DbTx,
   input: CreateTransactionInput,
 ): Promise<Transaction>;
 ```
-- **Pós:** transação `pending`; emite `TE-SALE-PENDING`.
+- **Pós:** cria transação com status `pending`; **não emite evento** (emissão é responsabilidade da Server Action).
+- **Pré:** valida BR-OFFER-UNIQUENESS — lança `DuplicateOfferPurchaseError` se contato já possui transação `approved` para a mesma oferta.
+- **BRs:** [BR-OFFER-UNIQUENESS](../50-business-rules/BR-OFFER-UNIQUENESS.md).
 
 ### `approveTransaction`
 
@@ -772,6 +777,34 @@ export async function refuseTransaction(
 ```
 - **Pós:** emite `TE-SALE-REFUSED`.
 
+### `flagSnapshotRefunded`
+
+```ts
+export async function flagSnapshotRefunded(
+  tx: DbTx,
+  snapshotId: string,
+  refundId: string,
+): Promise<void>;
+```
+- **Pós:** insere linha em `transaction_snapshot_flag_history` com `to_flag='refunded'`; **nunca** atualiza `transaction_snapshot.payload` (BR-SNAPSHOT-IMMUTABILITY).
+- **Contexto:** chamado por MOD-REFUND ao aprovar reembolso (T-8-19).
+- **BRs:** [BR-SNAPSHOT-IMMUTABILITY](../50-business-rules/BR-SNAPSHOT-IMMUTABILITY.md).
+
+### `composeSnapshot` (pura)
+
+```ts
+export function composeSnapshot(
+  offer: Offer,
+  condition: OfferCondition,
+  items: OfferConditionItem[],
+  paymentOption: OfferPaymentOption,
+  context?: { campaignId?: string; creativeId?: string; channel?: string; isInternal?: boolean },
+): TransactionSnapshotPayload;
+```
+- **Contrato:** compõe payload v1 do snapshot a partir de dados de oferta, condição, itens e contexto.
+- **Pura:** sem I/O, sem DB.
+- **Retorna:** `TransactionSnapshotPayload` tipado.
+
 ### `createSnapshot` (internal)
 
 ```ts
@@ -784,44 +817,61 @@ async function createSnapshot(tx: DbTx, transactionId: string): Promise<Transact
 
 ## MOD-ENTITLEMENT
 
-Onde vive: `lib/domain/entitlement/index.ts`.
+Onde vive: `lib/domain/entitlement/index.ts` (re-exports de `consolidate.ts`, `grant.ts`) + `lib/domain/entitlement/revoke.ts` (import direto). **Módulo crítico — gerencia direitos com consolidação automática e revogação em lote.**
 
-### `grantEntitlement`
+### `grantFromTransaction`
 
 ```ts
-export async function grantEntitlement(
+export async function grantFromTransaction(
   tx: DbTx,
   input: {
     contactId: string;
-    kind: EntitlementKind;
-    refId: string;                 // ex.: product_id ou benefit_id
+    transactionSnapshotId: string;
     sourceTransactionId: string;
-    endsAt?: Date | null;
+    emitFn?: EmitFn;
   },
-): Promise<Entitlement>;
+): Promise<CustomerEntitlement[]>;
 ```
-- **Pós:** emite `TE-ENTITLEMENT-GRANTED` ou `TE-ENTITLEMENT-EXTENDED`.
+- **Pós:** para cada item no snapshot, consolida entitlement ativo ou cria novo com status `active`; emite `TE-ENTITLEMENT-GRANTED` ou `TE-ENTITLEMENT-EXTENDED`.
+- **Contexto:** chamado por MOD-TRANSACTION ao aprovar venda (T-8-11).
+- **BRs:** [BR-ENTITLEMENT-CONSOLIDATION](../50-business-rules/BR-ENTITLEMENT-CONSOLIDATION.md).
 
-### `consolidateEntitlement` (pura)
+### `consolidate` (pura)
 
 ```ts
-export function consolidateEntitlement(
-  existing: Entitlement | null,
-  incoming: Omit<Entitlement, 'id' | 'createdAt'>,
+export function consolidate(
+  existing: CustomerEntitlement | null,
+  incoming: Omit<CustomerEntitlement, 'id' | 'createdAt'>,
 ): ConsolidationResult;
 ```
-- Função pura, testável sem DB.
+- **Contrato:** dado direito existente (ou null) e novo, retorna resultado consolidado.
+- **Pura:** sem I/O, sem DB; testável isoladamente.
+- **Retorna:** `{ action: 'create'|'extend'|'noop', result?: Entitlement }`
+- **BRs:** [BR-ENTITLEMENT-CONSOLIDATION](../50-business-rules/BR-ENTITLEMENT-CONSOLIDATION.md).
 
-### `revokeEntitlement`
+### `revokeByTransaction`
 
 ```ts
-export async function revokeEntitlement(
+export async function revokeByTransaction(
   tx: DbTx,
-  entitlementId: string,
+  transactionId: string,
   reason: string,
-): Promise<void>;
+): Promise<CustomerEntitlement[]>;
 ```
-- **Pós:** emite `TE-ENTITLEMENT-REVOKED`.
+- **Contrato:** revoga **todos os direitos ativos** originados de uma transação específica.
+- **Pós:** atualiza `status='revoked'` para cada; grava `entitlement_status_history`; emite `TE-ENTITLEMENT-REVOKED` por direito.
+- **Retorna:** lista de entitlements revogados.
+- **Contexto:** chamado por MOD-REFUND ao aprovar reembolso (T-8-19); reclassifica contato após revogação.
+- **BRs:** [BR-REFUND](../50-business-rules/BR-REFUND.md) §7 passo 3.
+
+### Tipos de erro
+
+```ts
+export class EntitlementDomainError extends Error;
+export class TransactionSnapshotNotFoundError extends EntitlementDomainError;
+export class TransactionNotFoundError extends EntitlementDomainError;
+export class EntitlementNotFoundError extends EntitlementDomainError;
+```
 
 ---
 
@@ -880,12 +930,12 @@ export async function recordInstallment(
 
 ## MOD-REFUND
 
-Onde vive: `lib/domain/refund/index.ts`.
+Onde vive: `lib/domain/refund/index.ts`. **Módulo crítico — implementa fluxo end-to-end de reembolso com 8 efeitos colaterais atômicos (T-8-18, T-8-19, T-8-20).**
 
-### `requestRefund`
+### `openRefund`
 
 ```ts
-export async function requestRefund(
+export async function openRefund(
   tx: DbTx,
   input: {
     transactionId: string;
@@ -895,6 +945,9 @@ export async function requestRefund(
   },
 ): Promise<Refund>;
 ```
+- **Pós:** cria linha em `refund` com status `requested`; emite `TE-REFUND-OPENED`.
+- **Pré:** transação deve estar `approved` (guard em domain).
+- **BRs:** [BR-REFUND](../50-business-rules/BR-REFUND.md), INV-REFUND-01 (máx 1 ativo por transaction).
 
 ### `approveRefund`
 
@@ -904,8 +957,17 @@ export async function approveRefund(
   input: { refundId: string; approverUserId: string; note?: string },
 ): Promise<Refund>;
 ```
-- **Pós atômico:** `revokeEntitlement` (via MOD-ENTITLEMENT) + `flagSnapshotRefunded` (via MOD-TRANSACTION) + `TE-SALE-REFUNDED`.
-- **BRs:** [BR-REFUND](../50-business-rules/BR-REFUND.md), [BR-RBAC](../50-business-rules/BR-RBAC.md).
+- **Pós atômico (8 efeitos em ordem canônica):**
+  1. Update `refund.status='approved'`, grava `refund_status_history`
+  2. Flag snapshot: INSERT em `transaction_snapshot_flag_history` com `to_flag='refunded'`
+  3. Revoga entitlements: chamar `revokeByTransaction` (via MOD-ENTITLEMENT)
+  4. Reclassifica contato (se aplicável): chamar `reclassifyContact` (via MOD-CONTACT)
+  5. Reverte oportunidade no funil (se aplicável): chamar `moveStage` (via MOD-FUNNEL)
+  6. Cancela assinatura (se houver): chamar `cancelSubscription` (via MOD-BILLING)
+  7. Grava `refund_effect_log` para cada efeito
+  8. Emite timeline: `TE-SALE-REFUNDED`, `TE-ENTITLEMENT-REVOKED` (delegado), `TE-CONTACT-CLASSIFICATION-CHANGED` (delegado), `TE-OPPORTUNITY-LABEL-CHANGED` (delegado), `TE-SUBSCRIPTION-CANCELLED` (delegado)
+- **Atomicidade:** falha em qualquer passo → ROLLBACK total.
+- **BRs:** [BR-REFUND](../50-business-rules/BR-REFUND.md) §7, [BR-SNAPSHOT-IMMUTABILITY](../50-business-rules/BR-SNAPSHOT-IMMUTABILITY.md), [BR-RBAC](../50-business-rules/BR-RBAC.md) (só admin/financial).
 
 ### `rejectRefund`
 
@@ -914,6 +976,30 @@ export async function rejectRefund(
   tx: DbTx,
   input: { refundId: string; approverUserId: string; reason: string },
 ): Promise<Refund>;
+```
+- **Pós:** update `refund.status='rejected'`; grava `refund_status_history`; emite `TE-REFUND-REJECTED`.
+- **BRs:** [BR-RBAC](../50-business-rules/BR-RBAC.md) (só admin/financial).
+
+### `markProcessed`
+
+```ts
+export async function markProcessed(
+  tx: DbTx,
+  input: { refundId: string; externalRefundId: string; externalProvider: IntegrationProvider },
+): Promise<Refund>;
+```
+- **Pós:** update `refund.status='processed'`, preenche `external_refund_id` e `external_provider`; grava `refund_status_history`; emite `TE-REFUND-PROCESSED`.
+- **Contexto:** chamado por webhook do provedor após confirmar estorno. Idempotente via `externalRefundId` (BR-INTEGRATION-IDEMPOTENCY).
+
+### Tipos de erro
+
+```ts
+export class RefundDomainError extends Error;
+export class RefundNotFoundError extends RefundDomainError;
+export class RefundTransactionNotFoundError extends RefundDomainError;
+export class TransactionNotApprovedError extends RefundDomainError;
+export class ActiveRefundExistsError extends RefundDomainError;           // INV-REFUND-01: 2ª solicitação ativa bloqueada
+export class InvalidRefundStatusError extends RefundDomainError;
 ```
 
 ---

@@ -50,6 +50,51 @@ export type {
   OpportunityLost,
 } from './funnel-events'
 
+// ── Sale events (T-8-21) ─────────────────────────────────────────────────────
+export {
+  salePendingPayloadSchema,
+  saleApprovedPayloadSchema,
+  saleRefusedPayloadSchema,
+  saleRefundedPayloadSchema,
+} from './sale-events'
+
+export type {
+  SalePendingPayload,
+  SaleApprovedPayload,
+  SaleRefusedPayload,
+  SaleRefundedPayload,
+} from './sale-events'
+
+// ── Entitlement events (T-8-21) ──────────────────────────────────────────────
+export {
+  entitlementGrantedPayloadSchema,
+  entitlementExtendedPayloadSchema,
+  entitlementRevokedPayloadSchema,
+} from './entitlement-events'
+
+export type {
+  EntitlementGrantedPayload,
+  EntitlementExtendedPayload,
+  EntitlementRevokedPayload,
+} from './entitlement-events'
+
+// ── Subscription stub (T-8-21) ───────────────────────────────────────────────
+export { subscriptionStubPayloadSchema } from './subscription-stub'
+export type { SubscriptionStubPayload } from './subscription-stub'
+
+// ── Refund events (T-8-21) ───────────────────────────────────────────────────
+export {
+  refundOpenedPayloadSchema,
+  refundApprovedPayloadSchema,
+  refundRejectedPayloadSchema,
+} from './refund-events'
+
+export type {
+  RefundOpenedPayload,
+  RefundApprovedPayload,
+  RefundRejectedPayload,
+} from './refund-events'
+
 // ── Internal imports for registry ───────────────────────────────────────────
 import {
   ticketOpenedSchema,
@@ -80,6 +125,27 @@ import {
   opportunityWonSchema,
   opportunityLostSchema,
 } from './funnel-events'
+
+import {
+  salePendingPayloadSchema,
+  saleApprovedPayloadSchema,
+  saleRefusedPayloadSchema,
+  saleRefundedPayloadSchema,
+} from './sale-events'
+
+import {
+  entitlementGrantedPayloadSchema,
+  entitlementExtendedPayloadSchema,
+  entitlementRevokedPayloadSchema,
+} from './entitlement-events'
+
+import { subscriptionStubPayloadSchema } from './subscription-stub'
+
+import {
+  refundOpenedPayloadSchema,
+  refundApprovedPayloadSchema,
+  refundRejectedPayloadSchema,
+} from './refund-events'
 
 type KindEntry = {
   source: ModuleSource
@@ -158,14 +224,67 @@ export const KIND_REGISTRY: KindRegistry = {
     }),
   },
 
-  // ── Transaction (MOD-TRANSACTION) ────────────────────────────────────────
+  // ── Sale events (MOD-TRANSACTION / MOD-REFUND) ───────────────────────────
+  // TE-SALE-PENDING: docs/30-contracts/03-timeline-event-catalog.md
+  sale_pending: {
+    source: 'MOD-TRANSACTION',
+    schema: salePendingPayloadSchema,
+  },
+  // TE-SALE-APPROVED
   sale_approved: {
     source: 'MOD-TRANSACTION',
-    schema: z.object({
-      transaction_id: z.string().uuid(),
-      amount: z.number().positive(),
-      offer_id: z.string().uuid(),
-    }),
+    schema: saleApprovedPayloadSchema,
+  },
+  // TE-SALE-REFUSED
+  sale_refused: {
+    source: 'MOD-TRANSACTION',
+    schema: saleRefusedPayloadSchema,
+  },
+  // TE-SALE-REFUNDED
+  sale_refunded: {
+    source: 'MOD-REFUND',
+    schema: saleRefundedPayloadSchema,
+  },
+
+  // ── Entitlement events (MOD-ENTITLEMENT) ─────────────────────────────────
+  // TE-ENTITLEMENT-GRANTED
+  entitlement_granted: {
+    source: 'MOD-ENTITLEMENT',
+    schema: entitlementGrantedPayloadSchema,
+  },
+  // TE-ENTITLEMENT-EXTENDED
+  entitlement_extended: {
+    source: 'MOD-ENTITLEMENT',
+    schema: entitlementExtendedPayloadSchema,
+  },
+  // TE-ENTITLEMENT-REVOKED
+  entitlement_revoked: {
+    source: 'MOD-ENTITLEMENT',
+    schema: entitlementRevokedPayloadSchema,
+  },
+
+  // ── Subscription stub (MOD-BILLING — Sprint 9+) ──────────────────────────
+  // Covers TE-SUBSCRIPTION-* and TE-INSTALLMENT-* until MOD-BILLING is implemented
+  te_subscription_stub: {
+    source: 'MOD-BILLING',
+    schema: subscriptionStubPayloadSchema,
+  },
+
+  // ── Refund lifecycle events (MOD-REFUND) ─────────────────────────────────
+  // TE-REFUND-OPENED
+  refund_opened: {
+    source: 'MOD-REFUND',
+    schema: refundOpenedPayloadSchema,
+  },
+  // TE-REFUND-APPROVED
+  refund_approved: {
+    source: 'MOD-REFUND',
+    schema: refundApprovedPayloadSchema,
+  },
+  // TE-REFUND-REJECTED
+  refund_rejected: {
+    source: 'MOD-REFUND',
+    schema: refundRejectedPayloadSchema,
   },
 
   // ── Inbox / conversation (MOD-INBOX) ─────────────────────────────────────

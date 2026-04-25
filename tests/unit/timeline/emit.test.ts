@@ -285,18 +285,24 @@ describe('BR-TIMELINE — happy path', () => {
   })
 
   it('timeline.insert.happy — valid sale_approved is accepted', async () => {
+    const saleApprovedPayload = {
+      transaction_id: FIXED_ID,
+      offer_id: FIXED_ID,
+      condition_id: FIXED_ID,
+      snapshot_id: FIXED_ID,
+    }
     mockReturning.mockResolvedValueOnce([{
       ...happyRow,
       kind: 'sale_approved',
       source: 'MOD-TRANSACTION',
-      payload: { transaction_id: FIXED_ID, amount: 99.9, offer_id: FIXED_ID },
+      payload: saleApprovedPayload,
     }])
 
     const result = await emitTimelineEvent({
       ...baseInput,
       kind: 'sale_approved',
       source: 'MOD-TRANSACTION',
-      payload: { transaction_id: FIXED_ID, amount: 99.9, offer_id: FIXED_ID },
+      payload: saleApprovedPayload,
     })
 
     expect(result.kind).toBe('sale_approved')

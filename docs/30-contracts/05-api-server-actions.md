@@ -592,6 +592,18 @@ Notas:
 - `createOfferAction` faz seed de `offer_sales_counter` com `onConflictDoNothing` (defesa em profundidade contra trigger duplicado de T-6-11).
 - Todas as actions usam `offer.write` que exige 2FA (`requires2fa: true` na RBAC_MATRIX).
 
+### MOD-INTEGRATIONS — `app/(app)/settings/webhooks/actions.ts`
+
+| Função | Guard | Audit | Revalida |
+|---|---|---|---|
+| `getWebhookLogs(rawInput)` | `requireSession` | — | — |
+| `getWebhookLog(rawInput)` | `requireSession` | — | — |
+| `reprocessWebhook(rawInput)` | `webhook.reprocess` (admin, financial — 2FA) | `other / webhook_log` | `/settings/webhooks`, `/settings/webhooks/[id]` |
+
+Nota: `reprocessWebhook` aplica `SELECT FOR UPDATE` para evitar corrida (FLOW-12 §E-04); reseta `status='received', attempts=0, lastError=null`; enfileira `digital-guru/webhook.received` no Inngest fora da transação SQL. Apenas `status IN ('failed', 'dead_letter')` pode ser reprocessado — outros retornam `CONFLICT`.
+
+Nota RBAC: `webhook.reprocess` é nova ação na matriz (admin, financial, requires2fa=true). Adicionada em `lib/auth/rbac/types.ts` e `lib/auth/rbac/matrix.ts` para satisfazer FLOW-12 §pré-condições.
+
 ---
 
 ## 13. Open Questions
