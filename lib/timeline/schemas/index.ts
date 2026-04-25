@@ -78,9 +78,28 @@ export type {
   EntitlementRevokedPayload,
 } from './entitlement-events'
 
-// ── Subscription stub (T-8-21) ───────────────────────────────────────────────
-export { subscriptionStubPayloadSchema } from './subscription-stub'
-export type { SubscriptionStubPayload } from './subscription-stub'
+// ── Subscription / Installment events (MOD-BILLING, T-9-17) ─────────────────
+export {
+  TeSubscriptionStartedSchema,
+  TeSubscriptionRenewedSchema,
+  TeSubscriptionPastDueSchema,
+  TeSubscriptionCancelledSchema,
+} from './subscription-events'
+export type {
+  TeSubscriptionStarted,
+  TeSubscriptionRenewed,
+  TeSubscriptionPastDue,
+  TeSubscriptionCancelled,
+} from './subscription-events'
+
+export {
+  TeInstallmentPaidSchema,
+  TeInstallmentOverdueSchema,
+} from './installment-events'
+export type {
+  TeInstallmentPaid,
+  TeInstallmentOverdue,
+} from './installment-events'
 
 // ── Refund events (T-8-21) ───────────────────────────────────────────────────
 export {
@@ -139,7 +158,16 @@ import {
   entitlementRevokedPayloadSchema,
 } from './entitlement-events'
 
-import { subscriptionStubPayloadSchema } from './subscription-stub'
+import {
+  TeSubscriptionStartedSchema,
+  TeSubscriptionRenewedSchema,
+  TeSubscriptionPastDueSchema,
+  TeSubscriptionCancelledSchema,
+} from './subscription-events'
+import {
+  TeInstallmentPaidSchema,
+  TeInstallmentOverdueSchema,
+} from './installment-events'
 
 import {
   refundOpenedPayloadSchema,
@@ -263,11 +291,31 @@ export const KIND_REGISTRY: KindRegistry = {
     schema: entitlementRevokedPayloadSchema,
   },
 
-  // ── Subscription stub (MOD-BILLING — Sprint 9+) ──────────────────────────
-  // Covers TE-SUBSCRIPTION-* and TE-INSTALLMENT-* until MOD-BILLING is implemented
-  te_subscription_stub: {
+  // ── Subscription events (MOD-BILLING, T-9-17) ────────────────────────────
+  subscription_started: {
     source: 'MOD-BILLING',
-    schema: subscriptionStubPayloadSchema,
+    schema: TeSubscriptionStartedSchema,
+  },
+  subscription_renewed: {
+    source: 'MOD-BILLING',
+    schema: TeSubscriptionRenewedSchema,
+  },
+  subscription_past_due: {
+    source: 'MOD-BILLING',
+    schema: TeSubscriptionPastDueSchema,
+  },
+  subscription_cancelled: {
+    source: 'MOD-BILLING',
+    schema: TeSubscriptionCancelledSchema,
+  },
+  // ── Installment events (MOD-BILLING, T-9-17) ──────────────────────────────
+  installment_paid: {
+    source: 'MOD-BILLING',
+    schema: TeInstallmentPaidSchema,
+  },
+  installment_overdue: {
+    source: 'MOD-BILLING',
+    schema: TeInstallmentOverdueSchema,
   },
 
   // ── Refund lifecycle events (MOD-REFUND) ─────────────────────────────────

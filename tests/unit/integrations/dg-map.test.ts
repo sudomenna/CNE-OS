@@ -17,8 +17,11 @@ import type {
   DgPurchasePendingEvent,
   DgPurchaseRefusedEvent,
   DgPurchaseRefundedEvent,
-  DgSubscriptionStubEvent,
-  DgInstallmentStubEvent,
+  DgSubscriptionCreatedEvent,
+  DgSubscriptionRenewedEvent,
+  DgSubscriptionCancelledEvent,
+  DgInstallmentPaidEvent,
+  DgInstallmentOverdueEvent,
 } from '@/lib/integrations/digital-guru/map'
 
 // ---------------------------------------------------------------------------
@@ -188,53 +191,104 @@ describe('mapDigitalGuruEvent — purchase.refunded', () => {
 })
 
 // ---------------------------------------------------------------------------
-// 5. subscription.* stubs
+// 5. subscription.* eventos completos (Sprint 9)
 // ---------------------------------------------------------------------------
 
-describe('mapDigitalGuruEvent — subscription.* (stub Sprint 9)', () => {
-  it.each([
-    'subscription.created',
-    'subscription.renewed',
-    'subscription.cancelled',
-    'subscription.past_due',
-  ])('mapeia %s para kind=subscription_stub preservando raw', (eventType) => {
+describe('mapDigitalGuruEvent — subscription.created', () => {
+  it('mapeia subscription.created para kind=subscription_created com externalSubscriptionId', () => {
     const event = buildEvent({
-      event_type: eventType,
+      event_type: 'subscription.created',
       data: {
+        transaction: { ...baseTransaction },
         subscription: { id: 'sub_xyz', current_period_end: '2025-03-15T00:00:00Z' },
       },
     })
-    const result = mapDigitalGuruEvent(event) as DgSubscriptionStubEvent
+    const result = mapDigitalGuruEvent(event) as DgSubscriptionCreatedEvent
 
-    expect(result.kind).toBe('subscription_stub')
+    expect(result.kind).toBe('subscription_created')
     expect(result.externalEventId).toBe('evt_test_001')
-    expect(result.eventType).toBe(eventType)
-    expect(result.raw).toBe(event)
+    expect(result.externalSubscriptionId).toBe('sub_xyz')
+    expect(result.externalTransactionId).toBe('txn_001')
+  })
+})
+
+describe('mapDigitalGuruEvent — subscription.renewed', () => {
+  it('mapeia subscription.renewed para kind=subscription_renewed com periodEnd', () => {
+    const event = buildEvent({
+      event_type: 'subscription.renewed',
+      data: {
+        subscription: { id: 'sub_xyz', current_period_end: '2025-03-15T00:00:00Z', current_period_start: '2025-02-15T00:00:00Z' },
+      },
+    })
+    const result = mapDigitalGuruEvent(event) as DgSubscriptionRenewedEvent
+
+    expect(result.kind).toBe('subscription_renewed')
+    expect(result.externalSubscriptionId).toBe('sub_xyz')
+    expect(result.periodEnd).toBe('2025-03-15T00:00:00Z')
+  })
+})
+
+describe('mapDigitalGuruEvent — subscription.cancelled / subscription.canceled', () => {
+  it('mapeia subscription.cancelled para kind=subscription_cancelled', () => {
+    const event = buildEvent({
+      event_type: 'subscription.cancelled',
+      data: {
+        subscription: { id: 'sub_xyz' },
+        reason: 'churn',
+      },
+    })
+    const result = mapDigitalGuruEvent(event) as DgSubscriptionCancelledEvent
+
+    expect(result.kind).toBe('subscription_cancelled')
+    expect(result.externalSubscriptionId).toBe('sub_xyz')
+    expect(result.reason).toBe('churn')
+  })
+
+  it('mapeia subscription.canceled (alias americano) para kind=subscription_cancelled', () => {
+    const event = buildEvent({
+      event_type: 'subscription.canceled',
+      data: {
+        subscription: { id: 'sub_xyz2' },
+      },
+    })
+    const result = mapDigitalGuruEvent(event) as DgSubscriptionCancelledEvent
+
+    expect(result.kind).toBe('subscription_cancelled')
+    expect(result.reason).toBe('external') // fallback
   })
 })
 
 // ---------------------------------------------------------------------------
-// 6. installment.* stubs
+// 6. installment.* eventos completos (Sprint 9)
 // ---------------------------------------------------------------------------
 
-describe('mapDigitalGuruEvent — installment.* (stub Sprint 9)', () => {
-  it.each(['installment.paid', 'installment.overdue'])(
-    'mapeia %s para kind=installment_stub preservando raw',
-    (eventType) => {
-      const event = buildEvent({
-        event_type: eventType,
-        data: {
-          installment: { id: 'inst_abc', due_at: '2024-04-01T00:00:00Z' },
-        },
-      })
-      const result = mapDigitalGuruEvent(event) as DgInstallmentStubEvent
+describe('mapDigitalGuruEvent — installment.paid / installment.overdue', () => {
+  it('mapeia installment.paid para kind=installment_paid com externalInstallmentId', () => {
+    const event = buildEvent({
+      event_type: 'installment.paid',
+      data: {
+        installment: { id: 'inst_abc', due_at: '2024-04-01T00:00:00Z' },
+      },
+    })
+    const result = mapDigitalGuruEvent(event) as DgInstallmentPaidEvent
 
-      expect(result.kind).toBe('installment_stub')
-      expect(result.externalEventId).toBe('evt_test_001')
-      expect(result.eventType).toBe(eventType)
-      expect(result.raw).toBe(event)
-    },
-  )
+    expect(result.kind).toBe('installment_paid')
+    expect(result.externalInstallmentId).toBe('inst_abc')
+    expect(result.externalEventId).toBe('evt_test_001')
+  })
+
+  it('mapeia installment.overdue para kind=installment_overdue com externalInstallmentId', () => {
+    const event = buildEvent({
+      event_type: 'installment.overdue',
+      data: {
+        installment: { id: 'inst_def', due_at: '2024-04-01T00:00:00Z' },
+      },
+    })
+    const result = mapDigitalGuruEvent(event) as DgInstallmentOverdueEvent
+
+    expect(result.kind).toBe('installment_overdue')
+    expect(result.externalInstallmentId).toBe('inst_def')
+  })
 })
 
 // ---------------------------------------------------------------------------

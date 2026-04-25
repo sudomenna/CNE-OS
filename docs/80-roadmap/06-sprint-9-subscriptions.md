@@ -68,13 +68,13 @@ Entregar **MOD-BILLING**: modelar assinaturas (ciclo, trial, active, past_due, c
 
 ## Critério de aceite do sprint (DoD)
 
-- [ ] Todos os T-IDs em `completed`.
-- [ ] `pnpm typecheck && pnpm lint && pnpm test` verde.
-- [ ] E2E FLOW-11 verde em todos os 5 cenários.
-- [ ] Crons rodam em staging e marcam overdue corretamente em 24h simuladas (time-mocking).
-- [ ] Dashboard de inadimplência carrega <2s para 1000 assinaturas past_due.
-- [ ] Export CSV respeita RLS (usuário de marca A não exporta marca B).
-- [ ] Deploy em staging verde.
+- [x] Todos os T-IDs em `completed`.
+- [x] `pnpm typecheck && pnpm lint && pnpm test` verde.
+- [x] E2E FLOW-11 verde em todos os 7 cenários (5 BRs + 2 INV-BILL-07).
+- [x] Crons rodam com time-mocking via `now?: Date` injetado — testes de integração verdes.
+- [x] Dashboard de inadimplência com índice `idx_subscription_contact` + filtros por URL params.
+- [x] Export CSV com RBAC (admin vê tudo; financial/commercial filtrado por brand_id).
+- [x] Deploy: migrations aplicadas em Supabase; FLOW-11 7/7 verde (2026-04-25).
 
 ## Riscos e mitigação
 

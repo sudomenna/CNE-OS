@@ -1,0 +1,259 @@
+/**
+ * /billing/subscriptions/[id] — Detalhe de assinatura.
+ * Server Component.
+ * T-9-14: docs/20-domain/13-subscription-billing.md §3.1, §3.2, §6.1
+ *
+ * - Cabeçalho com status, período e info de cancelamento
+ * - Tabela de installments com botão de retry (overdue)
+ * - Botão "Cancelar assinatura" visível apenas para admin/financial
+ */
+
+import { notFound } from 'next/navigation'
+import Link from 'next/link'
+import type { Route } from 'next'
+import { Badge } from '@/components/ui/badge'
+import { InstallmentTable } from '@/components/billing/installment-table'
+import { CancelSubscriptionButton } from '@/components/billing/cancel-subscription-button'
+import { getSubscriptionAction } from '../queries'
+import { requireSession } from '@/lib/auth/session'
+
+// ---------------------------------------------------------------------------
+// Helpers de status
+// ---------------------------------------------------------------------------
+
+type SubscriptionStatus = 'trial' | 'active' | 'past_due' | 'paused' | 'cancelled' | 'expired'
+
+const STATUS_LABEL: Record<SubscriptionStatus, string> = {
+  trial: 'Trial',
+  active: 'Ativa',
+  past_due: 'Inadimplente',
+  paused: 'Pausada',
+  cancelled: 'Cancelada',
+  expired: 'Expirada',
+}
+
+const STATUS_VARIANT: Record<SubscriptionStatus, 'default' | 'secondary' | 'outline' | 'destructive'> = {
+  trial: 'secondary',
+  active: 'default',
+  past_due: 'destructive',
+  paused: 'secondary',
+  cancelled: 'outline',
+  expired: 'outline',
+}
+
+function formatDateTime(date: Date | null) {
+  if (!date) return '—'
+  return new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(date))
+}
+
+function formatDate(date: Date | null) {
+  if (!date) return '—'
+  return new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(new Date(date))
+}
+
+// ---------------------------------------------------------------------------
+// Metadados
+// ---------------------------------------------------------------------------
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  return { title: `Assinatura ${id.slice(0, 8)}... — CNE-OS` }
+}
+
+// ---------------------------------------------------------------------------
+// Página principal
+// ---------------------------------------------------------------------------
+
+export default async function SubscriptionDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id } = await params
+
+  // Busca dados + sessão em paralelo
+  const [subResult, ctx] = await Promise.all([
+    getSubscriptionAction({ id }),
+    requireSession(),
+  ])
+
+  if (!subResult.ok) {
+    if (subResult.error.code === 'NOT_FOUND') notFound()
+    throw new Error(subResult.error.message)
+  }
+
+  const sub = subResult.data
+
+  // RBAC: botão de cancelar visível apenas para admin e financial
+  // O Server Action valida por conta própria — aqui apenas controlamos visibilidade UI
+  const canManage = ctx.user.role === 'admin' || ctx.user.role === 'financial'
+
+  // Assinatura pode ser cancelada apenas quando status não é já cancelled/expired
+  const canCancel = canManage && sub.status !== 'cancelled' && sub.status !== 'expired'
+
+  return (
+    <div className="space-y-8 max-w-4xl">
+      {/* Breadcrumb */}
+      <nav aria-label="Breadcrumb" className="text-sm text-slate-500">
+        <ol className="flex items-center gap-2">
+          <li>
+            <Link
+              href={'/billing/subscriptions' as Route}
+              className="hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 rounded"
+            >
+              Assinaturas
+            </Link>
+          </li>
+          <li aria-hidden="true" className="text-slate-300">
+            /
+          </li>
+          <li
+            className="font-medium text-slate-900 truncate max-w-[200px]"
+            aria-current="page"
+          >
+            {id.slice(0, 8)}...
+          </li>
+        </ol>
+      </nav>
+
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="space-y-1">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-slate-900">Assinatura</h1>
+            <Badge variant={STATUS_VARIANT[sub.status as SubscriptionStatus]}>
+              {STATUS_LABEL[sub.status as SubscriptionStatus] ?? sub.status}
+            </Badge>
+          </div>
+          <p className="text-sm text-slate-500 font-mono">{sub.id}</p>
+        </div>
+
+        {canCancel && (
+          <CancelSubscriptionButton subscriptionId={sub.id} />
+        )}
+      </div>
+
+      {/* Informacoes da assinatura */}
+      <section
+        aria-labelledby="info-heading"
+        className="rounded-lg border border-slate-200 bg-white"
+      >
+        <h2
+          id="info-heading"
+          className="px-6 py-4 text-sm font-semibold text-slate-700 border-b border-slate-200"
+        >
+          Informacoes da Assinatura
+        </h2>
+        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 px-6 py-5">
+          <div>
+            <dt className="text-xs font-medium text-slate-500">Contato</dt>
+            <dd className="mt-1 text-sm text-slate-900">
+              <Link
+                href={`/contacts/${sub.contactId}` as Route}
+                className="text-slate-700 hover:text-slate-900 underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 rounded"
+              >
+                {sub.contactName}
+              </Link>
+            </dd>
+          </div>
+
+          <div>
+            <dt className="text-xs font-medium text-slate-500">Oferta</dt>
+            <dd className="mt-1 text-sm text-slate-900">
+              <Link
+                href={`/offers/${sub.offerId}` as Route}
+                className="text-slate-700 hover:text-slate-900 underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 rounded"
+              >
+                {sub.offerName}
+              </Link>
+            </dd>
+          </div>
+
+          <div>
+            <dt className="text-xs font-medium text-slate-500">Periodo atual</dt>
+            <dd className="mt-1 text-sm text-slate-900 tabular-nums">
+              {formatDate(sub.currentPeriodStart)} – {formatDate(sub.currentPeriodEnd)}
+            </dd>
+          </div>
+
+          <div>
+            <dt className="text-xs font-medium text-slate-500">Proximo billing</dt>
+            <dd className="mt-1 text-sm text-slate-900 tabular-nums">
+              {formatDateTime(sub.nextBillingAt)}
+            </dd>
+          </div>
+
+          {sub.trialEndsAt && (
+            <div>
+              <dt className="text-xs font-medium text-slate-500">Fim do trial</dt>
+              <dd className="mt-1 text-sm text-slate-900 tabular-nums">
+                {formatDateTime(sub.trialEndsAt)}
+              </dd>
+            </div>
+          )}
+
+          <div>
+            <dt className="text-xs font-medium text-slate-500">Criada em</dt>
+            <dd className="mt-1 text-sm text-slate-900 tabular-nums">
+              {formatDateTime(sub.createdAt)}
+            </dd>
+          </div>
+
+          {sub.cancelledAt && (
+            <div>
+              <dt className="text-xs font-medium text-slate-500">Cancelada em</dt>
+              <dd className="mt-1 text-sm text-slate-900 tabular-nums">
+                {formatDateTime(sub.cancelledAt)}
+              </dd>
+            </div>
+          )}
+
+          {sub.cancelReason && (
+            <div className="sm:col-span-2">
+              <dt className="text-xs font-medium text-slate-500">Motivo do cancelamento</dt>
+              <dd className="mt-1 text-sm text-slate-700">{sub.cancelReason}</dd>
+            </div>
+          )}
+
+          {sub.externalProvider && (
+            <div>
+              <dt className="text-xs font-medium text-slate-500">Provedor externo</dt>
+              <dd className="mt-1 text-sm text-slate-900">{sub.externalProvider}</dd>
+            </div>
+          )}
+
+          {sub.externalId && (
+            <div>
+              <dt className="text-xs font-medium text-slate-500">ID externo</dt>
+              <dd className="mt-1 text-sm text-slate-900 font-mono">{sub.externalId}</dd>
+            </div>
+          )}
+        </dl>
+      </section>
+
+      {/* Parcelas */}
+      <section aria-labelledby="installments-heading">
+        <h2
+          id="installments-heading"
+          className="text-lg font-semibold text-slate-900 mb-3"
+        >
+          Parcelas ({sub.installments.length})
+        </h2>
+        <InstallmentTable
+          installments={sub.installments}
+          canRetry={canManage}
+        />
+      </section>
+    </div>
+  )
+}

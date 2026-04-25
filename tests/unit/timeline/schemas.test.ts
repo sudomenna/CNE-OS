@@ -281,22 +281,54 @@ describe('BR-TIMELINE — entitlement_revoked schema', () => {
 })
 
 // ---------------------------------------------------------------------------
-// Subscription stub (T-8-21)
+// Subscription / Installment events (MOD-BILLING, T-9-17)
 // ---------------------------------------------------------------------------
-describe('BR-TIMELINE — te_subscription_stub schema', () => {
-  it('given subscription_id and event_type when parsed then success', () => {
-    valid('te_subscription_stub', {
-      subscription_id: 'sub_abc123',
-      event_type: 'TE-SUBSCRIPTION-STARTED',
+describe('BR-TIMELINE — subscription_started schema', () => {
+  it('given valid active subscription when parsed then success', () => {
+    valid('subscription_started', {
+      subscriptionId: UUID_A,
+      contactId: UUID_B,
+      offerId: UUID_A,
+      status: 'active',
     })
   })
-  it('given missing event_type when parsed then fails', () => {
-    invalid('te_subscription_stub', { subscription_id: 'sub_abc123' })
+  it('given invalid status when parsed then fails', () => {
+    invalid('subscription_started', {
+      subscriptionId: UUID_A,
+      contactId: UUID_B,
+      offerId: UUID_A,
+      status: 'cancelled',
+    })
   })
-  it('given empty subscription_id when parsed then fails', () => {
-    invalid('te_subscription_stub', {
-      subscription_id: '',
-      event_type: 'TE-SUBSCRIPTION-RENEWED',
+})
+
+describe('BR-TIMELINE — subscription_cancelled schema', () => {
+  it('given valid cancellation when parsed then success', () => {
+    valid('subscription_cancelled', {
+      subscriptionId: UUID_A,
+      contactId: UUID_B,
+      reason: 'admin_cancel',
+      currentPeriodEnd: new Date().toISOString(),
+    })
+  })
+})
+
+describe('BR-TIMELINE — installment_paid schema', () => {
+  it('given valid paid installment when parsed then success', () => {
+    valid('installment_paid', {
+      installmentId: UUID_A,
+      amount: 99.9,
+      paidAt: new Date().toISOString(),
+    })
+  })
+})
+
+describe('BR-TIMELINE — installment_overdue schema', () => {
+  it('given valid overdue installment when parsed then success', () => {
+    valid('installment_overdue', {
+      installmentId: UUID_A,
+      amount: 99.9,
+      dueAt: new Date().toISOString(),
     })
   })
 })
@@ -775,8 +807,13 @@ describe('KIND_REGISTRY — structural invariants', () => {
     'entitlement_granted',
     'entitlement_extended',
     'entitlement_revoked',
-    // subscription stub (T-8-21)
-    'te_subscription_stub',
+    // subscription / installment events (MOD-BILLING, T-9-17)
+    'subscription_started',
+    'subscription_renewed',
+    'subscription_past_due',
+    'subscription_cancelled',
+    'installment_paid',
+    'installment_overdue',
     // refund events (T-8-21)
     'refund_opened',
     'refund_approved',

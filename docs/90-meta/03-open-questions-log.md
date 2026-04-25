@@ -115,6 +115,13 @@ Perguntas pendentes que precisam de decisão do produto/negócio antes de serem 
 - Impacto: OQ-NZ-01 (NCM/CFOP), quantidade de retries, dados fiscais corretos.
 - Status: aberta — implementado com campos mínimos conforme T-8-20 scope.
 
+### OQ-18 — RBAC: parâmetro `_resource` em `can()` é stub incompleto
+- Origem: `lib/auth/rbac/matrix.ts` — função `can(user, action, _resource)`
+- Contexto: security-review Sprint 8 (2026-04-25) identificou que o terceiro parâmetro `_resource` é prefixado com `_` e ignorado internamente. Todas as chamadas passam `{ kind: 'global' }` ou um objeto de recurso, mas o resultado é idêntico — apenas role + 2FA são avaliados.
+- Pergunta: quando/se o sistema precisar de permissões por recurso (ex: `refund.approve` apenas para transações acima de R$ X, ou permissão limitada a uma marca específica), qual é o design correto? Implementar resource-level enforcement dentro de `can()`, ou manter RBAC global e fazer a checagem de recurso na camada de aplicação (Server Action)?
+- Impacto: `lib/auth/rbac/matrix.ts`, todos os `requirePermission()` que passam recurso. Não é vulnerabilidade no threat model atual (single-operation, single-tenant), mas é dívida técnica que afeta expansão futura do RBAC.
+- Status: aberta — baixa urgência; registrada para Sprint 11+ ou quando surgir caso de uso concreto.
+
 ---
 
 ## Respondidas

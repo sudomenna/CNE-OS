@@ -1,5 +1,5 @@
 /**
- * MOD-INTEGRATION / T-8-14 — Digital Guru: mapper (DG event → domínio canônico)
+ * MOD-INTEGRATION / T-8-14 / T-9-12 — Digital Guru: mapper (DG event → domínio canônico)
  *
  * Função pura `mapDigitalGuruEvent` — sem I/O, determinística, testável isoladamente.
  *
@@ -7,14 +7,19 @@
  *   docs/40-integrations/01-digital-guru.md §Mapeamento canônico
  *   docs/30-contracts/01-enums.md §Transação/Snapshot/Direito §Catálogo/Oferta
  *   docs/80-roadmap/05-sprint-8-snapshot-dg-integration.md T-8-14
+ *   docs/80-roadmap/06-sprint-9-subscriptions.md T-9-12
  *
- * Fase 1 cobre 6 event_type:
- *   purchase.approved  → DgPurchaseApprovedEvent
- *   purchase.pending   → DgPurchasePendingEvent
- *   purchase.refused   → DgPurchaseRefusedEvent
- *   purchase.refunded  → DgPurchaseRefundedEvent
- *   subscription.*     → DgSubscriptionStubEvent  (Sprint 9)
- *   installment.*      → DgInstallmentStubEvent   (Sprint 9)
+ * Cobre 10 event_type:
+ *   purchase.approved        → DgPurchaseApprovedEvent
+ *   purchase.pending         → DgPurchasePendingEvent
+ *   purchase.refused         → DgPurchaseRefusedEvent
+ *   purchase.refunded        → DgPurchaseRefundedEvent
+ *   subscription.created     → DgSubscriptionCreatedEvent   (Sprint 9)
+ *   subscription.renewed     → DgSubscriptionRenewedEvent   (Sprint 9)
+ *   subscription.cancelled   → DgSubscriptionCancelledEvent (Sprint 9)
+ *   subscription.canceled    → DgSubscriptionCancelledEvent (Sprint 9, alias)
+ *   installment.paid         → DgInstallmentPaidEvent       (Sprint 9)
+ *   installment.overdue      → DgInstallmentOverdueEvent    (Sprint 9)
  *
  * Eventos desconhecidos lançam `IntegrationMappingError`.
  */
@@ -76,6 +81,25 @@ export interface DgProduct {
 }
 
 /**
+ * Estrutura mínima de subscription no payload DG.
+ * docs/40-integrations/01-digital-guru.md §Mapeamento canônico
+ */
+export interface DgSubscriptionPayload {
+  id: string
+  current_period_end?: string | null
+  current_period_start?: string | null
+}
+
+/**
+ * Estrutura mínima de installment no payload DG.
+ * docs/40-integrations/01-digital-guru.md §Mapeamento canônico
+ */
+export interface DgInstallmentPayload {
+  id: string
+  due_at?: string | null
+}
+
+/**
  * Payload bruto recebido via webhook do Digital Guru.
  * `data` contém subchaves que variam por event_type.
  */
@@ -90,9 +114,11 @@ export interface DgRawEvent {
     transaction?: DgTransaction | null
     customer?: DgCustomer | null
     product?: DgProduct | null
-    subscription?: Record<string, unknown> | null
-    installment?: Record<string, unknown> | null
+    subscription?: DgSubscriptionPayload | null
+    installment?: DgInstallmentPayload | null
     checkout?: Record<string, unknown> | null
+    /** Motivo de cancelamento (subscription.cancelled) */
+    reason?: string | null
   }
 }
 
@@ -174,35 +200,92 @@ export interface DgPurchaseRefundedEvent {
 }
 
 /**
- * Stub para subscription.* — processado no Sprint 9.
- * Preserva payload bruto para reprocess futuro.
+ * Resultado de subscription.created — confirmação idempotente de que uma subscription
+ * foi criada pelo provedor.
+ * docs/40-integrations/01-digital-guru.md §Eventos consumidos
  */
-export interface DgSubscriptionStubEvent {
-  kind: 'subscription_stub'
+export interface DgSubscriptionCreatedEvent {
+  kind: 'subscription_created'
   externalEventId: string
-  eventType: string
-  raw: DgRawEvent
+  /** ID interno da transação que originou a subscription (correlação). */
+  externalTransactionId: string | null
+  /** ID externo da subscription no provedor. */
+  externalSubscriptionId: string
+  /** ISO-8601 de quando o evento ocorreu */
+  occurredAt: string
 }
 
 /**
- * Stub para installment.* — processado no Sprint 9.
- * Preserva payload bruto para reprocess futuro.
+ * Resultado de subscription.renewed — indica que o ciclo foi renovado.
+ * docs/40-integrations/01-digital-guru.md §Eventos consumidos
  */
-export interface DgInstallmentStubEvent {
-  kind: 'installment_stub'
+export interface DgSubscriptionRenewedEvent {
+  kind: 'subscription_renewed'
   externalEventId: string
-  eventType: string
-  raw: DgRawEvent
+  /** ID externo da subscription no provedor — usado para lookup interno. */
+  externalSubscriptionId: string
+  /** ISO-8601 do início do novo período. */
+  periodStart: string | null
+  /** ISO-8601 do fim do novo período. */
+  periodEnd: string | null
+  /** ISO-8601 de quando o evento ocorreu */
+  occurredAt: string
 }
 
-/** Union discriminada de todos os eventos mapeados (Fase 1). */
+/**
+ * Resultado de subscription.cancelled / subscription.canceled.
+ * docs/40-integrations/01-digital-guru.md §Eventos consumidos
+ */
+export interface DgSubscriptionCancelledEvent {
+  kind: 'subscription_cancelled'
+  externalEventId: string
+  /** ID externo da subscription no provedor — usado para lookup interno. */
+  externalSubscriptionId: string
+  /** Motivo de cancelamento fornecido pelo provedor, ou 'external' quando ausente. */
+  reason: string
+  /** ISO-8601 de quando o evento ocorreu */
+  occurredAt: string
+}
+
+/**
+ * Resultado de installment.paid.
+ * docs/40-integrations/01-digital-guru.md §Eventos consumidos
+ */
+export interface DgInstallmentPaidEvent {
+  kind: 'installment_paid'
+  externalEventId: string
+  /** ID externo da parcela no provedor — usado para lookup interno. */
+  externalInstallmentId: string
+  /** ISO-8601 de quando a parcela foi paga. */
+  paidAt: string
+  /** ISO-8601 de quando o evento ocorreu */
+  occurredAt: string
+}
+
+/**
+ * Resultado de installment.overdue.
+ * docs/40-integrations/01-digital-guru.md §Eventos consumidos
+ */
+export interface DgInstallmentOverdueEvent {
+  kind: 'installment_overdue'
+  externalEventId: string
+  /** ID externo da parcela no provedor — usado para lookup interno. */
+  externalInstallmentId: string
+  /** ISO-8601 de quando o evento ocorreu */
+  occurredAt: string
+}
+
+/** Union discriminada de todos os eventos mapeados (Fase 1 + Sprint 9). */
 export type DgMappedEvent =
   | DgPurchaseApprovedEvent
   | DgPurchasePendingEvent
   | DgPurchaseRefusedEvent
   | DgPurchaseRefundedEvent
-  | DgSubscriptionStubEvent
-  | DgInstallmentStubEvent
+  | DgSubscriptionCreatedEvent
+  | DgSubscriptionRenewedEvent
+  | DgSubscriptionCancelledEvent
+  | DgInstallmentPaidEvent
+  | DgInstallmentOverdueEvent
 
 // ---------------------------------------------------------------------------
 // Helpers puros
@@ -365,23 +448,96 @@ export function mapDigitalGuruEvent(event: DgRawEvent): DgMappedEvent {
     }
   }
 
-  // subscription stubs (Sprint 9) ------------------------------------------
-  if (event_type.startsWith('subscription.')) {
+  // subscription events (Sprint 9) -----------------------------------------
+  if (event_type === 'subscription.created') {
+    const sub = event.data.subscription
+    if (!sub) {
+      throw new IntegrationMappingError(
+        event_type,
+        `Payload DG "${event_type}" (id=${externalEventId}) sem data.subscription`,
+      )
+    }
     return {
-      kind: 'subscription_stub',
+      kind: 'subscription_created',
       externalEventId,
-      eventType: event_type,
-      raw: event,
+      externalTransactionId: event.data.transaction?.id ?? null,
+      externalSubscriptionId: sub.id,
+      occurredAt: resolveOccurredAt(event.created_at, event.created_at),
     }
   }
 
-  // installment stubs (Sprint 9) -------------------------------------------
-  if (event_type.startsWith('installment.')) {
+  if (event_type === 'subscription.renewed') {
+    const sub = event.data.subscription
+    if (!sub) {
+      throw new IntegrationMappingError(
+        event_type,
+        `Payload DG "${event_type}" (id=${externalEventId}) sem data.subscription`,
+      )
+    }
     return {
-      kind: 'installment_stub',
+      kind: 'subscription_renewed',
       externalEventId,
-      eventType: event_type,
-      raw: event,
+      externalSubscriptionId: sub.id,
+      periodStart: sub.current_period_start ?? null,
+      periodEnd: sub.current_period_end ?? null,
+      occurredAt: resolveOccurredAt(event.created_at, event.created_at),
+    }
+  }
+
+  if (event_type === 'subscription.cancelled' || event_type === 'subscription.canceled') {
+    const sub = event.data.subscription
+    if (!sub) {
+      throw new IntegrationMappingError(
+        event_type,
+        `Payload DG "${event_type}" (id=${externalEventId}) sem data.subscription`,
+      )
+    }
+    // docs/40-integrations/01-digital-guru.md: reason='external' quando ausente
+    const reason =
+      (typeof event.data.reason === 'string' && event.data.reason) ||
+      (typeof event.data.transaction?.reason === 'string' && event.data.transaction.reason) ||
+      'external'
+    return {
+      kind: 'subscription_cancelled',
+      externalEventId,
+      externalSubscriptionId: sub.id,
+      reason,
+      occurredAt: resolveOccurredAt(event.created_at, event.created_at),
+    }
+  }
+
+  // installment events (Sprint 9) ------------------------------------------
+  if (event_type === 'installment.paid') {
+    const inst = event.data.installment
+    if (!inst) {
+      throw new IntegrationMappingError(
+        event_type,
+        `Payload DG "${event_type}" (id=${externalEventId}) sem data.installment`,
+      )
+    }
+    return {
+      kind: 'installment_paid',
+      externalEventId,
+      externalInstallmentId: inst.id,
+      // paidAt: usa due_at como proxy quando created_at não especifica o momento exato
+      paidAt: resolveOccurredAt(event.created_at, inst.due_at),
+      occurredAt: resolveOccurredAt(event.created_at, event.created_at),
+    }
+  }
+
+  if (event_type === 'installment.overdue') {
+    const inst = event.data.installment
+    if (!inst) {
+      throw new IntegrationMappingError(
+        event_type,
+        `Payload DG "${event_type}" (id=${externalEventId}) sem data.installment`,
+      )
+    }
+    return {
+      kind: 'installment_overdue',
+      externalEventId,
+      externalInstallmentId: inst.id,
+      occurredAt: resolveOccurredAt(event.created_at, event.created_at),
     }
   }
 

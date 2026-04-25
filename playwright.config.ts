@@ -1,4 +1,22 @@
 import { defineConfig, devices } from '@playwright/test'
+import { readFileSync, existsSync } from 'fs'
+import { resolve } from 'path'
+
+// Carrega .env.local para que variáveis E2E (E2E_ADMIN_*, E2E_TRANSACTION_ID…)
+// estejam disponíveis no processo do Playwright — Next.js as injeta no servidor
+// mas o runner do Playwright roda em processo separado e não as lê automaticamente.
+const envLocalPath = resolve(process.cwd(), '.env.local')
+if (existsSync(envLocalPath)) {
+  for (const line of readFileSync(envLocalPath, 'utf8').split('\n')) {
+    const trimmed = line.trim()
+    if (!trimmed || trimmed.startsWith('#')) continue
+    const eq = trimmed.indexOf('=')
+    if (eq === -1) continue
+    const key = trimmed.slice(0, eq).trim()
+    const val = trimmed.slice(eq + 1).trim()
+    if (!(key in process.env)) process.env[key] = val
+  }
+}
 
 /**
  * Playwright configuration for E2E tests.

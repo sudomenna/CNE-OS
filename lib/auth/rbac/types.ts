@@ -7,6 +7,8 @@ export type Role = 'admin' | 'financial' | 'marketing' | 'support' | 'commercial
 
 export type Action =
   | 'billing.view'
+  | 'billing.cancel'
+  | 'billing.retry'
   | 'refund.open'
   | 'refund.approve'
   | 'offer.write'

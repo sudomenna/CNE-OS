@@ -108,14 +108,14 @@ Formato: `TE-<KIND>` — `kind` na tabela vira `snake_case` do KIND (ex.: `TE-SA
 
 ### Assinatura / Cobrança
 
-| ID | Emissor | Quando |
-|---|---|---|
-| `TE-SUBSCRIPTION-STARTED` | MOD-BILLING | assinatura ativada |
-| `TE-SUBSCRIPTION-RENEWED` | MOD-BILLING | parcela recorrente paga |
-| `TE-SUBSCRIPTION-PAST-DUE` | MOD-BILLING | parcela em atraso |
-| `TE-SUBSCRIPTION-CANCELLED` | MOD-BILLING | cancelada |
-| `TE-INSTALLMENT-PAID` | MOD-BILLING | parcela quitada |
-| `TE-INSTALLMENT-OVERDUE` | MOD-BILLING | parcela vencida |
+| ID | Emissor | Quando | Payload |
+|---|---|---|---|
+| `TE-SUBSCRIPTION-STARTED` | MOD-BILLING | assinatura ativada | `{ subscriptionId: uuid, contactId: uuid, offerId: uuid, status: 'trial'\|'active', trialEndsAt?: ISO8601 }` |
+| `TE-SUBSCRIPTION-RENEWED` | MOD-BILLING | parcela recorrente paga, período avançou | `{ subscriptionId: uuid, contactId: uuid, newPeriodStart: ISO8601, newPeriodEnd: ISO8601 }` |
+| `TE-SUBSCRIPTION-PAST-DUE` | MOD-BILLING | subscription em atraso (installment vencida sem pagamento) | `{ subscriptionId: uuid, contactId: uuid, installmentId?: uuid }` |
+| `TE-SUBSCRIPTION-CANCELLED` | MOD-BILLING | assinatura cancelada | `{ subscriptionId: uuid, contactId: uuid, reason: string, currentPeriodEnd: ISO8601 }` |
+| `TE-INSTALLMENT-PAID` | MOD-BILLING | parcela quitada | `{ installmentId: uuid, subscriptionId?: uuid, transactionId?: uuid, amount: number, paidAt: ISO8601 }` |
+| `TE-INSTALLMENT-OVERDUE` | MOD-BILLING | parcela vencida sem pagamento | `{ installmentId: uuid, subscriptionId?: uuid, transactionId?: uuid, amount: number, dueAt: ISO8601 }` |
 
 ### Integração
 

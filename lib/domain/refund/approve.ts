@@ -26,6 +26,10 @@ import {
   transactionStatusHistory,
 } from '@/lib/db/schema/transaction'
 import type { CustomerEntitlement } from '@/lib/db/schema/entitlement'
+import {
+  subscription,
+  subscriptionStatusHistory,
+} from '@/lib/db/schema/billing'
 import { flagSnapshotRefunded } from '@/lib/domain/transaction/flag-snapshot'
 import { revokeByTransaction } from '@/lib/domain/entitlement/revoke'
 import { emitTimelineEvent } from '@/lib/timeline/emit'
@@ -67,6 +71,26 @@ export type FlagSnapshotFn = (
   refundId: string,
 ) => Promise<void>
 
+/**
+ * Resultado do cancelamento inline de subscription durante aprovação de refund.
+ * T-9-08 irá depois extrair para cancelSubscription canônica em MOD-BILLING.
+ */
+export type CancelledSubscriptionResult = {
+  subscriptionId: string
+  previousStatus: string
+}
+
+/**
+ * Função injetável para cancelar subscription associada à transação.
+ * Default: implementação inline direto no DB (sem importar cancel.ts — T-9-16).
+ * T-9-08 irá refatorar para cancelSubscription de MOD-BILLING.
+ */
+export type CancelSubscriptionByTransactionFn = (
+  tx: DbTx,
+  transactionId: string,
+  approverUserId: string,
+) => Promise<CancelledSubscriptionResult | null>
+
 // ---------------------------------------------------------------------------
 // Stubs injetáveis padrão
 // ---------------------------------------------------------------------------
@@ -79,6 +103,76 @@ const noopReclassify: ReclassifyFn = async (_tx, _contactId) => {
 const noopRevertOpportunity: RevertOpportunityFn = async (_tx, _transactionId) => {
   // Stub: reverter oportunidade no funil — MOD-FUNNEL.setOpportunityLabel (T-8-xx)
   // docs/20-domain/14-refund.md §7 passo 6
+}
+
+/**
+ * Implementação inline de cancelamento de subscription vinculada à transação.
+ *
+ * BR-REFUND §7 passo 7: cancela subscription com origin_transaction_id = transactionId
+ * e status IN ('trial','active','past_due').
+ *
+ * INV-BILL-07 (BR-SUBSCRIPTION): entitlements NÃO são revogados aqui — apenas
+ * o status da subscription é marcado como 'cancelled'. Os entitlements foram
+ * revogados no passo 3 (revokeByTransaction), que é específico de refund.
+ * O cancelamento normal (sem refund) preserva entitlements até current_period_end.
+ *
+ * T-9-08 irá extrair esta lógica para cancelSubscription canônica em MOD-BILLING.
+ */
+const defaultCancelSubscriptionByTransaction: CancelSubscriptionByTransactionFn = async (
+  tx,
+  transactionId,
+  approverUserId,
+) => {
+  // Buscar subscription ativa vinculada à transação
+  // BR-REFUND §7 passo 7: status IN ('trial','active','past_due')
+  const rows = await tx
+    .select()
+    .from(subscription)
+    .where(
+      // origin_transaction_id = transactionId AND status IN ('trial','active','past_due')
+      sql`${subscription.originTransactionId} = ${transactionId}
+          AND ${subscription.status} IN ('trial','active','past_due')`,
+    )
+    .limit(1)
+
+  const sub = rows[0]
+  if (!sub) {
+    // Sem subscription ativa vinculada — não é erro (refund sem assinatura é válido)
+    return null
+  }
+
+  // Bloqueia statuses já terminais — nunca deveria chegar aqui pela query, mas por segurança:
+  if (sub.status === 'cancelled' || sub.status === 'expired') {
+    return null
+  }
+
+  const previousStatus = sub.status
+
+  // INV-BILL-04: cancelled exige cancelled_at (CHECK ck_subscription_cancelled)
+  await tx
+    .update(subscription)
+    .set({
+      status: 'cancelled',
+      cancelledAt: sql`now()`,
+      // BR-REFUND §7 passo 7 (SQL canônico): cancel_reason='refund'
+      cancelReason: 'refund',
+      updatedAt: sql`now()`,
+    })
+    .where(
+      sql`${subscription.id} = ${sub.id}
+          AND ${subscription.status} IN ('trial','active','past_due')`,
+    )
+
+  // Append subscription_status_history — padrão MOD-BILLING (BR-SUBSCRIPTION)
+  await tx.insert(subscriptionStatusHistory).values({
+    subscriptionId: sub.id,
+    oldStatus: previousStatus as 'trial' | 'active' | 'past_due',
+    newStatus: 'cancelled',
+    changedBy: approverUserId,
+    note: 'refund',
+  })
+
+  return { subscriptionId: sub.id, previousStatus }
 }
 
 // ---------------------------------------------------------------------------
@@ -104,17 +198,18 @@ const noopRevertOpportunity: RevertOpportunityFn = async (_tx, _transactionId) =
  * Falha em qualquer passo = rollback total (tx é gerenciada pelo caller).
  * refund.status permanece 'requested' após rollback.
  *
- * @param tx                  Transação DB ativa (ADR-11)
- * @param refundId            UUID do refund a aprovar
- * @param approverUserId      UUID do usuário aprovador (admin|financial — INV-REFUND-02)
- * @param reclassifyFn        Fn de reclassificação de contato (padrão: no-op)
- * @param revertOpportunityFn Fn de reversão de oportunidade (padrão: no-op)
- * @param revokeFn            Fn de revogação de entitlements (padrão: revokeByTransaction)
- * @param flagSnapshotFn      Fn de flag de snapshot (padrão: flagSnapshotRefunded)
- * @param emit                Fn de emissão de timeline (padrão: emitTimelineEvent)
- * @returns                   Refund com status='approved'
- * @throws                    RefundNotFoundError se refundId não existir
- * @throws                    InvalidRefundStatusError se status não é 'requested'
+ * @param tx                          Transação DB ativa (ADR-11)
+ * @param refundId                    UUID do refund a aprovar
+ * @param approverUserId              UUID do usuário aprovador (admin|financial — INV-REFUND-02)
+ * @param reclassifyFn                Fn de reclassificação de contato (padrão: no-op)
+ * @param revertOpportunityFn         Fn de reversão de oportunidade (padrão: no-op)
+ * @param revokeFn                    Fn de revogação de entitlements (padrão: revokeByTransaction)
+ * @param flagSnapshotFn              Fn de flag de snapshot (padrão: flagSnapshotRefunded)
+ * @param emit                        Fn de emissão de timeline (padrão: emitTimelineEvent)
+ * @param cancelSubscriptionByTrxFn   Fn de cancelamento inline de subscription (padrão: defaultCancelSubscriptionByTransaction)
+ * @returns                           Refund com status='approved'
+ * @throws                            RefundNotFoundError se refundId não existir
+ * @throws                            InvalidRefundStatusError se status não é 'requested'
  */
 export async function approveRefund(
   tx: DbTx,
@@ -125,6 +220,7 @@ export async function approveRefund(
   revokeFn: RevokeByTransactionFn = revokeByTransaction,
   flagSnapshotFn: FlagSnapshotFn = flagSnapshotRefunded,
   emit: EmitFn = emitTimelineEvent,
+  cancelSubscriptionByTrxFn: CancelSubscriptionByTransactionFn = defaultCancelSubscriptionByTransaction,
 ): Promise<Refund> {
   // -------------------------------------------------------------------------
   // Busca o refund — com lock via SELECT FOR UPDATE para evitar dupla aprovação
@@ -285,6 +381,33 @@ export async function approveRefund(
     refId: undefined,
     detail: { transaction_id: transactionId },
   })
+
+  // -------------------------------------------------------------------------
+  // Passo 7.5 (spec passo 7): cancelar subscription vinculada ao refund
+  // docs/20-domain/14-refund.md §7 passo 7
+  // BR-REFUND §7 passo 7: subscription com origin_transaction_id = transactionId
+  //   e status IN ('trial','active','past_due') → status='cancelled', cancel_reason='refund'
+  //
+  // INV-BILL-07 (BR-SUBSCRIPTION): entitlements NÃO são revogados aqui.
+  //   Entitlements já foram revogados no passo 3 (revokeByTransaction).
+  //   O cancelamento de subscription via refund é cancelamento imediato (OQ-BR-REFUND-02).
+  //
+  // T-9-08 irá extrair defaultCancelSubscriptionByTransaction para cancelSubscription canônica.
+  // -------------------------------------------------------------------------
+  const cancelledSub = await cancelSubscriptionByTrxFn(tx, transactionId, approverUserId)
+
+  if (cancelledSub) {
+    await tx.insert(refundEffectLog).values({
+      refundId,
+      effectKind: 'subscription_cancelled',
+      refId: cancelledSub.subscriptionId,
+      detail: {
+        subscription_id: cancelledSub.subscriptionId,
+        previous_status: cancelledSub.previousStatus,
+        cancel_reason: 'refund',
+      },
+    })
+  }
 
   // -------------------------------------------------------------------------
   // Passo 8: Emite TE-REFUND-APPROVED + TE-SALE-REFUNDED

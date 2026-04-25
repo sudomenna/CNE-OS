@@ -124,7 +124,14 @@ function buildMockTx({
     values: vi.fn().mockResolvedValue([{ id: 'inserted-id' }]),
   })
 
-  return { execute, update, insert } as unknown as DbTx
+  // select() — used by defaultCancelSubscriptionByTransaction (T-9-16) to look up subscription.
+  // Returns empty array (no subscription associated) by default — exercises the no-op path.
+  const selectLimit = vi.fn().mockResolvedValue([])
+  const selectWhere = vi.fn().mockReturnValue({ limit: selectLimit })
+  const selectFrom = vi.fn().mockReturnValue({ where: selectWhere })
+  const select = vi.fn().mockReturnValue({ from: selectFrom })
+
+  return { execute, update, insert, select } as unknown as DbTx
 }
 
 // ---------------------------------------------------------------------------

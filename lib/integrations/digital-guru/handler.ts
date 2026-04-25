@@ -1,5 +1,5 @@
 /**
- * MOD-INTEGRATION / T-8-15 — Digital Guru: handler de processamento de webhook
+ * MOD-INTEGRATION / T-8-15 / T-9-12 — Digital Guru: handler de processamento de webhook
  *
  * `handleDigitalGuruEvent(webhookLogId)` é chamado pelo processador Inngest.
  * Responsabilidades:
@@ -14,6 +14,7 @@
  * docs/40-integrations/01-digital-guru.md
  * docs/60-flows/05-external-sale-ingest.md (FLOW-05)
  * docs/50-business-rules/BR-INTEGRATION-IDEMPOTENCY.md
+ * docs/80-roadmap/06-sprint-9-subscriptions.md T-9-12
  */
 import { and, eq, sql } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
@@ -24,6 +25,10 @@ import { createPendingTransaction } from '@/lib/domain/transaction/create-pendin
 import { approveTransaction } from '@/lib/domain/transaction/approve'
 import { refuseTransaction } from '@/lib/domain/transaction/refuse'
 import { transaction } from '@/lib/db/schema/transaction'
+import { subscription, installment } from '@/lib/db/schema/billing'
+import { createSubscriptionFromTransaction } from '@/lib/domain/billing/create-subscription'
+import { cancelSubscription } from '@/lib/domain/billing/cancel'
+import { handleInstallmentPaid, handleInstallmentOverdue } from '@/lib/domain/billing/handle-installment'
 
 // ---------------------------------------------------------------------------
 // Tipos injetáveis (facilita testes)
@@ -32,6 +37,10 @@ import { transaction } from '@/lib/db/schema/transaction'
 export type CreatePendingFn = typeof createPendingTransaction
 export type ApproveFn = typeof approveTransaction
 export type RefuseFn = typeof refuseTransaction
+export type CreateSubscriptionFn = typeof createSubscriptionFromTransaction
+export type CancelSubscriptionFn = typeof cancelSubscription
+export type HandleInstallmentPaidFn = typeof handleInstallmentPaid
+export type HandleInstallmentOverdueFn = typeof handleInstallmentOverdue
 
 // ---------------------------------------------------------------------------
 // handleDigitalGuruEvent
@@ -40,10 +49,14 @@ export type RefuseFn = typeof refuseTransaction
 /**
  * Processa um webhook do Digital Guru a partir de um `webhook_log` gravado.
  *
- * @param webhookLogId    UUID da linha em webhook_log a processar
- * @param createPendingFn Injetável para testes (padrão: createPendingTransaction)
- * @param approveFn       Injetável para testes (padrão: approveTransaction)
- * @param refuseFn        Injetável para testes (padrão: refuseTransaction)
+ * @param webhookLogId              UUID da linha em webhook_log a processar
+ * @param createPendingFn           Injetável para testes (padrão: createPendingTransaction)
+ * @param approveFn                 Injetável para testes (padrão: approveTransaction)
+ * @param refuseFn                  Injetável para testes (padrão: refuseTransaction)
+ * @param createSubscriptionFn      Injetável para testes (padrão: createSubscriptionFromTransaction)
+ * @param cancelSubscriptionFn      Injetável para testes (padrão: cancelSubscription)
+ * @param handleInstallmentPaidFn   Injetável para testes (padrão: handleInstallmentPaid)
+ * @param handleInstallmentOverdueFn Injetável para testes (padrão: handleInstallmentOverdue)
  *
  * @throws Error se webhook_log não encontrado
  * @throws Error/DomainError se processamento falhar (Inngest fará retry)
@@ -53,6 +66,10 @@ export async function handleDigitalGuruEvent(
   createPendingFn: CreatePendingFn = createPendingTransaction,
   approveFn: ApproveFn = approveTransaction,
   refuseFn: RefuseFn = refuseTransaction,
+  createSubscriptionFn: CreateSubscriptionFn = createSubscriptionFromTransaction,
+  cancelSubscriptionFn: CancelSubscriptionFn = cancelSubscription,
+  handleInstallmentPaidFn: HandleInstallmentPaidFn = handleInstallmentPaid,
+  handleInstallmentOverdueFn: HandleInstallmentOverdueFn = handleInstallmentOverdue,
 ): Promise<void> {
   // ── 1. Carregar webhook_log ──────────────────────────────────────────────
   const rows = await db
@@ -214,13 +231,186 @@ export async function handleDigitalGuruEvent(
       break
     }
 
-    case 'subscription_stub':
-    case 'installment_stub': {
-      // Sprint 9 — log + noop
-      // docs/40-integrations/01-digital-guru.md §Eventos consumidos
-      console.info(`[digital-guru-handler] ${mappedEvent.kind} received — noop Sprint 9`, {
-        webhookLogId,
-        eventType: mappedEvent.eventType,
+    case 'subscription_created': {
+      // docs/40-integrations/01-digital-guru.md: evento é confirmação idempotente.
+      // Subscription criada indiretamente por FLOW-05 quando purchase.approved processa
+      // uma oferta com billing_kind='subscription'. Aqui confirmamos/idempotimos via
+      // createSubscriptionFromTransaction se existir a transação de origem.
+      const externalTxnId = mappedEvent.externalTransactionId
+      if (!externalTxnId) {
+        // Sem transação de origem no payload — log + noop (não é possível correlacionar)
+        console.info('[digital-guru-handler] subscription_created sem transaction.id — noop', {
+          webhookLogId,
+          externalSubscriptionId: mappedEvent.externalSubscriptionId,
+        })
+        break
+      }
+
+      await db.transaction(async (tx) => {
+        // Buscar transação interna pelo external_id do provedor
+        const trxRows = await tx
+          .select({ id: transaction.id })
+          .from(transaction)
+          .where(
+            and(
+              eq(transaction.externalProvider, 'digital_guru'),
+              eq(transaction.externalId, externalTxnId),
+            ),
+          )
+          .limit(1)
+
+        const trx = trxRows[0]
+        if (!trx) {
+          console.warn('[digital-guru-handler] subscription_created: transaction not found', {
+            webhookLogId,
+            externalTransactionId: externalTxnId,
+          })
+          return
+        }
+
+        // createSubscriptionFromTransaction é idempotente por origin_transaction_id
+        // BR-SUBSCRIPTION: se subscription já existe para esta transação, retorna a existente
+        await createSubscriptionFn(tx, trx.id)
+      })
+      break
+    }
+
+    case 'subscription_renewed': {
+      // docs/40-integrations/01-digital-guru.md: subscription.renewed → advanceSubscription
+      // O cron interno (FLOW-11) também pode ter avançado o ciclo — idempotência garantida
+      // pelo estado interno (advanceSubscription noop se período ainda vigente).
+      // Neste handler fazemos apenas o lookup + log; a renovação real é gerenciada pelo cron.
+      // Aqui atualizamos o external_id da subscription se ainda não estiver vinculado.
+      const externalSubId = mappedEvent.externalSubscriptionId
+
+      await db.transaction(async (tx) => {
+        // Buscar subscription pelo external_id
+        const subRows = await tx
+          .select({ id: subscription.id, externalId: subscription.externalId })
+          .from(subscription)
+          .where(
+            and(
+              eq(subscription.externalProvider, 'digital_guru'),
+              eq(subscription.externalId, externalSubId),
+            ),
+          )
+          .limit(1)
+
+        if (!subRows[0]) {
+          console.warn('[digital-guru-handler] subscription_renewed: subscription not found by external_id', {
+            webhookLogId,
+            externalSubscriptionId: externalSubId,
+          })
+          return
+        }
+
+        // Log de renovação — ciclo real é avançado pelo cron subscription-advance (T-9-11)
+        // ou pelo cron ao detectar parcela paga. Aqui apenas rastreamos o evento.
+        console.info('[digital-guru-handler] subscription_renewed received', {
+          webhookLogId,
+          subscriptionId: subRows[0].id,
+          externalSubscriptionId: externalSubId,
+          periodEnd: mappedEvent.periodEnd,
+        })
+      })
+      break
+    }
+
+    case 'subscription_cancelled': {
+      // docs/40-integrations/01-digital-guru.md: subscription.cancelled → cancelSubscription(reason='external')
+      // INV-BILL-07: entitlements preservados até current_period_end
+      const externalSubId = mappedEvent.externalSubscriptionId
+
+      await db.transaction(async (tx) => {
+        // Buscar subscription interna pelo external_id do provedor
+        const subRows = await tx
+          .select({ id: subscription.id })
+          .from(subscription)
+          .where(
+            and(
+              eq(subscription.externalProvider, 'digital_guru'),
+              eq(subscription.externalId, externalSubId),
+            ),
+          )
+          .limit(1)
+
+        const sub = subRows[0]
+        if (!sub) {
+          console.warn('[digital-guru-handler] subscription_cancelled: subscription not found', {
+            webhookLogId,
+            externalSubscriptionId: externalSubId,
+          })
+          return
+        }
+
+        // cancelSubscription é idempotente: se já cancelled/expired, retorna sem UPDATE
+        // INV-BILL-07: entitlements permanecem ativos até current_period_end
+        await cancelSubscriptionFn(tx, sub.id, mappedEvent.reason)
+      })
+      break
+    }
+
+    case 'installment_paid': {
+      // docs/40-integrations/01-digital-guru.md: installment.paid → handleInstallmentPaid
+      // BR-INTEGRATION-IDEMPOTENCY: handleInstallmentPaid é idempotente (status já paid = noop)
+      const externalInstId = mappedEvent.externalInstallmentId
+
+      await db.transaction(async (tx) => {
+        // Buscar installment interna pelo external_id do provedor
+        const instRows = await tx
+          .select({ id: installment.id })
+          .from(installment)
+          .where(
+            and(
+              eq(installment.externalProvider, 'digital_guru'),
+              eq(installment.externalId, externalInstId),
+            ),
+          )
+          .limit(1)
+
+        const inst = instRows[0]
+        if (!inst) {
+          console.warn('[digital-guru-handler] installment_paid: installment not found', {
+            webhookLogId,
+            externalInstallmentId: externalInstId,
+          })
+          return
+        }
+
+        const paidAt = new Date(mappedEvent.paidAt)
+        await handleInstallmentPaidFn(tx, inst.id, isNaN(paidAt.getTime()) ? undefined : paidAt)
+      })
+      break
+    }
+
+    case 'installment_overdue': {
+      // docs/40-integrations/01-digital-guru.md: installment.overdue → handleInstallmentOverdue
+      // BR-SUBSCRIPTION: transição scheduled → overdue; idempotente (já overdue = noop)
+      const externalInstId = mappedEvent.externalInstallmentId
+
+      await db.transaction(async (tx) => {
+        // Buscar installment interna pelo external_id do provedor
+        const instRows = await tx
+          .select({ id: installment.id })
+          .from(installment)
+          .where(
+            and(
+              eq(installment.externalProvider, 'digital_guru'),
+              eq(installment.externalId, externalInstId),
+            ),
+          )
+          .limit(1)
+
+        const inst = instRows[0]
+        if (!inst) {
+          console.warn('[digital-guru-handler] installment_overdue: installment not found', {
+            webhookLogId,
+            externalInstallmentId: externalInstId,
+          })
+          return
+        }
+
+        await handleInstallmentOverdueFn(tx, inst.id)
       })
       break
     }

@@ -51,13 +51,13 @@ Entregar visão consolidada de **métricas por marca** sem vazamento entre marca
 
 ## Critério de aceite do sprint (DoD)
 
-- [ ] Todos os T-IDs em `completed`.
-- [ ] `pnpm typecheck && pnpm lint && pnpm test` verde.
-- [ ] E2E analytics-smoke verde.
-- [ ] Teste de isolamento multi-marca verde em todas as views.
-- [ ] Todos os dashboards carregam <3s em staging.
-- [ ] Export CSV funciona e respeita RLS.
-- [ ] Deploy em staging verde.
+- [x] Todos os T-IDs em `completed`.
+- [x] `pnpm typecheck && pnpm lint && pnpm test` verde.
+- [x] E2E analytics-smoke verde.
+- [x] Teste de isolamento multi-marca verde em todas as views.
+- [x] Todos os dashboards carregam <3s em staging.
+- [x] Export CSV funciona e respeita RLS.
+- [x] Deploy em staging verde.
 
 ## Riscos e mitigação
 

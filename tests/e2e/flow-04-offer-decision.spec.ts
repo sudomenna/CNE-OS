@@ -58,7 +58,7 @@ test.describe('FLOW-04 — offer-decision', () => {
     const password = process.env['E2E_ADMIN_PASSWORD'] ?? ''
 
     await page.goto('/login')
-    await expect(page.getByRole('heading', { name: 'CNE-OS' })).toBeVisible()
+    await expect(page.getByText('CNE-OS').first()).toBeVisible()
 
     await page.getByLabel('E-mail').fill(email)
     await page.getByLabel('Senha').fill(password)

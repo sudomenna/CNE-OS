@@ -12,4 +12,8 @@ export * from './funnel'
 export * from './campaign'
 export * from './catalog'
 export * from './offer'
+export * from './transaction'
+export * from './entitlement'
+export * from './refund'
+export * from './billing'
 

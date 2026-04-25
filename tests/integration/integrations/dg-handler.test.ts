@@ -375,8 +375,10 @@ describe('handleDigitalGuruEvent', () => {
     expect(dbMock.transaction).not.toHaveBeenCalled()
   })
 
-  // ── Teste 5: subscription_stub → noop sem erro ─────────────────────────
-  it('subscription_stub: completa sem erro (noop Sprint 9) e marca processed', async () => {
+  // ── Teste 5: subscription.renewed → noop de domínio, processed ───────────
+  // T-9-12: subscription.renewed entra no handler real (não mais stub);
+  // faz lookup de subscription por external_id e loga — sem mutação de domínio.
+  it('subscription.renewed: completa sem erro e marca processed (noop de domínio, lookup por external_id)', async () => {
     // Arrange
     const selectChain = {
       from: vi.fn().mockReturnThis(),
@@ -394,6 +396,20 @@ describe('handleDigitalGuruEvent', () => {
     dbMock.select.mockReturnValue(selectChain)
     const updateChain = mockWebhookLogUpdate(dbMock)
 
+    // subscription.renewed chama db.transaction → mockar para executar o callback
+    dbMock.transaction.mockImplementation(async (fn: (tx: unknown) => Promise<void>) => {
+      const txSelectChain = {
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        // subscription não encontrada pelo external_id — noop interno
+        limit: vi.fn().mockResolvedValue([]),
+      }
+      const txMock = {
+        select: vi.fn().mockReturnValue(txSelectChain),
+      }
+      return fn(txMock)
+    })
+
     // Act
     await expect(
       handleDigitalGuruEvent(
@@ -404,7 +420,7 @@ describe('handleDigitalGuruEvent', () => {
       ),
     ).resolves.toBeUndefined()
 
-    // Assert: sem chamadas de domínio
+    // Assert: sem chamadas de domínio de transação
     expect(mockApprove).not.toHaveBeenCalled()
     expect(mockCreatePending).not.toHaveBeenCalled()
     expect(mockRefuse).not.toHaveBeenCalled()

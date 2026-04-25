@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Building2, FileText, Users } from 'lucide-react'
+import { Building2, FileText, Users, Webhook } from 'lucide-react'
 
 export const metadata = {
   title: 'Configurações',
@@ -23,6 +23,12 @@ const SECTIONS = [
     label: 'Usuários',
     description: 'Convide e gerencie usuários internos',
     icon: Users,
+  },
+  {
+    href: '/settings/webhooks',
+    label: 'Webhooks',
+    description: 'Monitore e reprocesse eventos de integração',
+    icon: Webhook,
   },
 ] as const
 

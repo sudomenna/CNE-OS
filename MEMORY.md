@@ -45,6 +45,28 @@ Motivo: <por que divergiu>
 Ação: <atualizar doc em <quando> | deliberadamente mantido>
 ```
 
+#### 2026-04-25 · @cne-docs-sync · [SYNCED] · MOD-ANALYTICS · Sprint 10
+Doc afetada: `docs/30-contracts/07-module-interfaces.md` (nova seção MOD-ANALYTICS), `docs/80-roadmap/07-sprint-10-analytics.md` (DoD checklist)
+Ações executadas:
+1. Adicionada seção completa `MOD-ANALYTICS` em `docs/30-contracts/07-module-interfaces.md`:
+   - Documentadas 6 funções de leitura: `querySalesByDay`, `queryRefundsByDay`, `queryDelinquency`, `queryOverviewKpis`, `queryFunnelConversion`, `queryInboxDaily`, `queryCampaignAttribution`.
+   - Todos os tipos exportados: `AnalyticsFilters`, `SalesByDayRow`, `RefundByDayRow`, `DelinquencyRow`, `FunnelConversionRow`, `InboxDailyRow`, `CampaignAttributionRow`, `OverviewKpis`.
+   - Documentado padrão: módulo puro de leitura (zero escrita), sem Server Actions, interface via RSC + Route Handler de export.
+   - RLS confirmado em todas as queries (filtra por `brand_id`).
+2. Atualizado Sprint 10 DoD em `docs/80-roadmap/07-sprint-10-analytics.md`: todos os 7 critérios marcados como [x] concluído.
+Status: **SINCRONIA COMPLETA** — MOD-ANALYTICS documentado de acordo com implementação. Nenhuma divergência.
+
+#### 2026-04-25 · @cne-domain-author · [SYNC-PENDING] · MOD-BILLING · T-9-04
+Doc afetada: `docs/30-contracts/07-module-interfaces.md` §MOD-BILLING
+Divergência:
+1. `07-module-interfaces.md` declara `startSubscription(tx, { transactionId, plan })` mas a implementação em T-9-04 é `createSubscriptionFromTransaction(tx, transactionId, emit?)`. O tipo `BillingPlan` não está definido no codebase; a função real deriva status e período da transação sem argumento `plan`. Nomes e assinaturas divergem.
+2. O KIND `subscription_started` existe em `lib/timeline/schemas/subscription-events.ts` (T-9-17) mas NÃO está registrado em `lib/timeline/schemas/index.ts` KIND_REGISTRY. A implementação de T-9-04 usa o stub `te_subscription_stub` (único kind MOD-BILLING registrado) como proxy para `TE-SUBSCRIPTION-STARTED`.
+Motivo: T-9-17 é tarefa futura designada para registrar os subscription kinds; T-9-04 não tem ownership de `lib/timeline/`.
+Ação:
+- T-9-17: registrar `subscription_started` (e demais subscription/installment kinds) em `lib/timeline/schemas/index.ts` KIND_REGISTRY.
+- Migrar emit em `create-subscription.ts` de `te_subscription_stub` para `subscription_started` quando T-9-17 concluído.
+- Atualizar `docs/30-contracts/07-module-interfaces.md` §MOD-BILLING com assinatura real `createSubscriptionFromTransaction`.
+
 #### 2026-04-25 · @cne-docs-sync · [SYNC-PENDING] · MOD-ENTITLEMENT · T-8-08..T-8-10
 Doc afetada: `docs/30-contracts/07-module-interfaces.md` §MOD-ENTITLEMENT
 Divergência: 

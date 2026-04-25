@@ -12,6 +12,10 @@ type MatrixEntry = {
 // BR-RBAC: matriz canônica declarativa — alterações aqui requerem atualização de BR-RBAC.md
 export const RBAC_MATRIX: Record<Action, MatrixEntry> = {
   'billing.view':          { roles: ['admin', 'financial', 'commercial'],                             requires2fa: false },
+  // BR-RBAC: billing.cancel — cancelar assinatura (admin e financial com 2FA)
+  'billing.cancel':        { roles: ['admin', 'financial'],                                           requires2fa: true  },
+  // BR-RBAC: billing.retry — retry manual de parcela vencida (admin e financial com 2FA)
+  'billing.retry':         { roles: ['admin', 'financial'],                                           requires2fa: true  },
   'refund.open':           { roles: ['admin', 'financial'],                                           requires2fa: true  },
   'refund.approve':        { roles: ['admin', 'financial'],                                           requires2fa: true  },
   'offer.write':           { roles: ['admin', 'commercial'],                                          requires2fa: true  },

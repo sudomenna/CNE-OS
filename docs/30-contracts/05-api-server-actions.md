@@ -592,6 +592,21 @@ Notas:
 - `createOfferAction` faz seed de `offer_sales_counter` com `onConflictDoNothing` (defesa em profundidade contra trigger duplicado de T-6-11).
 - Todas as actions usam `offer.write` que exige 2FA (`requires2fa: true` na RBAC_MATRIX).
 
+### MOD-BILLING — `app/(app)/billing/actions.ts`
+
+| Função | Guard | Audit | Revalida |
+|---|---|---|---|
+| `cancelSubscriptionAction(rawInput)` | `billing.cancel` (admin, financial — 2FA) | `update / subscription` | `/billing`, `/billing/[id]` |
+| `retryInstallmentAction(rawInput)` | `billing.retry` (admin, financial — 2FA) | `update / installment` | `/billing` |
+
+Notas:
+- `cancelSubscriptionAction` chama `cancelSubscription(tx, subscriptionId, reason)` do domínio. A emissão de `TE-SUBSCRIPTION-CANCELLED` ocorre dentro do domínio (via `cancelSubscription`).
+- `retryInstallmentAction` rejeita com `VALIDATION` + `rule: 'BR-BILLING'` se `installment.status !== 'overdue'`. Incrementa `retry_count` e `last_retry_at` — o pagamento real é responsabilidade do provedor externo.
+
+RBAC novas ações adicionadas em `lib/auth/rbac/types.ts` e `lib/auth/rbac/matrix.ts`:
+- `billing.cancel`: roles `admin`, `financial`, `requires2fa: true`
+- `billing.retry`: roles `admin`, `financial`, `requires2fa: true`
+
 ### MOD-INTEGRATIONS — `app/(app)/settings/webhooks/actions.ts`
 
 | Função | Guard | Audit | Revalida |

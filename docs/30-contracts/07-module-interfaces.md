@@ -877,17 +877,50 @@ export class EntitlementNotFoundError extends EntitlementDomainError;
 
 ## MOD-BILLING
 
-Onde vive: `lib/domain/billing/index.ts`.
+Onde vive: `lib/domain/billing/index.ts`. **Módulo crítico — gerencia subscriptions recorrentes, parcelas, e estados de assinatura com transições controladas.**
 
-### `startSubscription`
+### `createSubscriptionFromTransaction`
 
 ```ts
-export async function startSubscription(
+export async function createSubscriptionFromTransaction(
   tx: DbTx,
-  input: { transactionId: string; plan: BillingPlan },
+  transactionId: string,
+  emit?: EmitFn,
 ): Promise<Subscription>;
 ```
-- **Pós:** emite `TE-SUBSCRIPTION-STARTED`.
+- **Pré:** transação deve existir e estar aprovada.
+- **Pós:** cria subscription com origin_transaction_id = transactionId; é idempotente (reutiliza se já existe).
+- **Emite:** `TE-SUBSCRIPTION-STARTED`.
+- **BRs:** [BR-SUBSCRIPTION](../50-business-rules/BR-SUBSCRIPTION.md) §2, §5, §6.1, §9.
+
+### `handleInstallmentPaid`
+
+```ts
+export async function handleInstallmentPaid(
+  tx: DbTx,
+  installmentId: string,
+  paidAt?: Date,
+  emit?: EmitFn,
+): Promise<Installment>;
+```
+- **Pré:** installment deve existir; transição válida (scheduled → paid ou overdue → paid).
+- **Pós:** atualiza status='paid', paid_at=paidAt || now(); idempotente se já paga.
+- **Emite:** `TE-INSTALLMENT-PAID`.
+- **BRs:** [BR-SUBSCRIPTION](../50-business-rules/BR-SUBSCRIPTION.md) §6.2.
+
+### `handleInstallmentOverdue`
+
+```ts
+export async function handleInstallmentOverdue(
+  tx: DbTx,
+  installmentId: string,
+  emit?: EmitFn,
+): Promise<Installment>;
+```
+- **Pré:** installment deve existir; transição válida (scheduled → overdue).
+- **Pós:** atualiza status='overdue', updated_at=now(); idempotente se já overdue.
+- **Emite:** `TE-INSTALLMENT-OVERDUE`; pode gatilhar `TE-SUBSCRIPTION-PAST-DUE` se subscription transicionar.
+- **BRs:** [BR-SUBSCRIPTION](../50-business-rules/BR-SUBSCRIPTION.md) §6.2, dunning matrix.
 
 ### `advanceSubscription`
 
@@ -895,9 +928,14 @@ export async function startSubscription(
 export async function advanceSubscription(
   tx: DbTx,
   subscriptionId: string,
+  now?: Date,
 ): Promise<SubscriptionStatus>;
 ```
-- Chamado por cron Inngest.
+- **Contrato:** avança estado da subscription baseado em ciclo de período e pagamentos.
+- **Lógica:** verifica se nova parcela deve ser gerada, se há atrasos vencidos, se trial expirou; aplica matriz de transições BR-SUBSCRIPTION §6.1.
+- **Pós:** atualiza status e emite `TE-SUBSCRIPTION-RENEWED` (se pagamento processado) ou `TE-SUBSCRIPTION-PAST-DUE` (se vencido).
+- **Chamador:** cron Inngest (T-9-07).
+- **BRs:** [BR-SUBSCRIPTION](../50-business-rules/BR-SUBSCRIPTION.md) §6.1 (matriz de transições).
 
 ### `cancelSubscription`
 
@@ -906,25 +944,26 @@ export async function cancelSubscription(
   tx: DbTx,
   subscriptionId: string,
   reason: string,
+  emit?: EmitFn,
 ): Promise<Subscription>;
 ```
+- **Pré:** subscription deve existir; transição válida (não é noop se já cancelled/expired).
+- **Pós:** atualiza status='cancelled', cancelled_at=now(), cancel_reason=reason; emite `TE-SUBSCRIPTION-CANCELLED`.
+- **Nota:** **não revoga entitlements** — eles permanecem até current_period_end (revogação via refund apenas). INV-BILL-07.
+- **BRs:** [BR-SUBSCRIPTION](../50-business-rules/BR-SUBSCRIPTION.md) §Preservação de direitos ao cancelar.
 
-### `recordInstallment`
+### Tipos de erro
 
 ```ts
-export async function recordInstallment(
-  tx: DbTx,
-  input: {
-    subscriptionId?: string;
-    transactionId: string;
-    externalInstallmentId: string;
-    status: InstallmentStatus;
-    amount: string;
-    dueAt: Date;
-  },
-): Promise<Installment>;
+export class BillingDomainError extends Error;
+export class TransactionNotFoundError extends BillingDomainError;
+export class InstallmentDomainError extends Error;
+export class InstallmentNotFoundError extends InstallmentDomainError;
+export class InvalidStatusTransitionError extends InstallmentDomainError;
+export class SubscriptionNotFoundError extends Error;
+export class SubscriptionCancelError extends Error;
+export class SubscriptionNotFoundForCancelError extends SubscriptionCancelError;
 ```
-- **BRs:** [BR-INTEGRATION-IDEMPOTENCY](../50-business-rules/BR-INTEGRATION-IDEMPOTENCY.md) via `externalInstallmentId`.
 
 ---
 
@@ -1033,6 +1072,185 @@ async function executeFlow(
 ): Promise<AutomationExecution>;
 ```
 - **Pós:** emite `TE-AUTOMATION-EXECUTED`.
+
+---
+
+## MOD-ANALYTICS
+
+Onde vive: `lib/analytics/index.ts`, `lib/analytics/queries/sales.ts`, `lib/analytics/queries/ops.ts`.
+
+**Nota:** Módulo **puro de leitura** — zero escrita. Consulta materialized views refrescadas via Inngest cron. Sem Server Actions — interface via RSC + Route Handler de export.
+
+### `querySalesByDay`
+
+```ts
+export async function querySalesByDay(
+  filters: AnalyticsFilters,
+  db?: Db,
+): Promise<SalesByDayRow[]>;
+```
+- **Contrato:** agregação diária de receita bruta, ticket médio e contagem de transações aprovadas por marca/período/oferta.
+- **Fonte:** materialized view `mv_sales_by_brand_day` refrescada a cada hora.
+- **Filtros:** `brandId`, `from`, `to` (obrigatórios); `offerId` (opcional).
+- **RLS:** filtra por `brand_id` — usuário só vê dados da própria marca.
+
+### `queryRefundsByDay`
+
+```ts
+export async function queryRefundsByDay(
+  filters: AnalyticsFilters,
+  db?: Db,
+): Promise<RefundByDayRow[]>;
+```
+- **Contrato:** agregação diária de reembolsos por marca/período/oferta.
+- **Fonte:** materialized view `mv_refund_by_brand_day`.
+- **Retorna:** dia, ofertaId, contagem de reembolsos, valor total reembolsado.
+- **RLS:** idem acima.
+
+### `queryDelinquency`
+
+```ts
+export async function queryDelinquency(
+  filters: AnalyticsFilters,
+  db?: Db,
+): Promise<DelinquencyRow[]>;
+```
+- **Contrato:** lista inadimplência ativa — parcelas vencidas por mais de N dias, com aging (dias em atraso).
+- **Fonte:** view `v_delinquency_aging` (não materializada, calculada sob demanda).
+- **Retorna:** subscriptionId, contactId, offerId, dueAt, amount, daysOverdue.
+- **Contexto:** usado pelo dashboard `/analytics/sales` (box de inadimplência).
+
+### `queryOverviewKpis`
+
+```ts
+export type OverviewKpis = {
+  grossRevenue: number;
+  transactionsCount: number;
+  refundRate: number;
+  avgResponseTimeMinutes: number | null;
+  openConversations: number;
+};
+
+export async function queryOverviewKpis(
+  filters: AnalyticsFilters,
+  db?: Db,
+): Promise<OverviewKpis>;
+```
+- **Contrato:** calcula KPIs top-level por marca/período: receita bruta (últimas transações aprovadas), contagem, taxa de refund (refunds/transactions), SLA (tempo médio de resposta inbox), conversas abertas.
+- **Fonte:** múltiplas MVs + views agregadas.
+
+### `queryFunnelConversion`
+
+```ts
+export async function queryFunnelConversion(
+  filters: AnalyticsFilters,
+  db?: Db,
+): Promise<FunnelConversionRow[]>;
+```
+- **Contrato:** agregação diária de entrada/conversão/ciclo por funil e estágio (labels: `active`, `won`, `lost`).
+- **Fonte:** materialized view `mv_funnel_stage_conversion`.
+- **Retorna:** funnelId, funnelName, label, dia, entriesCount, avgCycleTimeDays, avgScore.
+- **Filtros:** `brandId`, `from`, `to` (obrigatórios); `funnelId` (opcional).
+
+### `queryInboxDaily`
+
+```ts
+export async function queryInboxDaily(
+  filters: AnalyticsFilters,
+  db?: Db,
+): Promise<InboxDailyRow[]>;
+```
+- **Contrato:** agregação diária de inbox: conversas abertas/fechadas, tempo médio de resposta (SLA), contagem de conversas vencidas.
+- **Fonte:** materialized view `mv_inbox_daily`.
+- **Retorna:** dia, conversationsCount, openCount, closedCount, avgResponseTimeMinutes, overdueCount.
+
+### `queryCampaignAttribution`
+
+```ts
+export async function queryCampaignAttribution(
+  filters: AnalyticsFilters,
+  db?: Db,
+): Promise<CampaignAttributionRow[]>;
+```
+- **Contrato:** atribuição de conversões a campanhas (UTM → entrada no funil → conversão).
+- **Fonte:** materialized view `mv_campaign_attribution`.
+- **Retorna:** campaignId, campaignName, funnelId, entriesCount, conversionsCount, conversionRate (%).
+- **Filtros:** `brandId`, `from`, `to` (obrigatórios); `campaignId` (opcional).
+
+### Tipos
+
+```ts
+export type AnalyticsFilters = {
+  brandId: string;
+  from: Date;
+  to: Date;
+  offerId?: string;
+  funnelId?: string;
+  campaignId?: string;
+};
+
+export type SalesByDayRow = {
+  day: string;           // ISO "YYYY-MM-DD"
+  offerId: string;
+  offerName: string;
+  transactionsCount: number;
+  grossRevenue: number;
+  avgTicket: number;
+};
+
+export type RefundByDayRow = {
+  day: string;
+  offerId: string;
+  refundsCount: number;
+  refundedAmount: number;
+};
+
+export type DelinquencyRow = {
+  id: string;
+  subscriptionId: string;
+  contactId: string;
+  offerId: string;
+  dueAt: string;
+  amount: number;
+  daysOverdue: number;
+};
+
+export type FunnelConversionRow = {
+  funnelId: string;
+  funnelName: string;
+  label: string;
+  day: string;
+  entriesCount: number;
+  avgCycleTimeDays: number | null;
+  avgScore: number | null;
+};
+
+export type InboxDailyRow = {
+  day: string;
+  conversationsCount: number;
+  openCount: number;
+  closedCount: number;
+  avgResponseTimeMinutes: number | null;
+  overdueCount: number;
+};
+
+export type CampaignAttributionRow = {
+  campaignId: string;
+  campaignName: string;
+  funnelId: string;
+  entriesCount: number;
+  conversionsCount: number;
+  conversionRate: number | null;
+};
+
+export type OverviewKpis = {
+  grossRevenue: number;
+  transactionsCount: number;
+  refundRate: number;
+  avgResponseTimeMinutes: number | null;
+  openConversations: number;
+};
+```
 
 ---
 

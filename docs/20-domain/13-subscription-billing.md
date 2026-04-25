@@ -17,22 +17,21 @@ Modelar **cobrança recorrente** (assinaturas) e **cobrança parcelada** (instal
 - Arquivos que POSSUI (edita):
   - `lib/db/schema/billing.ts` (`subscription`, `installment`, `subscription_status_history`, `installment_status_history`)
   - `lib/db/schema/_relations/billing.ts`
-  - `lib/domain/billing/` (`advanceSubscription`, `handleInstallmentPaid`, `handleInstallmentOverdue`)
+  - `lib/domain/billing/` (funções públicas: `createSubscriptionFromTransaction`, `handleInstallmentPaid`, `handleInstallmentOverdue`, `advanceSubscription`, `cancelSubscription`)
   - `inngest/billing/*` (jobs de dunning, cron de varredura de parcelas)
-  - `app/(app)/billing/` (dashboard de inadimplência, detalhe de assinatura)
-  - `tests/unit/billing/**`
+  - `app/(app)/billing/` (UI: dashboard de inadimplência, detalhe de assinatura)
+  - `tests/unit/billing/**` + `tests/integration/billing/**`
 - Arquivos que LÊ (read-only):
   - `docs/30-contracts/01-enums.md` (`subscription_status`, `installment_status`, `offer_payment_method`)
   - `docs/20-domain/11-transaction-snapshot.md` (origem da assinatura)
   - `docs/40-integrations/01-digital-guru.md` (eventos de ciclo)
   - `docs/50-business-rules/BR-SUBSCRIPTION.md`
-- Interfaces públicas expostas:
-  - `createSubscriptionFromTransaction(transactionId): Subscription`
-  - `scheduleInstallments(subscriptionId | transactionId, plan): Installment[]`
-  - `handleInstallmentPaid(externalEventId, installmentId): void`
-  - `handleInstallmentOverdue(installmentId): void`
-  - `cancelSubscription(subscriptionId, reason): Subscription`
-  - `advanceSubscription(subscriptionId): SubscriptionStatus` (chamado por cron)
+- Interfaces públicas expostas (ver `docs/30-contracts/07-module-interfaces.md` §MOD-BILLING):
+  - `createSubscriptionFromTransaction(tx, transactionId): Promise<Subscription>`
+  - `handleInstallmentPaid(tx, installmentId, paidAt?): Promise<Installment>`
+  - `handleInstallmentOverdue(tx, installmentId): Promise<Installment>`
+  - `advanceSubscription(tx, subscriptionId, now?): Promise<SubscriptionStatus>` (chamado por cron Inngest)
+  - `cancelSubscription(tx, subscriptionId, reason): Promise<Subscription>`
 
 ## 3. Entidades e campos
 

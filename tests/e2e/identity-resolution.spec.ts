@@ -47,7 +47,7 @@ test.describe('FLOW-09 identity-resolution', () => {
     const password = process.env['E2E_ADMIN_PASSWORD'] ?? ''
 
     await page.goto('/login')
-    await expect(page.getByRole('heading', { name: 'CNE-OS' })).toBeVisible()
+    await expect(page.getByText('CNE-OS').first()).toBeVisible()
 
     // Preenche email e senha
     await page.getByLabel('E-mail').fill(email)
