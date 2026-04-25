@@ -88,10 +88,10 @@ function Step1({ initialPrincipalId, initialSecondaryId }: Step1Props) {
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-6 space-y-6">
+    <div className="rounded-lg border border-border bg-card p-6 space-y-6">
       <div className="space-y-1">
-        <h2 className="text-base font-semibold text-slate-900">Passo 1 — Selecionar contatos</h2>
-        <p className="text-sm text-slate-500">
+        <h2 className="text-base font-semibold text-foreground">Passo 1 — Selecionar contatos</h2>
+        <p className="text-sm text-muted-foreground">
           Cole o UUID do contato principal e do secundario. O contato secundario sera unificado
           ao principal (seu historico e preservado).
         </p>
@@ -100,8 +100,8 @@ function Step1({ initialPrincipalId, initialSecondaryId }: Step1Props) {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {/* Contato Principal */}
         <div className="space-y-1.5">
-          <label htmlFor="principal-id" className="block text-sm font-medium text-slate-700">
-            Contato Principal <span aria-hidden="true" className="text-slate-400 font-normal">(UUID)</span>
+          <label htmlFor="principal-id" className="block text-sm font-medium text-muted-foreground">
+            Contato Principal <span aria-hidden="true" className="text-muted-foreground/60 font-normal">(UUID)</span>
           </label>
           <input
             id="principal-id"
@@ -109,15 +109,15 @@ function Step1({ initialPrincipalId, initialSecondaryId }: Step1Props) {
             value={principalId}
             onChange={(e) => setPrincipalId(e.target.value)}
             placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-            className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+            className="h-9 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-describedby={error ? 'step1-error' : undefined}
           />
         </div>
 
         {/* Contato Secundario */}
         <div className="space-y-1.5">
-          <label htmlFor="secondary-id" className="block text-sm font-medium text-slate-700">
-            Contato Secundario <span aria-hidden="true" className="text-slate-400 font-normal">(UUID)</span>
+          <label htmlFor="secondary-id" className="block text-sm font-medium text-muted-foreground">
+            Contato Secundario <span aria-hidden="true" className="text-muted-foreground/60 font-normal">(UUID)</span>
           </label>
           <input
             id="secondary-id"
@@ -125,7 +125,7 @@ function Step1({ initialPrincipalId, initialSecondaryId }: Step1Props) {
             value={secondaryId}
             onChange={(e) => setSecondaryId(e.target.value)}
             placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-            className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+            className="h-9 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-describedby={error ? 'step1-error' : undefined}
           />
         </div>
@@ -141,7 +141,7 @@ function Step1({ initialPrincipalId, initialSecondaryId }: Step1Props) {
         <button
           type="button"
           onClick={handleCompare}
-          className="inline-flex h-9 items-center justify-center rounded-md bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 disabled:opacity-40 disabled:cursor-not-allowed"
+          className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40 disabled:cursor-not-allowed"
         >
           Comparar
         </button>
@@ -162,15 +162,15 @@ interface DiffRowProps {
 
 function DiffRow({ label, principalValue, secondaryValue }: DiffRowProps) {
   return (
-    <tr className="border-b border-slate-100 last:border-0">
-      <td className="py-2.5 pr-4 text-sm font-medium text-slate-600 w-32 align-top">{label}</td>
-      <td className="py-2.5 pr-4 text-sm text-slate-900 align-top">{principalValue}</td>
-      <td className="py-2.5 text-sm text-slate-500 align-top">{secondaryValue}</td>
+    <tr className="border-b border-border last:border-0">
+      <td className="py-2.5 pr-4 text-sm font-medium text-muted-foreground w-32 align-top">{label}</td>
+      <td className="py-2.5 pr-4 text-sm text-foreground align-top">{principalValue}</td>
+      <td className="py-2.5 text-sm text-muted-foreground align-top">{secondaryValue}</td>
     </tr>
   )
 }
 
-const DASH = <span className="text-slate-300">—</span>
+const DASH = <span className="text-muted-foreground/40">—</span>
 
 // ---------------------------------------------------------------------------
 // Passo 2 — Diff + confirmacao
@@ -259,7 +259,7 @@ function Step2({ principal, secondary, canUnmerge }: Step2Props) {
           <button
             type="button"
             onClick={() => router.push('/contacts')}
-            className="inline-flex h-9 items-center justify-center rounded-md bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+            className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             Voltar para Contatos
           </button>
@@ -269,7 +269,7 @@ function Step2({ principal, secondary, canUnmerge }: Step2Props) {
             <button
               type="button"
               onClick={() => setUndoError('')}
-              className="inline-flex h-9 items-center justify-center rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+              className="inline-flex h-9 items-center justify-center rounded-md border border-border bg-card px-4 text-sm font-medium text-muted-foreground hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               Desfazer merge
             </button>
@@ -281,7 +281,7 @@ function Step2({ principal, secondary, canUnmerge }: Step2Props) {
           <div className="rounded-md border border-orange-200 bg-orange-50 p-4 space-y-3">
             <p className="text-sm font-medium text-orange-900">Desfazer merge</p>
             <div className="space-y-1.5">
-              <label htmlFor="undo-reason" className="block text-sm font-medium text-slate-700">
+              <label htmlFor="undo-reason" className="block text-sm font-medium text-muted-foreground">
                 Motivo *
               </label>
               <input
@@ -290,7 +290,7 @@ function Step2({ principal, secondary, canUnmerge }: Step2Props) {
                 value={undoReason}
                 onChange={(e) => setUndoReason(e.target.value)}
                 placeholder="Ex.: merge erroneo"
-                className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+                className="h-9 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 aria-describedby={undoError ? 'undo-error' : undefined}
               />
             </div>
@@ -312,7 +312,7 @@ function Step2({ principal, secondary, canUnmerge }: Step2Props) {
               <button
                 type="button"
                 onClick={() => setUndoError(null)}
-                className="inline-flex h-9 items-center justify-center rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+                className="inline-flex h-9 items-center justify-center rounded-md border border-border bg-card px-4 text-sm font-medium text-muted-foreground hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 Cancelar
               </button>
@@ -332,20 +332,20 @@ function Step2({ principal, secondary, canUnmerge }: Step2Props) {
   return (
     <div className="space-y-6">
       {/* Diff */}
-      <div className="rounded-lg border border-slate-200 bg-white p-6 space-y-4">
-        <h2 className="text-base font-semibold text-slate-900">Passo 2 — Comparar e confirmar</h2>
+      <div className="rounded-lg border border-border bg-card p-6 space-y-4">
+        <h2 className="text-base font-semibold text-foreground">Passo 2 — Comparar e confirmar</h2>
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm" aria-label="Comparacao dos contatos">
             <thead>
-              <tr className="border-b border-slate-200">
-                <th scope="col" className="py-2 pr-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wide w-32">
+              <tr className="border-b border-border">
+                <th scope="col" className="py-2 pr-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide w-32">
                   Campo
                 </th>
-                <th scope="col" className="py-2 pr-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">
+                <th scope="col" className="py-2 pr-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">
                   Principal
                 </th>
-                <th scope="col" className="py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">
+                <th scope="col" className="py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">
                   Secundario
                 </th>
               </tr>
@@ -434,16 +434,16 @@ function Step2({ principal, secondary, canUnmerge }: Step2Props) {
           </table>
         </div>
 
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-muted-foreground">
           Apos o merge, o contato secundario passara a apontar para o principal. Historico e
           preservado — nenhum dado e destruido (BR-MERGE).
         </p>
       </div>
 
       {/* Formulario de confirmacao */}
-      <div className="rounded-lg border border-slate-200 bg-white p-6 space-y-4">
+      <div className="rounded-lg border border-border bg-card p-6 space-y-4">
         <div className="space-y-1.5">
-          <label htmlFor="merge-reason" className="block text-sm font-medium text-slate-700">
+          <label htmlFor="merge-reason" className="block text-sm font-medium text-muted-foreground">
             Motivo do merge <span aria-hidden="true" className="text-red-500">*</span>
           </label>
           <input
@@ -452,7 +452,7 @@ function Step2({ principal, secondary, canUnmerge }: Step2Props) {
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="Ex.: duplicidade detectada na importacao de 2025-04"
-            className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+            className="h-9 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-describedby={error ? 'merge-error' : undefined}
             aria-required="true"
           />
@@ -469,14 +469,14 @@ function Step2({ principal, secondary, canUnmerge }: Step2Props) {
             onClick={handleSubmit}
             disabled={isPending}
             aria-busy={isPending}
-            className="inline-flex h-9 items-center justify-center rounded-md bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {isPending ? 'Processando...' : 'Confirmar merge'}
           </button>
 
           <a
             href="/contacts/merge"
-            className="inline-flex h-9 items-center justify-center rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+            className="inline-flex h-9 items-center justify-center rounded-md border border-border bg-card px-4 text-sm font-medium text-muted-foreground hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             Cancelar
           </a>

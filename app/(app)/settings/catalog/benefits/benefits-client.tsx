@@ -76,7 +76,7 @@ export function BenefitsClient({ mode, brands, benefitId, benefitName }: Props) 
                 id="benefit-brand"
                 name="brandId"
                 required
-                className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+                className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 aria-required="true"
               >
                 <option value="">Selecione uma marca</option>
@@ -108,7 +108,7 @@ export function BenefitsClient({ mode, brands, benefitId, benefitName }: Props) 
                 aria-required="true"
                 aria-describedby="benefit-slug-hint"
               />
-              <p id="benefit-slug-hint" className="text-xs text-slate-400">
+              <p id="benefit-slug-hint" className="text-xs text-muted-foreground/60">
                 Somente letras minúsculas, números e hífens.
               </p>
             </div>
@@ -119,7 +119,7 @@ export function BenefitsClient({ mode, brands, benefitId, benefitName }: Props) 
                 name="description"
                 rows={2}
                 placeholder="Descreva o benefício..."
-                className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 resize-none"
+                className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
               />
             </div>
             <div className="space-y-1">
@@ -131,7 +131,7 @@ export function BenefitsClient({ mode, brands, benefitId, benefitName }: Props) 
                 pattern="^[a-z0-9][a-z0-9-]*$"
                 aria-describedby="benefit-tag-hint"
               />
-              <p id="benefit-tag-hint" className="text-xs text-slate-400">
+              <p id="benefit-tag-hint" className="text-xs text-muted-foreground/60">
                 Tag aplicada ao contato ao aprovar transação com este benefício. Kebab-case.
               </p>
             </div>
@@ -145,7 +145,7 @@ export function BenefitsClient({ mode, brands, benefitId, benefitName }: Props) 
                 placeholder="12"
                 aria-describedby="benefit-duration-hint"
               />
-              <p id="benefit-duration-hint" className="text-xs text-slate-400">
+              <p id="benefit-duration-hint" className="text-xs text-muted-foreground/60">
                 Deixe em branco para vigência perpétua.
               </p>
             </div>
@@ -154,7 +154,7 @@ export function BenefitsClient({ mode, brands, benefitId, benefitName }: Props) 
                 type="checkbox"
                 id="benefit-delivery-required"
                 name="deliveryStatusRequired"
-                className="h-4 w-4 rounded border-slate-300 accent-slate-700"
+                className="h-4 w-4 rounded border-border accent-slate-700"
               />
               <Label htmlFor="benefit-delivery-required" className="cursor-pointer">
                 Exigir confirmação de entrega
@@ -205,7 +205,7 @@ export function BenefitsClient({ mode, brands, benefitId, benefitName }: Props) 
         <Button
           size="sm"
           variant="outline"
-          className="text-slate-500 hover:text-red-600 hover:border-red-300"
+          className="text-muted-foreground hover:text-red-600 hover:border-red-300"
           aria-label={`Arquivar benefício ${benefitName}`}
         >
           Arquivar
@@ -216,7 +216,7 @@ export function BenefitsClient({ mode, brands, benefitId, benefitName }: Props) 
           <DialogTitle>Arquivar benefício</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 mt-2">
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-muted-foreground">
             Tem certeza que deseja arquivar o benefício{' '}
             <span className="font-semibold">{benefitName}</span>? Ele não poderá ser incluído
             em novas condições de oferta.

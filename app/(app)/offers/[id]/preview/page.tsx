@@ -63,10 +63,10 @@ export default async function OfferPreviewPage({
   return (
     <div className="space-y-6">
       {/* Breadcrumb */}
-      <nav aria-label="Navegação" className="text-sm text-slate-500">
+      <nav aria-label="Navegação" className="text-sm text-muted-foreground">
         <Link
           href={'/offers' as Route}
-          className="hover:text-slate-800 underline-offset-2 hover:underline"
+          className="hover:text-foreground underline-offset-2 hover:underline"
         >
           Ofertas
         </Link>
@@ -75,26 +75,26 @@ export default async function OfferPreviewPage({
         </span>
         <Link
           href={`/offers/${offerRow.id}` as Route}
-          className="hover:text-slate-800 underline-offset-2 hover:underline"
+          className="hover:text-foreground underline-offset-2 hover:underline"
         >
           {offerRow.name}
         </Link>
         <span className="mx-2" aria-hidden>
           /
         </span>
-        <span className="text-slate-900 font-medium">Preview</span>
+        <span className="text-foreground font-medium">Preview</span>
       </nav>
 
       {/* Cabeçalho */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">
+        <h1 className="text-2xl font-bold text-foreground">
           Simulador de decisão
         </h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-sm text-muted-foreground">
           Oferta:{' '}
-          <span className="font-medium text-slate-700">{offerRow.name}</span>
+          <span className="font-medium text-muted-foreground">{offerRow.name}</span>
           {' · '}
-          <code className="rounded bg-slate-100 px-1 py-0.5 text-xs font-mono text-slate-600">
+          <code className="rounded bg-muted px-1 py-0.5 text-xs font-mono text-muted-foreground">
             {offerRow.slug}
           </code>
         </p>

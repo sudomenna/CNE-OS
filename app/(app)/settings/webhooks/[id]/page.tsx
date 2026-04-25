@@ -90,7 +90,7 @@ export default async function WebhookDetailPage({ params }: PageProps) {
       <div className="space-y-4">
         <Link
           href="/settings/webhooks"
-          className="text-sm text-slate-500 hover:text-slate-700 underline-offset-2 hover:underline"
+          className="text-sm text-muted-foreground hover:text-muted-foreground underline-offset-2 hover:underline"
         >
           &larr; Voltar para webhooks
         </Link>
@@ -120,7 +120,7 @@ export default async function WebhookDetailPage({ params }: PageProps) {
       {/* Navegação de volta */}
       <Link
         href="/settings/webhooks"
-        className="inline-flex items-center text-sm text-slate-500 hover:text-slate-700 underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-1 rounded"
+        className="inline-flex items-center text-sm text-muted-foreground hover:text-muted-foreground underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 rounded"
       >
         &larr; Voltar para webhooks
       </Link>
@@ -128,8 +128,8 @@ export default async function WebhookDetailPage({ params }: PageProps) {
       {/* Cabeçalho */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Detalhe do Webhook</h1>
-          <p className="text-sm text-slate-500 mt-1 font-mono break-all">{entry.id}</p>
+          <h1 className="text-2xl font-bold text-foreground">Detalhe do Webhook</h1>
+          <p className="text-sm text-muted-foreground mt-1 font-mono break-all">{entry.id}</p>
         </div>
         {/* BR-RBAC: botão visível apenas para admin|financial + 2FA e status failed|dead_letter */}
         <ReprocessButton
@@ -158,16 +158,16 @@ export default async function WebhookDetailPage({ params }: PageProps) {
 
       {/* Metadados */}
       <section aria-labelledby="metadata-heading">
-        <h2 id="metadata-heading" className="text-base font-semibold text-slate-900 mb-3">
+        <h2 id="metadata-heading" className="text-base font-semibold text-foreground mb-3">
           Metadados
         </h2>
-        <div className="rounded-lg border border-slate-200 bg-white overflow-hidden">
-          <dl className="divide-y divide-slate-100">
+        <div className="rounded-lg border border-border bg-card overflow-hidden">
+          <dl className="divide-y divide-border">
             <MetaRow label="Provedor">
               {PROVIDER_LABELS[entry.provider] ?? entry.provider}
             </MetaRow>
             <MetaRow label="Tipo de evento">
-              {entry.eventKind ?? <span className="text-slate-400 italic">não especificado</span>}
+              {entry.eventKind ?? <span className="text-muted-foreground/60 italic">não especificado</span>}
             </MetaRow>
             <MetaRow label="ID externo">
               <span className="font-mono text-xs break-all">{entry.externalEventId}</span>
@@ -194,7 +194,7 @@ export default async function WebhookDetailPage({ params }: PageProps) {
       {/* Último erro */}
       {entry.lastError && (
         <section aria-labelledby="error-heading">
-          <h2 id="error-heading" className="text-base font-semibold text-slate-900 mb-3">
+          <h2 id="error-heading" className="text-base font-semibold text-foreground mb-3">
             Último erro
           </h2>
           <div className="rounded-lg border border-red-200 bg-red-50 p-4">
@@ -210,12 +210,12 @@ export default async function WebhookDetailPage({ params }: PageProps) {
 
       {/* Payload bruto */}
       <section aria-labelledby="payload-heading">
-        <h2 id="payload-heading" className="text-base font-semibold text-slate-900 mb-3">
+        <h2 id="payload-heading" className="text-base font-semibold text-foreground mb-3">
           Payload
         </h2>
-        <div className="rounded-lg border border-slate-200 bg-slate-950 p-4 overflow-auto max-h-[500px]">
+        <div className="rounded-lg border border-border bg-neutral-950 p-4 overflow-auto max-h-[500px]">
           <pre
-            className="text-xs text-slate-100 whitespace-pre font-mono"
+            className="text-xs text-neutral-100 whitespace-pre font-mono"
             aria-label="Payload JSON do webhook"
           >
             {payloadFormatted}
@@ -239,8 +239,8 @@ function MetaRow({
 }) {
   return (
     <div className="grid grid-cols-[180px_1fr] px-4 py-3 text-sm">
-      <dt className="font-medium text-slate-600">{label}</dt>
-      <dd className="text-slate-900">{children}</dd>
+      <dt className="font-medium text-muted-foreground">{label}</dt>
+      <dd className="text-foreground">{children}</dd>
     </div>
   )
 }

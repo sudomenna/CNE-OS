@@ -82,7 +82,7 @@ export function CancelSubscriptionButton({ subscriptionId }: CancelSubscriptionB
           rows={2}
           maxLength={500}
           placeholder="Informe o motivo do cancelamento..."
-          className="w-full rounded-md border border-red-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500"
+          className="w-full rounded-md border border-red-300 bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-red-500"
           aria-required="true"
           aria-describedby={error ? 'cancel-error' : undefined}
         />

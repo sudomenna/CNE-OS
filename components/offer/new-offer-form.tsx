@@ -142,7 +142,7 @@ export function NewOfferForm({ brands, legalEntities }: NewOfferFormProps) {
             </option>
           ))}
         </select>
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-muted-foreground/60">
           Imutável após a primeira venda aprovada (INV-OFFER-03).
         </p>
       </div>
@@ -168,7 +168,7 @@ export function NewOfferForm({ brands, legalEntities }: NewOfferFormProps) {
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="nof-slug">
           Slug{' '}
-          <span className="text-xs text-slate-400 font-normal">
+          <span className="text-xs text-muted-foreground/60 font-normal">
             (auto-gerado; apenas letras minúsculas, números e hífens)
           </span>
         </Label>
@@ -184,7 +184,7 @@ export function NewOfferForm({ brands, legalEntities }: NewOfferFormProps) {
           onChange={handleSlugChange}
           onBlur={handleSlugBlur}
         />
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-muted-foreground/60">
           Deve ser único por marca. Usado em URLs e referências internas.
         </p>
       </div>

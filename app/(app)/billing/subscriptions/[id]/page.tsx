@@ -104,21 +104,21 @@ export default async function SubscriptionDetailPage({
   return (
     <div className="space-y-8 max-w-4xl">
       {/* Breadcrumb */}
-      <nav aria-label="Breadcrumb" className="text-sm text-slate-500">
+      <nav aria-label="Breadcrumb" className="text-sm text-muted-foreground">
         <ol className="flex items-center gap-2">
           <li>
             <Link
               href={'/billing/subscriptions' as Route}
-              className="hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 rounded"
+              className="hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
             >
               Assinaturas
             </Link>
           </li>
-          <li aria-hidden="true" className="text-slate-300">
+          <li aria-hidden="true" className="text-muted-foreground/40">
             /
           </li>
           <li
-            className="font-medium text-slate-900 truncate max-w-[200px]"
+            className="font-medium text-foreground truncate max-w-[200px]"
             aria-current="page"
           >
             {id.slice(0, 8)}...
@@ -130,12 +130,12 @@ export default async function SubscriptionDetailPage({
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-slate-900">Assinatura</h1>
+            <h1 className="text-2xl font-bold text-foreground">Assinatura</h1>
             <Badge variant={STATUS_VARIANT[sub.status as SubscriptionStatus]}>
               {STATUS_LABEL[sub.status as SubscriptionStatus] ?? sub.status}
             </Badge>
           </div>
-          <p className="text-sm text-slate-500 font-mono">{sub.id}</p>
+          <p className="text-sm text-muted-foreground font-mono">{sub.id}</p>
         </div>
 
         {canCancel && (
@@ -146,21 +146,21 @@ export default async function SubscriptionDetailPage({
       {/* Informacoes da assinatura */}
       <section
         aria-labelledby="info-heading"
-        className="rounded-lg border border-slate-200 bg-white"
+        className="rounded-lg border border-border bg-card"
       >
         <h2
           id="info-heading"
-          className="px-6 py-4 text-sm font-semibold text-slate-700 border-b border-slate-200"
+          className="px-6 py-4 text-sm font-semibold text-muted-foreground border-b border-border"
         >
           Informacoes da Assinatura
         </h2>
         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 px-6 py-5">
           <div>
-            <dt className="text-xs font-medium text-slate-500">Contato</dt>
-            <dd className="mt-1 text-sm text-slate-900">
+            <dt className="text-xs font-medium text-muted-foreground">Contato</dt>
+            <dd className="mt-1 text-sm text-foreground">
               <Link
                 href={`/contacts/${sub.contactId}` as Route}
-                className="text-slate-700 hover:text-slate-900 underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 rounded"
+                className="text-muted-foreground hover:text-foreground underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
               >
                 {sub.contactName}
               </Link>
@@ -168,11 +168,11 @@ export default async function SubscriptionDetailPage({
           </div>
 
           <div>
-            <dt className="text-xs font-medium text-slate-500">Oferta</dt>
-            <dd className="mt-1 text-sm text-slate-900">
+            <dt className="text-xs font-medium text-muted-foreground">Oferta</dt>
+            <dd className="mt-1 text-sm text-foreground">
               <Link
                 href={`/offers/${sub.offerId}` as Route}
-                className="text-slate-700 hover:text-slate-900 underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 rounded"
+                className="text-muted-foreground hover:text-foreground underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
               >
                 {sub.offerName}
               </Link>
@@ -180,39 +180,39 @@ export default async function SubscriptionDetailPage({
           </div>
 
           <div>
-            <dt className="text-xs font-medium text-slate-500">Periodo atual</dt>
-            <dd className="mt-1 text-sm text-slate-900 tabular-nums">
+            <dt className="text-xs font-medium text-muted-foreground">Periodo atual</dt>
+            <dd className="mt-1 text-sm text-foreground tabular-nums">
               {formatDate(sub.currentPeriodStart)} – {formatDate(sub.currentPeriodEnd)}
             </dd>
           </div>
 
           <div>
-            <dt className="text-xs font-medium text-slate-500">Proximo billing</dt>
-            <dd className="mt-1 text-sm text-slate-900 tabular-nums">
+            <dt className="text-xs font-medium text-muted-foreground">Proximo billing</dt>
+            <dd className="mt-1 text-sm text-foreground tabular-nums">
               {formatDateTime(sub.nextBillingAt)}
             </dd>
           </div>
 
           {sub.trialEndsAt && (
             <div>
-              <dt className="text-xs font-medium text-slate-500">Fim do trial</dt>
-              <dd className="mt-1 text-sm text-slate-900 tabular-nums">
+              <dt className="text-xs font-medium text-muted-foreground">Fim do trial</dt>
+              <dd className="mt-1 text-sm text-foreground tabular-nums">
                 {formatDateTime(sub.trialEndsAt)}
               </dd>
             </div>
           )}
 
           <div>
-            <dt className="text-xs font-medium text-slate-500">Criada em</dt>
-            <dd className="mt-1 text-sm text-slate-900 tabular-nums">
+            <dt className="text-xs font-medium text-muted-foreground">Criada em</dt>
+            <dd className="mt-1 text-sm text-foreground tabular-nums">
               {formatDateTime(sub.createdAt)}
             </dd>
           </div>
 
           {sub.cancelledAt && (
             <div>
-              <dt className="text-xs font-medium text-slate-500">Cancelada em</dt>
-              <dd className="mt-1 text-sm text-slate-900 tabular-nums">
+              <dt className="text-xs font-medium text-muted-foreground">Cancelada em</dt>
+              <dd className="mt-1 text-sm text-foreground tabular-nums">
                 {formatDateTime(sub.cancelledAt)}
               </dd>
             </div>
@@ -220,22 +220,22 @@ export default async function SubscriptionDetailPage({
 
           {sub.cancelReason && (
             <div className="sm:col-span-2">
-              <dt className="text-xs font-medium text-slate-500">Motivo do cancelamento</dt>
-              <dd className="mt-1 text-sm text-slate-700">{sub.cancelReason}</dd>
+              <dt className="text-xs font-medium text-muted-foreground">Motivo do cancelamento</dt>
+              <dd className="mt-1 text-sm text-muted-foreground">{sub.cancelReason}</dd>
             </div>
           )}
 
           {sub.externalProvider && (
             <div>
-              <dt className="text-xs font-medium text-slate-500">Provedor externo</dt>
-              <dd className="mt-1 text-sm text-slate-900">{sub.externalProvider}</dd>
+              <dt className="text-xs font-medium text-muted-foreground">Provedor externo</dt>
+              <dd className="mt-1 text-sm text-foreground">{sub.externalProvider}</dd>
             </div>
           )}
 
           {sub.externalId && (
             <div>
-              <dt className="text-xs font-medium text-slate-500">ID externo</dt>
-              <dd className="mt-1 text-sm text-slate-900 font-mono">{sub.externalId}</dd>
+              <dt className="text-xs font-medium text-muted-foreground">ID externo</dt>
+              <dd className="mt-1 text-sm text-foreground font-mono">{sub.externalId}</dd>
             </div>
           )}
         </dl>
@@ -245,7 +245,7 @@ export default async function SubscriptionDetailPage({
       <section aria-labelledby="installments-heading">
         <h2
           id="installments-heading"
-          className="text-lg font-semibold text-slate-900 mb-3"
+          className="text-lg font-semibold text-foreground mb-3"
         >
           Parcelas ({sub.installments.length})
         </h2>

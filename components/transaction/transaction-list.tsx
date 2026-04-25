@@ -61,80 +61,80 @@ interface TransactionListProps {
 export function TransactionList({ transactions }: TransactionListProps) {
   if (transactions.length === 0) {
     return (
-      <div className="rounded-lg border border-slate-200 bg-white p-12 text-center">
-        <p className="text-sm text-slate-500">Nenhuma transação encontrada.</p>
+      <div className="rounded-lg border border-border bg-card p-12 text-center">
+        <p className="text-sm text-muted-foreground">Nenhuma transação encontrada.</p>
       </div>
     )
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+    <div className="overflow-hidden rounded-lg border border-border bg-card">
       <div className="overflow-x-auto">
         <table className="w-full text-sm" role="table" aria-label="Lista de transacoes">
           <thead>
-            <tr className="border-b border-slate-200 bg-slate-50">
+            <tr className="border-b border-border bg-muted/50">
               <th
                 scope="col"
-                className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide"
+                className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide"
               >
                 Data
               </th>
               <th
                 scope="col"
-                className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide"
+                className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide"
               >
                 Contato
               </th>
               <th
                 scope="col"
-                className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide"
+                className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide"
               >
                 Oferta
               </th>
               <th
                 scope="col"
-                className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wide"
+                className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wide"
               >
                 Valor
               </th>
               <th
                 scope="col"
-                className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide"
+                className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide"
               >
                 Status
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-border">
             {transactions.map((tx) => (
               <tr
                 key={tx.id}
-                className="hover:bg-slate-50 transition-colors"
+                className="hover:bg-muted/50 transition-colors"
               >
-                <td className="px-4 py-3 text-slate-700 whitespace-nowrap">
+                <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
                   <Link
                     href={`/transactions/${tx.id}` as Route}
-                    className="font-medium text-slate-900 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 rounded"
+                    className="font-medium text-foreground hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
                   >
                     {formatDate(tx.createdAt)}
                   </Link>
                 </td>
                 <td className="px-4 py-3">
-                  <div className="font-medium text-slate-900 truncate max-w-[200px]">
+                  <div className="font-medium text-foreground truncate max-w-[200px]">
                     {tx.contactName}
                   </div>
                   {tx.contactEmail && (
-                    <div className="text-xs text-slate-500 truncate max-w-[200px]">
+                    <div className="text-xs text-muted-foreground truncate max-w-[200px]">
                       {tx.contactEmail}
                     </div>
                   )}
                 </td>
                 <td className="px-4 py-3">
-                  <span className="text-slate-700 truncate max-w-[200px] block">
+                  <span className="text-muted-foreground truncate max-w-[200px] block">
                     {tx.offerName}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-right font-medium text-slate-900 whitespace-nowrap tabular-nums">
+                <td className="px-4 py-3 text-right font-medium text-foreground whitespace-nowrap tabular-nums">
                   {formatCurrency(tx.amount, tx.currency)}
                 </td>
                 <td className="px-4 py-3">

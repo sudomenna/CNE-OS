@@ -141,7 +141,7 @@ export function FunnelListClient({ funnels }: FunnelListClientProps) {
               <div className="space-y-1.5">
                 <Label htmlFor="funnel-slug">
                   Slug{' '}
-                  <span className="text-slate-400 text-xs font-normal">(auto-gerado do nome)</span>
+                  <span className="text-muted-foreground/60 text-xs font-normal">(auto-gerado do nome)</span>
                 </Label>
                 <Input
                   id="funnel-slug"
@@ -153,7 +153,7 @@ export function FunnelListClient({ funnels }: FunnelListClientProps) {
                   aria-describedby="slug-hint"
                   required
                 />
-                <p id="slug-hint" className="text-xs text-slate-400">
+                <p id="slug-hint" className="text-xs text-muted-foreground/60">
                   Apenas letras minúsculas, números e hífens.
                 </p>
               </div>
@@ -199,7 +199,7 @@ export function FunnelListClient({ funnels }: FunnelListClientProps) {
 
       {/* Lista de funis */}
       {funnels.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+        <div className="flex flex-col items-center justify-center py-20 text-muted-foreground/60">
           <p className="text-base">Nenhum funil cadastrado.</p>
           <p className="text-sm mt-1">Crie o primeiro funil para começar.</p>
         </div>
@@ -207,39 +207,39 @@ export function FunnelListClient({ funnels }: FunnelListClientProps) {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {funnels.map((f) => (
             <Link key={f.id} href={`/funnels/${f.id}`} className="group block">
-              <Card className="transition-shadow hover:shadow-md h-full cursor-pointer border-slate-200">
+              <Card className="transition-shadow hover:shadow-md h-full cursor-pointer border-border">
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between gap-2">
-                    <CardTitle className="text-base font-semibold text-slate-900 group-hover:text-blue-600 transition-colors leading-snug">
+                    <CardTitle className="text-base font-semibold text-foreground group-hover:text-blue-600 transition-colors leading-snug">
                       {f.name}
                     </CardTitle>
                     {!f.isActive && (
-                      <span className="text-xs bg-slate-100 text-slate-500 rounded px-1.5 py-0.5 shrink-0">
+                      <span className="text-xs bg-muted text-muted-foreground rounded px-1.5 py-0.5 shrink-0">
                         Inativo
                       </span>
                     )}
                   </div>
-                  <CardDescription className="text-xs text-slate-400 font-mono">
+                  <CardDescription className="text-xs text-muted-foreground/60 font-mono">
                     /{f.slug}
                   </CardDescription>
                 </CardHeader>
 
                 <CardContent>
-                  <div className="flex gap-4 text-sm text-slate-600">
+                  <div className="flex gap-4 text-sm text-muted-foreground">
                     <div className="flex flex-col">
-                      <span className="text-lg font-semibold text-slate-900 tabular-nums leading-none">
+                      <span className="text-lg font-semibold text-foreground tabular-nums leading-none">
                         {Number(f.stageCount)}
                       </span>
-                      <span className="text-xs text-slate-400 mt-0.5">
+                      <span className="text-xs text-muted-foreground/60 mt-0.5">
                         {Number(f.stageCount) === 1 ? 'estágio' : 'estágios'}
                       </span>
                     </div>
 
                     <div className="flex flex-col">
-                      <span className="text-lg font-semibold text-slate-900 tabular-nums leading-none">
+                      <span className="text-lg font-semibold text-foreground tabular-nums leading-none">
                         {Number(f.entryCount)}
                       </span>
-                      <span className="text-xs text-slate-400 mt-0.5">
+                      <span className="text-xs text-muted-foreground/60 mt-0.5">
                         {Number(f.entryCount) === 1
                           ? 'oportunidade ativa'
                           : 'oportunidades ativas'}

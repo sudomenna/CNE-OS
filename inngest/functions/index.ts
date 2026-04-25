@@ -8,5 +8,6 @@ import { installmentSweep } from './installment-sweep'
 import { subscriptionAdvance } from './subscription-advance'
 import { dunningRetry } from './dunning-retry'
 import { analyticsRefreshHourly } from './analytics-refresh'
+import { automationRun } from './automation-run'
 
-export const functions = [helloWorld, instagramInbound, whatsappInbound, emailPoll, digitalGuruProcess, notazzSend, installmentSweep, subscriptionAdvance, dunningRetry, analyticsRefreshHourly]
+export const functions = [helloWorld, instagramInbound, whatsappInbound, emailPoll, digitalGuruProcess, notazzSend, installmentSweep, subscriptionAdvance, dunningRetry, analyticsRefreshHourly, automationRun]

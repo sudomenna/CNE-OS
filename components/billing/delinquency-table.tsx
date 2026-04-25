@@ -57,88 +57,88 @@ export function DelinquencyTable({ rows }: DelinquencyTableProps) {
       <div
         role="status"
         aria-live="polite"
-        className="rounded-lg border border-slate-200 bg-white px-6 py-12 text-center"
+        className="rounded-lg border border-border bg-card px-6 py-12 text-center"
       >
-        <p className="text-sm text-slate-500">Nenhuma assinatura inadimplente encontrada.</p>
+        <p className="text-sm text-muted-foreground">Nenhuma assinatura inadimplente encontrada.</p>
       </div>
     )
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+    <div className="overflow-x-auto rounded-lg border border-border bg-card">
       <table className="min-w-full divide-y divide-slate-200" aria-label="Lista de inadimplencia">
-        <thead className="bg-slate-50">
+        <thead className="bg-muted/50">
           <tr>
             <th
               scope="col"
-              className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500"
+              className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground"
             >
               Contato
             </th>
             <th
               scope="col"
-              className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500"
+              className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground"
             >
               Oferta
             </th>
             <th
               scope="col"
-              className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500"
+              className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground"
             >
               Marca
             </th>
             <th
               scope="col"
-              className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500"
+              className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-muted-foreground"
             >
               Total vencido
             </th>
             <th
               scope="col"
-              className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500"
+              className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground"
             >
               1ª parcela vencida
             </th>
             <th
               scope="col"
-              className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500"
+              className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground"
             >
               Atraso
             </th>
             <th
               scope="col"
-              className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500"
+              className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground"
             >
               <span className="sr-only">Ações</span>
             </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100 bg-white">
+        <tbody className="divide-y divide-border bg-card">
           {rows.map((row) => (
-            <tr key={row.subscriptionId} className="hover:bg-slate-50 transition-colors">
+            <tr key={row.subscriptionId} className="hover:bg-muted/50 transition-colors">
               {/* Contato */}
               <td className="px-4 py-3">
                 <Link
                   href={`/contacts/${row.contactId}` as Route}
-                  className="text-sm font-medium text-slate-900 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 rounded"
+                  className="text-sm font-medium text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
                 >
                   {row.contactName}
                 </Link>
               </td>
 
               {/* Oferta */}
-              <td className="px-4 py-3 text-sm text-slate-700">{row.offerName}</td>
+              <td className="px-4 py-3 text-sm text-muted-foreground">{row.offerName}</td>
 
               {/* Marca */}
-              <td className="px-4 py-3 text-sm text-slate-700">{row.brandName}</td>
+              <td className="px-4 py-3 text-sm text-muted-foreground">{row.brandName}</td>
 
               {/* Total vencido */}
-              <td className="px-4 py-3 text-right text-sm font-medium text-slate-900">
+              <td className="px-4 py-3 text-right text-sm font-medium text-foreground">
                 {formatCurrency(row.totalOverdue)}
               </td>
 
               {/* Primeira parcela vencida */}
-              <td className="px-4 py-3 text-sm text-slate-700">
+              <td className="px-4 py-3 text-sm text-muted-foreground">
                 <time dateTime={row.oldestDueAt.toISOString()}>{formatDate(row.oldestDueAt)}</time>
               </td>
 
@@ -156,7 +156,7 @@ export function DelinquencyTable({ rows }: DelinquencyTableProps) {
               <td className="px-4 py-3">
                 <Link
                   href={`/billing/${row.subscriptionId}` as Route}
-                  className="text-sm font-medium text-slate-600 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 rounded"
+                  className="text-sm font-medium text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
                   aria-label={`Ver assinatura de ${row.contactName}`}
                 >
                   Ver assinatura

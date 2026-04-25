@@ -50,7 +50,7 @@ const KIND_BADGE_CLASS: Record<OfferRuleKind, string> = {
   campaign: 'bg-purple-100 text-purple-700 hover:bg-purple-100',
   channel: 'bg-teal-100 text-teal-700 hover:bg-teal-100',
   creative: 'bg-pink-100 text-pink-700 hover:bg-pink-100',
-  internal_use: 'bg-slate-100 text-slate-600 hover:bg-slate-100',
+  internal_use: 'bg-muted text-muted-foreground hover:bg-muted',
 }
 
 // ---------------------------------------------------------------------------
@@ -122,7 +122,7 @@ export function RuleNode({ rule }: RuleNodeProps) {
     <div
       ref={setNodeRef}
       style={style}
-      className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm select-none"
+      className="flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm shadow-sm select-none"
       aria-label={`Regra: ${KIND_LABELS[rule.kind]}, ${summary}`}
     >
       {/* Drag handle */}
@@ -130,7 +130,7 @@ export function RuleNode({ rule }: RuleNodeProps) {
         {...attributes}
         {...listeners}
         type="button"
-        className="cursor-grab rounded p-0.5 text-slate-300 hover:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing"
+        className="cursor-grab rounded p-0.5 text-muted-foreground/40 hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing"
         aria-label="Arrastar regra"
         tabIndex={0}
       >
@@ -140,13 +140,13 @@ export function RuleNode({ rule }: RuleNodeProps) {
       {/* Kind badge */}
       <Badge
         variant="secondary"
-        className={KIND_BADGE_CLASS[rule.kind] ?? 'bg-slate-100 text-slate-600'}
+        className={KIND_BADGE_CLASS[rule.kind] ?? 'bg-muted text-muted-foreground'}
       >
         {KIND_LABELS[rule.kind]}
       </Badge>
 
       {/* Summary */}
-      <span className="flex-1 truncate text-slate-600 text-xs">{summary}</span>
+      <span className="flex-1 truncate text-muted-foreground text-xs">{summary}</span>
     </div>
   )
 }

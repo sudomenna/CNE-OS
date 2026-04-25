@@ -76,8 +76,8 @@ export default async function SubscriptionsPage({ searchParams }: PageProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Assinaturas</h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <h1 className="text-2xl font-bold text-foreground">Assinaturas</h1>
+          <p className="text-sm text-muted-foreground mt-1">
             {total} {total === 1 ? 'assinatura encontrada' : 'assinaturas encontradas'}
           </p>
         </div>
@@ -87,14 +87,14 @@ export default async function SubscriptionsPage({ searchParams }: PageProps) {
       <form method="GET" action="/billing/subscriptions" className="flex flex-wrap items-end gap-3">
         {/* Status */}
         <div className="flex flex-col gap-1">
-          <label htmlFor="status-filter" className="text-xs font-medium text-slate-600">
+          <label htmlFor="status-filter" className="text-xs font-medium text-muted-foreground">
             Status
           </label>
           <select
             id="status-filter"
             name="status"
             defaultValue={selectedStatus ?? ''}
-            className="h-9 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900"
+            className="h-9 rounded-md border border-border bg-card px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           >
             <option value="">Todos</option>
             {VALID_STATUSES.map((s) => (
@@ -107,7 +107,7 @@ export default async function SubscriptionsPage({ searchParams }: PageProps) {
 
         <button
           type="submit"
-          className="h-9 inline-flex items-center rounded-md bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+          className="h-9 inline-flex items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           Filtrar
         </button>
@@ -115,7 +115,7 @@ export default async function SubscriptionsPage({ searchParams }: PageProps) {
         {selectedStatus && (
           <Link
             href={'/billing/subscriptions' as Route}
-            className="h-9 inline-flex items-center rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+            className="h-9 inline-flex items-center rounded-md border border-border bg-card px-4 text-sm font-medium text-muted-foreground hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             Limpar
           </Link>
@@ -131,16 +131,16 @@ export default async function SubscriptionsPage({ searchParams }: PageProps) {
           Erro ao carregar assinaturas: {result.error.message}
         </div>
       ) : items.length === 0 ? (
-        <div className="rounded-lg border border-slate-200 bg-white p-12 text-center">
-          <p className="text-sm text-slate-500">Nenhuma assinatura encontrada.</p>
+        <div className="rounded-lg border border-border bg-card p-12 text-center">
+          <p className="text-sm text-muted-foreground">Nenhuma assinatura encontrada.</p>
           {selectedStatus && (
-            <p className="mt-2 text-xs text-slate-400">
+            <p className="mt-2 text-xs text-muted-foreground/60">
               Filtro ativo: <Badge variant="secondary">{STATUS_LABEL[selectedStatus]}</Badge>
             </p>
           )}
         </div>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+        <div className="overflow-hidden rounded-lg border border-border bg-card">
           <div className="overflow-x-auto">
             <table
               className="w-full text-sm"
@@ -148,34 +148,34 @@ export default async function SubscriptionsPage({ searchParams }: PageProps) {
               aria-label="Lista de assinaturas"
             >
               <thead>
-                <tr className="border-b border-slate-200 bg-slate-50">
+                <tr className="border-b border-border bg-muted/50">
                   <th
                     scope="col"
-                    className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide"
+                    className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide"
                   >
                     Contato
                   </th>
                   <th
                     scope="col"
-                    className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide"
+                    className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide"
                   >
                     Oferta
                   </th>
                   <th
                     scope="col"
-                    className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide"
+                    className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide"
                   >
                     Status
                   </th>
                   <th
                     scope="col"
-                    className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide"
+                    className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide"
                   >
                     Periodo Atual
                   </th>
                   <th
                     scope="col"
-                    className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide"
+                    className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide"
                   >
                     Proximo Billing
                   </th>
@@ -184,7 +184,7 @@ export default async function SubscriptionsPage({ searchParams }: PageProps) {
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-border">
                 {items.map((sub) => (
                   <SubscriptionCard key={sub.id} subscription={sub} />
                 ))}
@@ -198,24 +198,24 @@ export default async function SubscriptionsPage({ searchParams }: PageProps) {
       {totalPages > 1 && (
         <nav
           aria-label="Paginacao de assinaturas"
-          className="flex items-center justify-between border-t border-slate-200 pt-4"
+          className="flex items-center justify-between border-t border-border pt-4"
         >
           <div>
             {page > 1 ? (
               <Link
                 href={buildPageUrl(page - 1) as Route}
-                className="inline-flex h-9 items-center rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+                className="inline-flex h-9 items-center rounded-md border border-border bg-card px-4 text-sm font-medium text-muted-foreground hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 Anterior
               </Link>
             ) : (
-              <span className="inline-flex h-9 items-center rounded-md border border-slate-200 bg-slate-50 px-4 text-sm font-medium text-slate-400 cursor-not-allowed">
+              <span className="inline-flex h-9 items-center rounded-md border border-border bg-muted/50 px-4 text-sm font-medium text-muted-foreground/60 cursor-not-allowed">
                 Anterior
               </span>
             )}
           </div>
 
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-muted-foreground">
             Pagina <strong>{page}</strong> de <strong>{totalPages}</strong>
           </p>
 
@@ -223,12 +223,12 @@ export default async function SubscriptionsPage({ searchParams }: PageProps) {
             {page < totalPages ? (
               <Link
                 href={buildPageUrl(page + 1) as Route}
-                className="inline-flex h-9 items-center rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+                className="inline-flex h-9 items-center rounded-md border border-border bg-card px-4 text-sm font-medium text-muted-foreground hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 Proxima
               </Link>
             ) : (
-              <span className="inline-flex h-9 items-center rounded-md border border-slate-200 bg-slate-50 px-4 text-sm font-medium text-slate-400 cursor-not-allowed">
+              <span className="inline-flex h-9 items-center rounded-md border border-border bg-muted/50 px-4 text-sm font-medium text-muted-foreground/60 cursor-not-allowed">
                 Proxima
               </span>
             )}

@@ -200,7 +200,7 @@ export function ItemEditor({
         className="space-y-2"
       >
         {items.length === 0 ? (
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-muted-foreground">
             Nenhum item adicionado ainda.
           </p>
         ) : (
@@ -272,7 +272,7 @@ export function ItemEditor({
                   </SelectTrigger>
                   <SelectContent>
                     {products.length === 0 ? (
-                      <div className="px-2 py-3 text-sm text-slate-500">
+                      <div className="px-2 py-3 text-sm text-muted-foreground">
                         Nenhum produto disponível.
                       </div>
                     ) : (
@@ -304,7 +304,7 @@ export function ItemEditor({
                   </SelectTrigger>
                   <SelectContent>
                     {benefits.length === 0 ? (
-                      <div className="px-2 py-3 text-sm text-slate-500">
+                      <div className="px-2 py-3 text-sm text-muted-foreground">
                         Nenhum benefício disponível.
                       </div>
                     ) : (
@@ -341,7 +341,7 @@ export function ItemEditor({
             <div className="space-y-1.5">
               <Label htmlFor="item-vigency">
                 Vigência (meses){' '}
-                <span className="text-xs font-normal text-slate-400">— vazio = vitalício</span>
+                <span className="text-xs font-normal text-muted-foreground/60">— vazio = vitalício</span>
               </Label>
               <Input
                 id="item-vigency"
@@ -359,7 +359,7 @@ export function ItemEditor({
             <div className="space-y-1.5">
               <Label htmlFor="item-discount">
                 Desconto (%){' '}
-                <span className="text-xs font-normal text-slate-400">— opcional</span>
+                <span className="text-xs font-normal text-muted-foreground/60">— opcional</span>
               </Label>
               <Input
                 id="item-discount"

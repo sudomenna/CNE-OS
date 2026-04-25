@@ -428,6 +428,28 @@ export const KIND_REGISTRY: KindRegistry = {
     source: 'MOD-FUNNEL',
     schema: opportunityLostSchema,
   },
+
+  // ── Automation (MOD-AUTOMATION) ─────────────────────────────────────────────
+  // TE-AUTOMATION-EXECUTED — docs/20-domain/15-automation.md §11
+  automation_executed: {
+    source: 'MOD-AUTOMATION',
+    schema: z.object({
+      flow_id: z.string(),
+      execution_id: z.string(),
+      action_kind: z.string().optional(),
+      body: z.record(z.string(), z.unknown()).optional(),
+    }),
+  },
+  // TE-USER-NOTIFICATION — emitida pela action notify_user (Fase 1)
+  user_notification: {
+    source: 'MOD-AUTOMATION',
+    schema: z.object({
+      user_id: z.string(),
+      message: z.string(),
+      flow_id: z.string().optional(),
+      execution_id: z.string().optional(),
+    }),
+  },
 }
 
 export function getKindEntry(kind: string): KindEntry | null {

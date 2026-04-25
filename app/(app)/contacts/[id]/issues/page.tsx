@@ -67,20 +67,20 @@ export default async function ContactIssuesPage(props: Props) {
   return (
     <div className="space-y-6">
       {/* Breadcrumb */}
-      <nav aria-label="Navegação" className="flex items-center gap-1.5 text-sm text-slate-500">
-        <Link href="/contacts" className="hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded">
+      <nav aria-label="Navegação" className="flex items-center gap-1.5 text-sm text-muted-foreground">
+        <Link href="/contacts" className="hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded">
           Contatos
         </Link>
         <span aria-hidden="true">/</span>
-        <span className="text-slate-700 font-medium">{mainContact.fullName}</span>
+        <span className="text-muted-foreground font-medium">{mainContact.fullName}</span>
         <span aria-hidden="true">/</span>
-        <span className="text-slate-900 font-semibold">Issues</span>
+        <span className="text-foreground font-semibold">Issues</span>
       </nav>
 
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Pendencias de Identidade</h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <h1 className="text-2xl font-bold text-foreground">Pendencias de Identidade</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
           {issues.length === 0
             ? 'Nenhuma pendencia aberta.'
             : `${issues.length} pendencia${issues.length > 1 ? 's' : ''} aberta${issues.length > 1 ? 's' : ''}`}
@@ -89,8 +89,8 @@ export default async function ContactIssuesPage(props: Props) {
 
       {/* Lista de issues */}
       {issues.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-slate-200 py-12 text-center">
-          <p className="text-sm text-slate-500">Nenhuma pendencia aberta para este contato.</p>
+        <div className="rounded-lg border border-dashed border-border py-12 text-center">
+          <p className="text-sm text-muted-foreground">Nenhuma pendencia aberta para este contato.</p>
         </div>
       ) : (
         <ul className="space-y-3" aria-label="Pendencias de identidade">

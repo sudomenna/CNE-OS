@@ -25,7 +25,7 @@ export function AssignToMeButton({ ticketId }: AssignToMeButtonProps) {
       type="button"
       onClick={handleClick}
       disabled={isPending}
-      className="inline-flex h-8 items-center justify-center rounded-md border border-slate-300 bg-white px-3 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 disabled:opacity-50"
+      className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-card px-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
     >
       {isPending ? 'Atribuindo...' : 'Atribuir a mim'}
     </button>

@@ -24,8 +24,8 @@ export default async function BenefitsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Benefícios Comerciais</h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <h1 className="text-2xl font-bold text-foreground">Benefícios Comerciais</h1>
+          <p className="text-sm text-muted-foreground mt-1">
             Gerencie benefícios reutilizáveis (grupos VIP, certificados, mentorias) por marca.
           </p>
         </div>
@@ -41,17 +41,17 @@ export default async function BenefitsPage() {
         </div>
       )}
 
-      <div className="rounded-lg border border-slate-200 bg-white overflow-hidden">
+      <div className="rounded-lg border border-border bg-card overflow-hidden">
         <table className="w-full text-sm" aria-label="Lista de benefícios comerciais">
-          <thead className="border-b border-slate-200 bg-slate-50">
+          <thead className="border-b border-border bg-muted/50">
             <tr>
-              <th scope="col" className="px-4 py-3 text-left font-medium text-slate-600">Nome</th>
-              <th scope="col" className="px-4 py-3 text-left font-medium text-slate-600">Slug</th>
-              <th scope="col" className="px-4 py-3 text-left font-medium text-slate-600">Tag automática</th>
-              <th scope="col" className="px-4 py-3 text-left font-medium text-slate-600">Vigência padrão</th>
-              <th scope="col" className="px-4 py-3 text-left font-medium text-slate-600">Status</th>
-              <th scope="col" className="px-4 py-3 text-left font-medium text-slate-600">Criado em</th>
-              <th scope="col" className="px-4 py-3 text-left font-medium text-slate-600">
+              <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">Nome</th>
+              <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">Slug</th>
+              <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">Tag automática</th>
+              <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">Vigência padrão</th>
+              <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
+              <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">Criado em</th>
+              <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">
                 <span className="sr-only">Ações</span>
               </th>
             </tr>
@@ -59,7 +59,7 @@ export default async function BenefitsPage() {
           <tbody>
             {benefits.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
+                <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground/60">
                   Nenhum benefício cadastrado.
                 </td>
               </tr>
@@ -67,27 +67,27 @@ export default async function BenefitsPage() {
               benefits.map((b) => (
                 <tr
                   key={b.id}
-                  className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors"
+                  className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors"
                 >
-                  <td className="px-4 py-3 font-medium text-slate-900">{b.name}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-slate-500">{b.slug}</td>
-                  <td className="px-4 py-3 text-slate-500">
+                  <td className="px-4 py-3 font-medium text-foreground">{b.name}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{b.slug}</td>
+                  <td className="px-4 py-3 text-muted-foreground">
                     {b.autoTag ? (
-                      <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">{b.autoTag}</code>
+                      <code className="rounded bg-muted px-1.5 py-0.5 text-xs">{b.autoTag}</code>
                     ) : (
-                      <span className="text-slate-300">—</span>
+                      <span className="text-muted-foreground/40">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-slate-500">
+                  <td className="px-4 py-3 text-muted-foreground">
                     {b.defaultDurationMonths != null ? (
                       `${b.defaultDurationMonths} meses`
                     ) : (
-                      <span className="text-slate-300">Perpétuo</span>
+                      <span className="text-muted-foreground/40">Perpétuo</span>
                     )}
                   </td>
                   <td className="px-4 py-3">
                     {b.status === 'archived' ? (
-                      <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
+                      <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
                         Arquivado
                       </span>
                     ) : (
@@ -96,7 +96,7 @@ export default async function BenefitsPage() {
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-slate-500">
+                  <td className="px-4 py-3 text-muted-foreground">
                     {new Date(b.createdAt).toLocaleDateString('pt-BR')}
                   </td>
                   <td className="px-4 py-3">

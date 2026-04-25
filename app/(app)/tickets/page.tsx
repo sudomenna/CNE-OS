@@ -62,8 +62,8 @@ export default async function TicketsPage({ searchParams }: PageProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Tickets</h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <h1 className="text-2xl font-bold text-foreground">Tickets</h1>
+          <p className="text-sm text-muted-foreground mt-1">
             {tickets.length} {tickets.length === 1 ? 'ticket encontrado' : 'tickets encontrados'}
           </p>
         </div>
@@ -79,10 +79,10 @@ export default async function TicketsPage({ searchParams }: PageProps) {
               key={opt.value}
               href={href}
               aria-current={isActive ? 'page' : undefined}
-              className={`inline-flex h-8 items-center rounded-full px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 ${
+              className={`inline-flex h-8 items-center rounded-full px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                 isActive
-                  ? 'bg-slate-900 text-white'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-muted-foreground hover:bg-muted'
               }`}
             >
               {opt.label}
@@ -93,8 +93,8 @@ export default async function TicketsPage({ searchParams }: PageProps) {
 
       {/* Ticket list */}
       {tickets.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white py-16 text-center">
-          <p className="text-sm text-slate-400">Nenhum ticket encontrado.</p>
+        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border bg-card py-16 text-center">
+          <p className="text-sm text-muted-foreground/60">Nenhum ticket encontrado.</p>
         </div>
       ) : (
         <ul className="space-y-2" aria-label="Lista de tickets">

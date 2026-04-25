@@ -37,10 +37,10 @@ export function AddNoteForm({ ticketId }: AddNoteFormProps) {
     <form
       ref={formRef}
       onSubmit={handleSubmit}
-      className="space-y-3 border-t border-slate-200 pt-4"
+      className="space-y-3 border-t border-border pt-4"
     >
       <div>
-        <label htmlFor={`note-body-${ticketId}`} className="block text-sm font-medium text-slate-700 mb-1">
+        <label htmlFor={`note-body-${ticketId}`} className="block text-sm font-medium text-muted-foreground mb-1">
           Nova nota
         </label>
         <textarea
@@ -49,19 +49,19 @@ export function AddNoteForm({ ticketId }: AddNoteFormProps) {
           rows={3}
           required
           placeholder="Escreva uma nota..."
-          className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900 disabled:opacity-50"
+          className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
           disabled={isPending}
         />
       </div>
 
       <div className="flex items-center justify-between">
-        <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+        <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
           <input
             type="checkbox"
             name="isInternal"
             value="true"
             defaultChecked
-            className="rounded border-slate-300 text-slate-900 focus:ring-slate-900"
+            className="rounded border-border text-foreground focus:ring-ring"
           />
           Nota interna (apenas agentes)
         </label>
@@ -69,7 +69,7 @@ export function AddNoteForm({ ticketId }: AddNoteFormProps) {
         <button
           type="submit"
           disabled={isPending}
-          className="inline-flex h-9 items-center justify-center rounded-md bg-slate-900 px-4 text-sm font-medium text-white transition-colors hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 disabled:opacity-50"
+          className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
         >
           {isPending ? 'Salvando...' : 'Adicionar nota'}
         </button>

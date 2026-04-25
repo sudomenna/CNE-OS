@@ -59,7 +59,7 @@ function StepIndicator({ current }: { current: Step }) {
             <li key={step.label} className="flex items-center">
               {idx > 0 && (
                 <div
-                  className={`h-px w-12 sm:w-20 ${done ? 'bg-red-500' : 'bg-slate-200'}`}
+                  className={`h-px w-12 sm:w-20 ${done ? 'bg-red-500' : 'bg-muted'}`}
                   aria-hidden="true"
                 />
               )}
@@ -67,11 +67,11 @@ function StepIndicator({ current }: { current: Step }) {
                 <span
                   aria-current={active ? 'step' : undefined}
                   className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold
-                    ${active ? 'bg-red-600 text-white' : done ? 'bg-red-100 text-red-600' : 'bg-slate-100 text-slate-400'}`}
+                    ${active ? 'bg-red-600 text-white' : done ? 'bg-red-100 text-red-600' : 'bg-muted text-muted-foreground/60'}`}
                 >
                   {done ? '✓' : num}
                 </span>
-                <span className={`text-xs ${active ? 'text-red-600 font-medium' : 'text-slate-400'}`}>
+                <span className={`text-xs ${active ? 'text-red-600 font-medium' : 'text-muted-foreground/60'}`}>
                   {step.label}
                 </span>
               </div>
@@ -170,8 +170,8 @@ export function RefundWizard({ transactionId, transactionAmount, currency }: Pro
         <div className="flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
           <span className="text-2xl text-green-600" aria-hidden="true">✓</span>
         </div>
-        <h2 className="text-lg font-semibold text-slate-900">Reembolso solicitado!</h2>
-        <p className="text-sm text-slate-500">Redirecionando para a transação…</p>
+        <h2 className="text-lg font-semibold text-foreground">Reembolso solicitado!</h2>
+        <p className="text-sm text-muted-foreground">Redirecionando para a transação…</p>
       </div>
     )
   }
@@ -186,14 +186,14 @@ export function RefundWizard({ transactionId, transactionAmount, currency }: Pro
       {step === 1 && (
         <form onSubmit={handleStep1Submit} className="space-y-6" noValidate>
           <div>
-            <h2 className="text-lg font-semibold text-slate-900 mb-1">Motivo do reembolso</h2>
-            <p className="text-sm text-slate-500">
+            <h2 className="text-lg font-semibold text-foreground mb-1">Motivo do reembolso</h2>
+            <p className="text-sm text-muted-foreground">
               Informe o motivo e o valor a ser reembolsado.
             </p>
           </div>
 
           <div className="space-y-1">
-            <label htmlFor="refund-amount" className="text-sm font-medium text-slate-700">
+            <label htmlFor="refund-amount" className="text-sm font-medium text-muted-foreground">
               Valor ({currency})
             </label>
             <input
@@ -204,17 +204,17 @@ export function RefundWizard({ transactionId, transactionAmount, currency }: Pro
               required
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500"
+              className="block w-full rounded-md border border-border px-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500"
               aria-describedby={error ? 'wizard-error' : undefined}
             />
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-muted-foreground/60">
               Máximo: {formatCurrency(transactionAmount, currency)}
             </p>
           </div>
 
           <div className="space-y-1">
-            <label htmlFor="refund-reason" className="text-sm font-medium text-slate-700">
-              Motivo <span className="text-slate-400">(mín. 10 caracteres)</span>
+            <label htmlFor="refund-reason" className="text-sm font-medium text-muted-foreground">
+              Motivo <span className="text-muted-foreground/60">(mín. 10 caracteres)</span>
             </label>
             <textarea
               id="refund-reason"
@@ -223,10 +223,10 @@ export function RefundWizard({ transactionId, transactionAmount, currency }: Pro
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="Descreva o motivo do reembolso…"
-              className="block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500 resize-none"
+              className="block w-full rounded-md border border-border px-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500 resize-none"
               aria-describedby={error ? 'wizard-error' : undefined}
             />
-            <p className="text-xs text-slate-400 text-right">{reason.length}/1000</p>
+            <p className="text-xs text-muted-foreground/60 text-right">{reason.length}/1000</p>
           </div>
 
           {error && (
@@ -239,7 +239,7 @@ export function RefundWizard({ transactionId, transactionAmount, currency }: Pro
             <button
               type="button"
               onClick={() => router.back()}
-              className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+              className="rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               Cancelar
             </button>
@@ -260,8 +260,8 @@ export function RefundWizard({ transactionId, transactionAmount, currency }: Pro
       {step === 2 && preview && (
         <div className="space-y-6">
           <div>
-            <h2 className="text-lg font-semibold text-slate-900 mb-1">Efeitos previstos</h2>
-            <p className="text-sm text-slate-500">
+            <h2 className="text-lg font-semibold text-foreground mb-1">Efeitos previstos</h2>
+            <p className="text-sm text-muted-foreground">
               Revise os efeitos que ocorrerão ao confirmar o reembolso.
             </p>
           </div>
@@ -284,7 +284,7 @@ export function RefundWizard({ transactionId, transactionAmount, currency }: Pro
             <button
               type="button"
               onClick={handleBack}
-              className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+              className="rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               ← Voltar
             </button>
@@ -305,8 +305,8 @@ export function RefundWizard({ transactionId, transactionAmount, currency }: Pro
       {step === 3 && preview && (
         <div className="space-y-6">
           <div>
-            <h2 className="text-lg font-semibold text-slate-900 mb-1">Confirmar reembolso</h2>
-            <p className="text-sm text-slate-500">
+            <h2 className="text-lg font-semibold text-foreground mb-1">Confirmar reembolso</h2>
+            <p className="text-sm text-muted-foreground">
               Esta ação é irreversível. O reembolso será registrado e ficará aguardando aprovação.
             </p>
           </div>
@@ -343,7 +343,7 @@ export function RefundWizard({ transactionId, transactionAmount, currency }: Pro
             <button
               type="button"
               onClick={handleBack}
-              className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+              className="rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               ← Voltar
             </button>

@@ -78,8 +78,8 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Transacoes</h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <h1 className="text-2xl font-bold text-foreground">Transacoes</h1>
+          <p className="text-sm text-muted-foreground mt-1">
             {total} {total === 1 ? 'transacao encontrada' : 'transacoes encontradas'}
           </p>
         </div>
@@ -89,14 +89,14 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
       <form method="GET" action="/transactions" className="flex flex-wrap items-end gap-3">
         {/* Status */}
         <div className="flex flex-col gap-1">
-          <label htmlFor="status-filter" className="text-xs font-medium text-slate-600">
+          <label htmlFor="status-filter" className="text-xs font-medium text-muted-foreground">
             Status
           </label>
           <select
             id="status-filter"
             name="status"
             defaultValue={selectedStatus ?? ''}
-            className="h-9 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900"
+            className="h-9 rounded-md border border-border bg-card px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           >
             <option value="">Todos</option>
             {VALID_STATUSES.map((s) => (
@@ -109,7 +109,7 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
 
         {/* Data de inicio */}
         <div className="flex flex-col gap-1">
-          <label htmlFor="date-from" className="text-xs font-medium text-slate-600">
+          <label htmlFor="date-from" className="text-xs font-medium text-muted-foreground">
             De
           </label>
           <input
@@ -117,13 +117,13 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
             type="date"
             name="date_from"
             defaultValue={dateFrom}
-            className="h-9 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900"
+            className="h-9 rounded-md border border-border bg-card px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
 
         {/* Data de fim */}
         <div className="flex flex-col gap-1">
-          <label htmlFor="date-to" className="text-xs font-medium text-slate-600">
+          <label htmlFor="date-to" className="text-xs font-medium text-muted-foreground">
             Ate
           </label>
           <input
@@ -131,13 +131,13 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
             type="date"
             name="date_to"
             defaultValue={dateTo}
-            className="h-9 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900"
+            className="h-9 rounded-md border border-border bg-card px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
 
         <button
           type="submit"
-          className="h-9 inline-flex items-center rounded-md bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+          className="h-9 inline-flex items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           Filtrar
         </button>
@@ -145,7 +145,7 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
         {(selectedStatus || dateFrom || dateTo) && (
           <Link
             href={'/transactions' as Route}
-            className="h-9 inline-flex items-center rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+            className="h-9 inline-flex items-center rounded-md border border-border bg-card px-4 text-sm font-medium text-muted-foreground hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             Limpar
           </Link>
@@ -165,24 +165,24 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
       {totalPages > 1 && (
         <nav
           aria-label="Paginacao de transacoes"
-          className="flex items-center justify-between border-t border-slate-200 pt-4"
+          className="flex items-center justify-between border-t border-border pt-4"
         >
           <div>
             {page > 1 ? (
               <Link
                 href={buildPageUrl(page - 1) as Route}
-                className="inline-flex h-9 items-center rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+                className="inline-flex h-9 items-center rounded-md border border-border bg-card px-4 text-sm font-medium text-muted-foreground hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 Anterior
               </Link>
             ) : (
-              <span className="inline-flex h-9 items-center rounded-md border border-slate-200 bg-slate-50 px-4 text-sm font-medium text-slate-400 cursor-not-allowed">
+              <span className="inline-flex h-9 items-center rounded-md border border-border bg-muted/50 px-4 text-sm font-medium text-muted-foreground/60 cursor-not-allowed">
                 Anterior
               </span>
             )}
           </div>
 
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-muted-foreground">
             Pagina <strong>{page}</strong> de <strong>{totalPages}</strong>
           </p>
 
@@ -190,12 +190,12 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
             {page < totalPages ? (
               <Link
                 href={buildPageUrl(page + 1) as Route}
-                className="inline-flex h-9 items-center rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+                className="inline-flex h-9 items-center rounded-md border border-border bg-card px-4 text-sm font-medium text-muted-foreground hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 Proxima
               </Link>
             ) : (
-              <span className="inline-flex h-9 items-center rounded-md border border-slate-200 bg-slate-50 px-4 text-sm font-medium text-slate-400 cursor-not-allowed">
+              <span className="inline-flex h-9 items-center rounded-md border border-border bg-muted/50 px-4 text-sm font-medium text-muted-foreground/60 cursor-not-allowed">
                 Proxima
               </span>
             )}

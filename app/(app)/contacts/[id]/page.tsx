@@ -106,7 +106,7 @@ export default async function ContactDetailPage({ params, searchParams }: PagePr
       <nav aria-label="Navegacao de retorno">
         <Link
           href="/contacts"
-          className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 rounded"
+          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
         >
           <span aria-hidden="true">&larr;</span> Contatos
         </Link>
@@ -123,7 +123,7 @@ export default async function ContactDetailPage({ params, searchParams }: PagePr
       {/* Tab navigation */}
       <nav
         aria-label="Abas do contato"
-        className="flex gap-1 border-b border-slate-200"
+        className="flex gap-1 border-b border-border"
         role="tablist"
       >
         {TABS.map(({ key, label, href }) => {
@@ -137,10 +137,10 @@ export default async function ContactDetailPage({ params, searchParams }: PagePr
               role="tab"
               aria-selected={isActive}
               className={[
-                'px-4 py-2 text-sm font-medium rounded-t-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900',
+                'px-4 py-2 text-sm font-medium rounded-t-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                 isActive
-                  ? 'border-b-2 border-slate-900 text-slate-900 -mb-px'
-                  : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50',
+                  ? 'border-b-2 border-border text-foreground -mb-px'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
               ].join(' ')}
             >
               {displayLabel}
@@ -178,8 +178,8 @@ interface TimelinePanelProps {
 function TimelinePanel({ events, hasMore, nextCursor, contactId }: TimelinePanelProps) {
   if (events.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-slate-200 py-12 text-center">
-        <p className="text-sm text-slate-400">Nenhum evento na timeline.</p>
+      <div className="rounded-lg border border-dashed border-border py-12 text-center">
+        <p className="text-sm text-muted-foreground/60">Nenhum evento na timeline.</p>
       </div>
     )
   }
@@ -189,21 +189,21 @@ function TimelinePanel({ events, hasMore, nextCursor, contactId }: TimelinePanel
       {events.map((event) => (
         <li
           key={event.id}
-          className="flex gap-4 rounded-lg border border-slate-100 bg-white px-4 py-3"
+          className="flex gap-4 rounded-lg border border-border bg-card px-4 py-3"
         >
           {/* Kind dot */}
           <div
-            className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-slate-400"
+            className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-muted-foreground/40"
             aria-hidden="true"
           />
 
           {/* Content */}
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-slate-800 capitalize">
+            <p className="text-sm font-medium text-foreground capitalize">
               {kindLabel(event.kind)}
             </p>
             {payloadSummary(event.payload) && (
-              <p className="mt-0.5 text-xs text-slate-500 truncate">
+              <p className="mt-0.5 text-xs text-muted-foreground truncate">
                 {payloadSummary(event.payload)}
               </p>
             )}
@@ -212,7 +212,7 @@ function TimelinePanel({ events, hasMore, nextCursor, contactId }: TimelinePanel
           {/* Date */}
           <time
             dateTime={new Date(event.occurredAt).toISOString()}
-            className="shrink-0 text-xs text-slate-400 whitespace-nowrap"
+            className="shrink-0 text-xs text-muted-foreground/60 whitespace-nowrap"
           >
             {formatEventDate(event.occurredAt)}
           </time>
@@ -224,7 +224,7 @@ function TimelinePanel({ events, hasMore, nextCursor, contactId }: TimelinePanel
         <li className="text-center pt-2">
           <Link
             href={`/contacts/${contactId}?cursor=${encodeURIComponent(nextCursor)}`}
-            className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 transition-colors"
+            className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors"
           >
             Carregar mais
           </Link>

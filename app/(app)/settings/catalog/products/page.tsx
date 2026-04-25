@@ -24,8 +24,8 @@ export default async function ProductsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Produtos</h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <h1 className="text-2xl font-bold text-foreground">Produtos</h1>
+          <p className="text-sm text-muted-foreground mt-1">
             Gerencie o catálogo de produtos por marca.
           </p>
         </div>
@@ -41,16 +41,16 @@ export default async function ProductsPage() {
         </div>
       )}
 
-      <div className="rounded-lg border border-slate-200 bg-white overflow-hidden">
+      <div className="rounded-lg border border-border bg-card overflow-hidden">
         <table className="w-full text-sm" aria-label="Lista de produtos">
-          <thead className="border-b border-slate-200 bg-slate-50">
+          <thead className="border-b border-border bg-muted/50">
             <tr>
-              <th scope="col" className="px-4 py-3 text-left font-medium text-slate-600">Nome</th>
-              <th scope="col" className="px-4 py-3 text-left font-medium text-slate-600">Slug</th>
-              <th scope="col" className="px-4 py-3 text-left font-medium text-slate-600">Tipo</th>
-              <th scope="col" className="px-4 py-3 text-left font-medium text-slate-600">Status</th>
-              <th scope="col" className="px-4 py-3 text-left font-medium text-slate-600">Criado em</th>
-              <th scope="col" className="px-4 py-3 text-left font-medium text-slate-600">
+              <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">Nome</th>
+              <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">Slug</th>
+              <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">Tipo</th>
+              <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
+              <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">Criado em</th>
+              <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">
                 <span className="sr-only">Ações</span>
               </th>
             </tr>
@@ -58,7 +58,7 @@ export default async function ProductsPage() {
           <tbody>
             {products.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
+                <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground/60">
                   Nenhum produto cadastrado.
                 </td>
               </tr>
@@ -66,14 +66,14 @@ export default async function ProductsPage() {
               products.map((p) => (
                 <tr
                   key={p.id}
-                  className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors"
+                  className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors"
                 >
-                  <td className="px-4 py-3 font-medium text-slate-900">{p.name}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-slate-500">{p.slug}</td>
-                  <td className="px-4 py-3 text-slate-600 capitalize">{p.kind.replace(/_/g, ' ')}</td>
+                  <td className="px-4 py-3 font-medium text-foreground">{p.name}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{p.slug}</td>
+                  <td className="px-4 py-3 text-muted-foreground capitalize">{p.kind.replace(/_/g, ' ')}</td>
                   <td className="px-4 py-3">
                     {p.status === 'archived' ? (
-                      <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
+                      <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
                         Arquivado
                       </span>
                     ) : (
@@ -82,7 +82,7 @@ export default async function ProductsPage() {
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-slate-500">
+                  <td className="px-4 py-3 text-muted-foreground">
                     {new Date(p.createdAt).toLocaleDateString('pt-BR')}
                   </td>
                   <td className="px-4 py-3">

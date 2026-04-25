@@ -50,10 +50,10 @@ const STATUS_LABEL: Record<string, string> = {
 }
 
 const STATUS_CLASS: Record<string, string> = {
-  draft: 'bg-slate-100 text-slate-600 hover:bg-slate-100',
-  active: 'bg-green-100 text-green-700 hover:bg-green-100',
-  paused: 'bg-yellow-100 text-yellow-700 hover:bg-yellow-100',
-  archived: 'bg-red-100 text-red-600 hover:bg-red-100',
+  draft: 'bg-muted text-muted-foreground hover:bg-muted',
+  active: 'bg-emerald-50 text-emerald-700 hover:bg-emerald-50',
+  paused: 'bg-amber-50 text-amber-700 hover:bg-amber-50',
+  archived: 'bg-red-50 text-red-600 hover:bg-red-50',
 }
 
 // ---------------------------------------------------------------------------
@@ -88,7 +88,7 @@ export function OfferList({
         <div className="flex flex-col gap-1">
           <label
             htmlFor="filter-brand"
-            className="text-xs font-medium text-slate-600"
+            className="text-xs font-medium text-muted-foreground"
           >
             Marca
           </label>
@@ -96,7 +96,7 @@ export function OfferList({
             id="filter-brand"
             value={selectedBrandId}
             onChange={(e) => updateFilter('brand_id', e.target.value)}
-            className="h-9 rounded-md border border-input bg-white px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="h-9 rounded-md border border-input bg-card px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           >
             <option value="">Todas as marcas</option>
             {brands.map((b) => (
@@ -111,7 +111,7 @@ export function OfferList({
         <div className="flex flex-col gap-1">
           <label
             htmlFor="filter-status"
-            className="text-xs font-medium text-slate-600"
+            className="text-xs font-medium text-muted-foreground"
           >
             Status
           </label>
@@ -119,7 +119,7 @@ export function OfferList({
             id="filter-status"
             value={selectedStatus}
             onChange={(e) => updateFilter('status', e.target.value)}
-            className="h-9 rounded-md border border-input bg-white px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="h-9 rounded-md border border-input bg-card px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           >
             <option value="">Todos os status</option>
             <option value="draft">Rascunho</option>
@@ -132,52 +132,52 @@ export function OfferList({
 
       {/* Tabela */}
       {offers.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 py-16 text-center">
-          <p className="text-sm font-medium text-slate-600">
+        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-16 text-center">
+          <p className="text-sm font-medium text-muted-foreground">
             Nenhuma oferta encontrada
           </p>
-          <p className="mt-1 text-xs text-slate-400">
+          <p className="mt-1 text-xs text-muted-foreground/60">
             Ajuste os filtros ou crie uma nova oferta.
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+        <div className="overflow-hidden rounded-lg border border-border bg-card">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50">
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <tr className="border-b border-border bg-muted/50">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Nome
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 hidden md:table-cell">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground hidden md:table-cell">
                   Marca
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 hidden md:table-cell">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground hidden md:table-cell">
                   Slug
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Status
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 hidden sm:table-cell">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground hidden sm:table-cell">
                   Criada em
                 </th>
                 <th className="w-10" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-border">
               {offers.map((o) => (
-                <tr key={o.id} className="hover:bg-slate-50 transition-colors">
+                <tr key={o.id} className="hover:bg-muted/50 transition-colors">
                   <td className="px-4 py-3">
                     <Link
                       href={`/offers/${o.id}` as Route}
-                      className="font-medium text-slate-900 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 rounded"
+                      className="font-medium text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
                     >
                       {o.name}
                     </Link>
                   </td>
-                  <td className="px-4 py-3 text-xs text-slate-500 hidden md:table-cell">
+                  <td className="px-4 py-3 text-xs text-muted-foreground hidden md:table-cell">
                     {o.brandName}
                   </td>
-                  <td className="px-4 py-3 font-mono text-xs text-slate-400 hidden md:table-cell">
+                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground/60 hidden md:table-cell">
                     {o.slug}
                   </td>
                   <td className="px-4 py-3">
@@ -188,7 +188,7 @@ export function OfferList({
                       {STATUS_LABEL[o.status] ?? o.status}
                     </Badge>
                   </td>
-                  <td className="px-4 py-3 text-xs text-slate-400 hidden sm:table-cell">
+                  <td className="px-4 py-3 text-xs text-muted-foreground/60 hidden sm:table-cell">
                     <time dateTime={o.createdAt.toISOString()}>
                       {new Date(o.createdAt).toLocaleDateString('pt-BR')}
                     </time>
@@ -196,7 +196,7 @@ export function OfferList({
                   <td className="px-4 py-3">
                     <Link
                       href={`/offers/${o.id}` as Route}
-                      className="text-xs text-slate-500 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 rounded px-1"
+                      className="text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded px-1"
                       aria-label={`Ver detalhes da oferta ${o.name}`}
                     >
                       Ver

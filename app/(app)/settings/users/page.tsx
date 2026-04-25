@@ -21,8 +21,8 @@ export default async function UsersPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Usuários</h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <h1 className="text-2xl font-bold text-foreground">Usuários</h1>
+          <p className="text-sm text-muted-foreground mt-1">
             Convide e gerencie usuários internos da CNE Educação.
           </p>
         </div>
@@ -38,23 +38,23 @@ export default async function UsersPage() {
         </div>
       )}
 
-      <div className="rounded-lg border border-slate-200 bg-white overflow-hidden">
+      <div className="rounded-lg border border-border bg-card overflow-hidden">
         <table className="w-full text-sm" aria-label="Lista de usuários internos">
-          <thead className="border-b border-slate-200 bg-slate-50">
+          <thead className="border-b border-border bg-muted/50">
             <tr>
-              <th scope="col" className="px-4 py-3 text-left font-medium text-slate-600">
+              <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">
                 Nome
               </th>
-              <th scope="col" className="px-4 py-3 text-left font-medium text-slate-600">
+              <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">
                 E-mail
               </th>
-              <th scope="col" className="px-4 py-3 text-left font-medium text-slate-600">
+              <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">
                 Papel
               </th>
-              <th scope="col" className="px-4 py-3 text-left font-medium text-slate-600">
+              <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">
                 Status
               </th>
-              <th scope="col" className="px-4 py-3 text-left font-medium text-slate-600">
+              <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">
                 Desde
               </th>
             </tr>
@@ -62,7 +62,7 @@ export default async function UsersPage() {
           <tbody>
             {users.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-slate-400">
+                <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground/60">
                   Nenhum usuário cadastrado.
                 </td>
               </tr>
@@ -70,21 +70,21 @@ export default async function UsersPage() {
               users.map((u) => (
                 <tr
                   key={u.id}
-                  className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors"
+                  className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors"
                 >
-                  <td className="px-4 py-3 font-medium text-slate-900">
+                  <td className="px-4 py-3 font-medium text-foreground">
                     {u.fullName}
                   </td>
-                  <td className="px-4 py-3 text-slate-500">
+                  <td className="px-4 py-3 text-muted-foreground">
                     {u.email}
                   </td>
                   <td className="px-4 py-3">
                     {u.roleKind ? (
-                      <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
+                      <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
                         {ROLE_LABELS[u.roleKind] ?? u.roleKind}
                       </span>
                     ) : (
-                      <span className="text-slate-300 text-xs">Sem papel</span>
+                      <span className="text-muted-foreground/40 text-xs">Sem papel</span>
                     )}
                   </td>
                   <td className="px-4 py-3">
@@ -93,12 +93,12 @@ export default async function UsersPage() {
                         Ativo
                       </span>
                     ) : (
-                      <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500 ring-1 ring-inset ring-slate-600/20">
+                      <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground ring-1 ring-inset ring-slate-600/20">
                         Inativo
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-slate-500">
+                  <td className="px-4 py-3 text-muted-foreground">
                     {new Date(u.createdAt).toLocaleDateString('pt-BR')}
                   </td>
                 </tr>

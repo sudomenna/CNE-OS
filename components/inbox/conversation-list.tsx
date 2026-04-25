@@ -32,10 +32,10 @@ const STATUS_LABELS: Record<ConversationStatus, string> = {
 }
 
 const STATUS_BADGE: Record<ConversationStatus, string> = {
-  open: 'bg-green-100 text-green-700',
-  waiting_customer: 'bg-yellow-100 text-yellow-700',
-  waiting_team: 'bg-blue-100 text-blue-700',
-  closed: 'bg-slate-100 text-slate-500',
+  open: 'bg-emerald-50 text-emerald-700',
+  waiting_customer: 'bg-amber-50 text-amber-700',
+  waiting_team: 'bg-sky-50 text-sky-700',
+  closed: 'bg-muted text-muted-foreground',
 }
 
 const CHANNEL_ICON: Record<ChannelKind, string> = {
@@ -109,14 +109,14 @@ export async function ConversationList({ selectedId }: ConversationListProps) {
 
   if (rows.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-6 text-slate-400 text-sm">
+      <div className="flex flex-col items-center justify-center h-full p-6 text-muted-foreground/60 text-sm">
         <p>Nenhuma conversa ativa.</p>
       </div>
     )
   }
 
   return (
-    <nav aria-label="Lista de conversas" className="flex flex-col divide-y divide-slate-100">
+    <nav aria-label="Lista de conversas" className="flex flex-col divide-y divide-border">
       {rows.map((conv) => {
         const isSelected = conv.id === selectedId
         const initials = getInitials(conv.contactName)
@@ -130,14 +130,14 @@ export async function ConversationList({ selectedId }: ConversationListProps) {
             aria-label={`Conversa com ${conv.contactName} via ${conv.channelName}`}
             aria-current={isSelected ? 'page' : undefined}
             className={[
-              'flex items-start gap-3 p-3 hover:bg-slate-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-900',
-              isSelected ? 'bg-slate-100' : '',
+              'flex items-start gap-3 p-3 hover:bg-muted/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+              isSelected ? 'bg-muted' : '',
             ].join(' ')}
           >
             {/* Avatar com iniciais */}
             <div
               aria-hidden="true"
-              className="flex-shrink-0 h-9 w-9 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-xs font-semibold"
+              className="flex-shrink-0 h-9 w-9 rounded-full bg-muted text-muted-foreground flex items-center justify-center text-xs font-semibold"
             >
               {initials}
             </div>
@@ -145,16 +145,16 @@ export async function ConversationList({ selectedId }: ConversationListProps) {
             {/* Conteúdo principal */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-1">
-                <span className="text-sm font-medium text-slate-900 truncate">
+                <span className="text-sm font-medium text-foreground truncate">
                   {conv.contactName}
                 </span>
-                <span className="flex-shrink-0 text-xs text-slate-400">
+                <span className="flex-shrink-0 text-xs text-muted-foreground/60">
                   {formatRelativeTime(conv.lastMessageAt)}
                 </span>
               </div>
 
               {/* Preview da última mensagem */}
-              <p className="text-xs text-slate-500 truncate mt-0.5">
+              <p className="text-xs text-muted-foreground truncate mt-0.5">
                 {conv.lastMessageBody ?? 'Sem mensagens'}
               </p>
 
@@ -164,7 +164,7 @@ export async function ConversationList({ selectedId }: ConversationListProps) {
                   aria-label={`Canal ${conv.channelName}`}
                   className={[
                     'inline-flex items-center justify-center rounded px-1 py-0.5 text-[10px] font-bold leading-none',
-                    CHANNEL_ICON_CLASS[channelKind] ?? 'bg-slate-200 text-slate-600',
+                    CHANNEL_ICON_CLASS[channelKind] ?? 'bg-muted text-muted-foreground',
                   ].join(' ')}
                 >
                   {CHANNEL_ICON[channelKind] ?? channelKind.toUpperCase().slice(0, 2)}
@@ -172,7 +172,7 @@ export async function ConversationList({ selectedId }: ConversationListProps) {
                 <span
                   className={[
                     'inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium',
-                    STATUS_BADGE[status] ?? 'bg-slate-100 text-slate-500',
+                    STATUS_BADGE[status] ?? 'bg-muted text-muted-foreground',
                   ].join(' ')}
                 >
                   {STATUS_LABELS[status]}

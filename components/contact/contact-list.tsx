@@ -22,10 +22,10 @@ const CLASSIFICATION_LABELS: Record<ContactClassification, string> = {
 }
 
 const CLASSIFICATION_BADGE: Record<ContactClassification, string> = {
-  lead: 'bg-slate-100 text-slate-700',
-  customer: 'bg-blue-100 text-blue-700',
-  student: 'bg-green-100 text-green-700',
-  paid_lead: 'bg-yellow-100 text-yellow-700',
+  lead: 'bg-muted text-muted-foreground',
+  customer: 'bg-sky-50 text-sky-700',
+  student: 'bg-emerald-50 text-emerald-700',
+  paid_lead: 'bg-amber-50 text-amber-700',
 }
 
 const STATUS_LABELS: Record<ContactStatus, string> = {
@@ -41,26 +41,26 @@ interface ContactListProps {
 
 export function ContactList({ contacts }: ContactListProps) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white overflow-hidden">
+    <div className="rounded-lg border border-border bg-card overflow-hidden">
       <table className="w-full text-sm" aria-label="Lista de contatos">
-        <thead className="border-b border-slate-200 bg-slate-50">
+        <thead className="border-b border-border bg-muted/50">
           <tr>
-            <th scope="col" className="px-4 py-3 text-left font-medium text-slate-600">
+            <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">
               Nome
             </th>
-            <th scope="col" className="px-4 py-3 text-left font-medium text-slate-600">
+            <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">
               CPF
             </th>
-            <th scope="col" className="px-4 py-3 text-left font-medium text-slate-600">
+            <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">
               Classificacao
             </th>
-            <th scope="col" className="px-4 py-3 text-left font-medium text-slate-600">
+            <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">
               Status
             </th>
-            <th scope="col" className="px-4 py-3 text-left font-medium text-slate-600">
+            <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">
               Criado em
             </th>
-            <th scope="col" className="px-4 py-3 text-left font-medium text-slate-600 sr-only">
+            <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground sr-only">
               Acoes
             </th>
           </tr>
@@ -68,7 +68,7 @@ export function ContactList({ contacts }: ContactListProps) {
         <tbody>
           {contacts.length === 0 ? (
             <tr>
-              <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
+              <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
                 Nenhum contato encontrado.
               </td>
             </tr>
@@ -76,27 +76,27 @@ export function ContactList({ contacts }: ContactListProps) {
             contacts.map((c) => (
               <tr
                 key={c.id}
-                className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors"
+                className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors"
               >
-                <td className="px-4 py-3 font-medium text-slate-900">{c.fullName}</td>
-                <td className="px-4 py-3 font-mono text-xs text-slate-500">
-                  {c.cpf ? formatCpf(c.cpf) : <span className="text-slate-300">—</span>}
+                <td className="px-4 py-3 font-medium text-foreground">{c.fullName}</td>
+                <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                  {c.cpf ? formatCpf(c.cpf) : <span className="text-muted-foreground/40">—</span>}
                 </td>
                 <td className="px-4 py-3">
                   <span
-                    className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${CLASSIFICATION_BADGE[c.classification]}`}
+                    className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${CLASSIFICATION_BADGE[c.classification]}`}
                   >
                     {CLASSIFICATION_LABELS[c.classification]}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-slate-500">{STATUS_LABELS[c.status]}</td>
-                <td className="px-4 py-3 text-slate-500">
+                <td className="px-4 py-3 text-muted-foreground">{STATUS_LABELS[c.status]}</td>
+                <td className="px-4 py-3 text-muted-foreground">
                   {new Date(c.createdAt).toLocaleDateString('pt-BR')}
                 </td>
                 <td className="px-4 py-3">
                   <Link
                     href={`/contacts/${c.id}` as Route}
-                    className="text-sm font-medium text-slate-600 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 rounded"
+                    className="text-sm font-medium text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
                   >
                     Ver
                     <span className="sr-only"> contato {c.fullName}</span>

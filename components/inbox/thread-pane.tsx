@@ -25,7 +25,7 @@ interface ThreadPaneProps {
 export async function ThreadPane({ conversationId }: ThreadPaneProps) {
   if (!conversationId) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-slate-400 text-sm p-6">
+      <div className="flex flex-col items-center justify-center h-full text-muted-foreground/60 text-sm p-6">
         <p>Selecione uma conversa</p>
       </div>
     )
@@ -47,7 +47,7 @@ export async function ThreadPane({ conversationId }: ThreadPaneProps) {
 
   if (!conv) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-slate-400 text-sm p-6">
+      <div className="flex flex-col items-center justify-center h-full text-muted-foreground/60 text-sm p-6">
         <p>Conversa nao encontrada.</p>
       </div>
     )
@@ -74,9 +74,9 @@ export async function ThreadPane({ conversationId }: ThreadPaneProps) {
   return (
     <div className="flex flex-col h-full">
       {/* Cabecalho */}
-      <div className="border-b border-slate-200 px-4 py-3 flex-shrink-0">
-        <h2 className="text-sm font-semibold text-slate-900">{conv.contactName}</h2>
-        <p className="text-xs text-slate-500 mt-0.5">
+      <div className="border-b border-border px-4 py-3 flex-shrink-0">
+        <h2 className="text-sm font-semibold text-foreground">{conv.contactName}</h2>
+        <p className="text-xs text-muted-foreground mt-0.5">
           {isClosed ? 'Conversa encerrada' : 'Conversa ativa'}
         </p>
       </div>
@@ -89,7 +89,7 @@ export async function ThreadPane({ conversationId }: ThreadPaneProps) {
         className="flex-1 overflow-y-auto p-4 space-y-3"
       >
         {messages.length === 0 ? (
-          <p className="text-center text-slate-400 text-sm">Nenhuma mensagem ainda.</p>
+          <p className="text-center text-muted-foreground/60 text-sm">Nenhuma mensagem ainda.</p>
         ) : (
           messages.map((msg) => {
             const isOutbound = msg.direction === 'outbound'
@@ -105,20 +105,20 @@ export async function ThreadPane({ conversationId }: ThreadPaneProps) {
                   className={[
                     'max-w-[75%] rounded-2xl px-3 py-2 text-sm',
                     isOutbound
-                      ? 'bg-slate-900 text-white rounded-br-sm'
-                      : 'bg-slate-100 text-slate-900 rounded-bl-sm',
+                      ? 'bg-primary text-primary-foreground rounded-br-sm'
+                      : 'bg-muted text-foreground rounded-bl-sm',
                   ].join(' ')}
                 >
                   {/* Autor (somente outbound) */}
                   {isOutbound && msg.authorName && (
-                    <p className="text-[10px] text-slate-300 mb-1">{msg.authorName}</p>
+                    <p className="text-[10px] text-muted-foreground/40 mb-1">{msg.authorName}</p>
                   )}
                   <p className="whitespace-pre-wrap break-words">{msg.body}</p>
                   <time
                     dateTime={msg.createdAt.toISOString()}
                     className={[
                       'block text-[10px] mt-1',
-                      isOutbound ? 'text-slate-400' : 'text-slate-400',
+                      isOutbound ? 'text-muted-foreground/60' : 'text-muted-foreground/60',
                     ].join(' ')}
                   >
                     {msg.createdAt.toLocaleTimeString('pt-BR', {
@@ -135,7 +135,7 @@ export async function ThreadPane({ conversationId }: ThreadPaneProps) {
 
       {/* Formulario de envio — desabilitado se conversa encerrada */}
       {isClosed ? (
-        <div className="border-t border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-400 text-center flex-shrink-0">
+        <div className="border-t border-border bg-muted/50 px-4 py-3 text-sm text-muted-foreground/60 text-center flex-shrink-0">
           Conversa encerrada. Reabra para responder.
         </div>
       ) : (

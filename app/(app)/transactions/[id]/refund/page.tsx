@@ -47,35 +47,35 @@ export default async function RefundPage({
   return (
     <div className="space-y-8 max-w-2xl">
       {/* Breadcrumb */}
-      <nav aria-label="Breadcrumb" className="text-sm text-slate-500">
+      <nav aria-label="Breadcrumb" className="text-sm text-muted-foreground">
         <ol className="flex items-center gap-2">
           <li>
             <Link
               href={'/transactions' as Route}
-              className="hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 rounded"
+              className="hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
             >
               Transações
             </Link>
           </li>
-          <li aria-hidden="true" className="text-slate-300">/</li>
+          <li aria-hidden="true" className="text-muted-foreground/40">/</li>
           <li>
             <Link
               href={`/transactions/${id}` as Route}
-              className="hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 rounded"
+              className="hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
             >
               {id.slice(0, 8)}…
             </Link>
           </li>
-          <li aria-hidden="true" className="text-slate-300">/</li>
-          <li className="font-medium text-slate-900" aria-current="page">
+          <li aria-hidden="true" className="text-muted-foreground/40">/</li>
+          <li className="font-medium text-foreground" aria-current="page">
             Reembolso
           </li>
         </ol>
       </nav>
 
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Solicitar Reembolso</h1>
-        <p className="text-sm text-slate-500 mt-1">
+        <h1 className="text-2xl font-bold text-foreground">Solicitar Reembolso</h1>
+        <p className="text-sm text-muted-foreground mt-1">
           Transação <span className="font-mono">{id.slice(0, 8)}…</span> —{' '}
           {trx.contactName} · {trx.offerName}
         </p>

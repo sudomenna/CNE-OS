@@ -91,8 +91,8 @@ export default async function MergePage({ searchParams }: PageProps) {
   return (
     <div className="max-w-3xl mx-auto space-y-6 py-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Merge de contatos</h1>
-        <p className="text-sm text-slate-500 mt-1">
+        <h1 className="text-2xl font-bold text-foreground">Merge de contatos</h1>
+        <p className="text-sm text-muted-foreground mt-1">
           Unifique dois registros duplicados preservando o historico do secundario.
         </p>
       </div>

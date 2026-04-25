@@ -41,7 +41,7 @@ export function TicketStatusSelect({ ticketId, currentStatus }: TicketStatusSele
 
   if (options.length === 0) {
     return (
-      <span className="inline-flex items-center rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-slate-500">
+      <span className="inline-flex items-center rounded-md border border-border bg-muted/50 px-3 py-1.5 text-sm text-muted-foreground">
         {STATUS_LABELS[currentStatus]}
       </span>
     )
@@ -62,7 +62,7 @@ export function TicketStatusSelect({ ticketId, currentStatus }: TicketStatusSele
         defaultValue=""
         onChange={handleChange}
         disabled={isPending}
-        className="appearance-none rounded-md border border-slate-300 bg-white py-1.5 pl-3 pr-8 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-900 disabled:opacity-50"
+        className="appearance-none rounded-md border border-border bg-card py-1.5 pl-3 pr-8 text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
       >
         <option value="" disabled>
           {STATUS_LABELS[currentStatus]}
@@ -76,7 +76,7 @@ export function TicketStatusSelect({ ticketId, currentStatus }: TicketStatusSele
       {isPending && (
         <span
           aria-label="Salvando"
-          className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700"
+          className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 animate-spin rounded-full border-2 border-border border-t-slate-700"
         />
       )}
     </div>

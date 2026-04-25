@@ -91,7 +91,7 @@ export function OpenTicketButton({
       <DialogTrigger asChild>
         <button
           type="button"
-          className="inline-flex h-9 items-center justify-center rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+          className="inline-flex h-9 items-center justify-center rounded-md border border-border bg-card px-4 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           {label}
         </button>
@@ -105,7 +105,7 @@ export function OpenTicketButton({
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
           {/* Title */}
           <div>
-            <label htmlFor="ot-title" className="block text-sm font-medium text-slate-700 mb-1">
+            <label htmlFor="ot-title" className="block text-sm font-medium text-muted-foreground mb-1">
               Titulo <span aria-hidden="true">*</span>
             </label>
             <input
@@ -115,14 +115,14 @@ export function OpenTicketButton({
               required
               maxLength={255}
               placeholder="Descreva o problema..."
-              className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900 disabled:opacity-50"
+              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
               disabled={isPending}
             />
           </div>
 
           {/* Category */}
           <div>
-            <label htmlFor="ot-category" className="block text-sm font-medium text-slate-700 mb-1">
+            <label htmlFor="ot-category" className="block text-sm font-medium text-muted-foreground mb-1">
               Categoria <span aria-hidden="true">*</span>
             </label>
             <select
@@ -130,7 +130,7 @@ export function OpenTicketButton({
               name="category"
               required
               defaultValue=""
-              className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 disabled:opacity-50"
+              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
               disabled={isPending}
             >
               <option value="" disabled>
@@ -146,7 +146,7 @@ export function OpenTicketButton({
 
           {/* Priority */}
           <div>
-            <label htmlFor="ot-priority" className="block text-sm font-medium text-slate-700 mb-1">
+            <label htmlFor="ot-priority" className="block text-sm font-medium text-muted-foreground mb-1">
               Prioridade <span aria-hidden="true">*</span>
             </label>
             <select
@@ -154,7 +154,7 @@ export function OpenTicketButton({
               name="priority"
               required
               defaultValue="medium"
-              className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 disabled:opacity-50"
+              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
               disabled={isPending}
             >
               {PRIORITY_OPTIONS.map((opt) => (
@@ -167,7 +167,7 @@ export function OpenTicketButton({
 
           {/* Description (optional) */}
           <div>
-            <label htmlFor="ot-description" className="block text-sm font-medium text-slate-700 mb-1">
+            <label htmlFor="ot-description" className="block text-sm font-medium text-muted-foreground mb-1">
               Descricao (opcional)
             </label>
             <textarea
@@ -175,7 +175,7 @@ export function OpenTicketButton({
               name="description"
               rows={2}
               placeholder="Detalhes adicionais..."
-              className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900 disabled:opacity-50"
+              className="block w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
               disabled={isPending}
             />
           </div>
@@ -193,14 +193,14 @@ export function OpenTicketButton({
               type="button"
               onClick={() => setOpen(false)}
               disabled={isPending}
-              className="inline-flex h-9 items-center justify-center rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 disabled:opacity-50"
+              className="inline-flex h-9 items-center justify-center rounded-md border border-border bg-card px-4 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={isPending}
-              className="inline-flex h-9 items-center justify-center rounded-md bg-slate-900 px-4 text-sm font-medium text-white transition-colors hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 disabled:opacity-50"
+              className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
             >
               {isPending ? 'Abrindo...' : 'Abrir ticket'}
             </button>

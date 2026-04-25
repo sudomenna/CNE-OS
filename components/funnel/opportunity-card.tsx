@@ -23,12 +23,12 @@ export type OpportunityCardData = {
 }
 
 const LABEL_FALLBACK: { className: string; text: string } = {
-  className: 'bg-slate-100 text-slate-700',
+  className: 'bg-muted text-muted-foreground',
   text: 'Aberto',
 }
 
 const LABEL_STYLES: Record<string, { className: string; text: string }> = {
-  open: { className: 'bg-slate-100 text-slate-700', text: 'Aberto' },
+  open: { className: 'bg-muted text-muted-foreground', text: 'Aberto' },
   negotiating: { className: 'bg-blue-100 text-blue-700', text: 'Negociando' },
   concluded: { className: 'bg-green-100 text-green-700', text: 'Concluído' },
   won: { className: 'bg-emerald-100 text-emerald-700', text: 'Ganho' },
@@ -69,16 +69,16 @@ export function OpportunityCard({ entry, isDragOverlay = false }: OpportunityCar
       aria-label={`Oportunidade: ${entry.contactName}`}
       aria-roledescription="item arrastável"
       className={cn(
-        'rounded-md border border-slate-200 bg-white p-3 shadow-sm',
+        'rounded-md border border-border bg-card p-3 shadow-sm',
         'cursor-grab active:cursor-grabbing',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         'transition-shadow hover:shadow-md',
         isDragging && !isDragOverlay && 'opacity-40',
         isDragOverlay && 'rotate-1 shadow-lg opacity-95',
       )}
     >
       {/* Nome do contato */}
-      <p className="text-sm font-medium text-slate-900 truncate leading-snug">
+      <p className="text-sm font-medium text-foreground truncate leading-snug">
         {entry.contactName}
       </p>
 
@@ -93,7 +93,7 @@ export function OpportunityCard({ entry, isDragOverlay = false }: OpportunityCar
 
         {parseFloat(entry.score) !== 0 && (
           <span
-            className="text-xs text-slate-500 tabular-nums"
+            className="text-xs text-muted-foreground tabular-nums"
             aria-label={`Score: ${scoreDisplay}`}
           >
             ⭐ {scoreDisplay}

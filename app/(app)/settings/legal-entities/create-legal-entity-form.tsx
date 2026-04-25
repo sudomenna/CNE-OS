@@ -71,7 +71,7 @@ export function CreateLegalEntityForm({ brands }: CreateLegalEntityFormProps) {
               aria-required="true"
               aria-describedby="le-cnpj-hint"
             />
-            <p id="le-cnpj-hint" className="text-xs text-slate-400">
+            <p id="le-cnpj-hint" className="text-xs text-muted-foreground/60">
               Somente 14 dígitos numéricos, sem pontuação.
             </p>
           </div>
@@ -100,7 +100,7 @@ export function CreateLegalEntityForm({ brands }: CreateLegalEntityFormProps) {
               name="brandId"
               required
               aria-required="true"
-              className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-10 w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <option value="">Selecione uma marca</option>
               {brands.map((b) => (

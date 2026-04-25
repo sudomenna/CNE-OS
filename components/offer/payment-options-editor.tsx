@@ -163,13 +163,13 @@ export function PaymentOptionsEditor({
         className="space-y-2"
       >
         {paymentOptions.length === 0 ? (
-          <p className="text-sm text-slate-500">Nenhuma opção de pagamento adicionada ainda.</p>
+          <p className="text-sm text-muted-foreground">Nenhuma opção de pagamento adicionada ainda.</p>
         ) : (
           paymentOptions.map((opt) => (
             <div
               key={opt.id}
               role="listitem"
-              className="flex flex-wrap items-center gap-3 rounded-md border border-slate-200 bg-white px-4 py-3 text-sm"
+              className="flex flex-wrap items-center gap-3 rounded-md border border-border bg-card px-4 py-3 text-sm"
             >
               {/* Method badge */}
               <Badge
@@ -181,7 +181,7 @@ export function PaymentOptionsEditor({
 
               {/* Price */}
               <span
-                className="font-semibold text-slate-900 tabular-nums"
+                className="font-semibold text-foreground tabular-nums"
                 aria-label={`Preço: R$ ${Number(opt.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
               >
                 {Number(opt.price).toLocaleString('pt-BR', {
@@ -193,7 +193,7 @@ export function PaymentOptionsEditor({
               {/* Installments */}
               {opt.method === 'installments' && opt.installments != null && (
                 <span
-                  className="text-xs text-slate-500 tabular-nums"
+                  className="text-xs text-muted-foreground tabular-nums"
                   aria-label={`${opt.installments}x`}
                 >
                   {opt.installments}x
@@ -204,7 +204,7 @@ export function PaymentOptionsEditor({
               <span
                 className={[
                   'ml-auto text-xs font-medium',
-                  opt.isActive ? 'text-green-600' : 'text-slate-400',
+                  opt.isActive ? 'text-green-600' : 'text-muted-foreground/60',
                 ].join(' ')}
                 aria-label={opt.isActive ? 'Ativa' : 'Inativa'}
               >
@@ -296,7 +296,7 @@ export function PaymentOptionsEditor({
                   aria-describedby="pay-installments-hint"
                   className="w-28"
                 />
-                <p id="pay-installments-hint" className="text-xs text-slate-400">
+                <p id="pay-installments-hint" className="text-xs text-muted-foreground/60">
                   Mínimo 2 parcelas (INV-OFFER-08).
                 </p>
               </div>

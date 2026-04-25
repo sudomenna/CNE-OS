@@ -82,10 +82,10 @@ export default async function FunnelTargetsPage({ params }: PageProps) {
   return (
     <div className="space-y-6">
       {/* Breadcrumb / navegacao */}
-      <nav aria-label="Navegacao" className="flex items-center gap-2 text-sm text-slate-500">
+      <nav aria-label="Navegacao" className="flex items-center gap-2 text-sm text-muted-foreground">
         <Link
           href={`/funnels/${funnelId}`}
-          className="flex items-center gap-1 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 rounded"
+          className="flex items-center gap-1 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
         >
           <svg
             aria-hidden="true"
@@ -104,15 +104,15 @@ export default async function FunnelTargetsPage({ params }: PageProps) {
           Voltar ao funil
         </Link>
         <span aria-hidden="true">/</span>
-        <span className="text-slate-900 font-medium">Metas</span>
+        <span className="text-foreground font-medium">Metas</span>
       </nav>
 
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Metas Comerciais</h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Funil: <span className="font-medium text-slate-700">{currentFunnel.name}</span>
+          <h1 className="text-2xl font-bold text-foreground">Metas Comerciais</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Funil: <span className="font-medium text-muted-foreground">{currentFunnel.name}</span>
           </p>
         </div>
         {/* TargetForm inclui o trigger "Nova Meta" internamente */}
@@ -121,45 +121,45 @@ export default async function FunnelTargetsPage({ params }: PageProps) {
 
       {/* Lista de metas */}
       {targets.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 py-16 text-center">
-          <p className="text-slate-500 text-sm">Nenhuma meta cadastrada para este funil.</p>
-          <p className="text-slate-400 text-xs mt-1">
+        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-16 text-center">
+          <p className="text-muted-foreground text-sm">Nenhuma meta cadastrada para este funil.</p>
+          <p className="text-muted-foreground/60 text-xs mt-1">
             Clique em &ldquo;Nova Meta&rdquo; para adicionar a primeira.
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-slate-200">
+        <div className="overflow-hidden rounded-lg border border-border">
           <table className="w-full text-sm" role="table">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50">
+              <tr className="border-b border-border bg-muted/50">
                 <th
                   scope="col"
-                  className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"
+                  className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground"
                 >
                   Periodo
                 </th>
                 <th
                   scope="col"
-                  className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"
+                  className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground"
                 >
                   Tipo
                 </th>
                 <th
                   scope="col"
-                  className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500"
+                  className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground"
                 >
                   Valor Alvo
                 </th>
                 <th
                   scope="col"
-                  className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500"
+                  className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground"
                   title="Disponivel no Sprint 10 — Analytics"
                 >
                   % Atingido
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 bg-white">
+            <tbody className="divide-y divide-border bg-card">
               {targets.map((target) => {
                 const hasRevenue = target.targetRevenue !== null
                 const hasCount = target.targetCount !== null
@@ -170,12 +170,12 @@ export default async function FunnelTargetsPage({ params }: PageProps) {
                   : 'Volume'
 
                 return (
-                  <tr key={target.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-4 py-3 text-slate-700">
+                  <tr key={target.id} className="hover:bg-muted/50 transition-colors">
+                    <td className="px-4 py-3 text-muted-foreground">
                       {formatDate(target.periodStart)} — {formatDate(target.periodEnd)}
                     </td>
-                    <td className="px-4 py-3 text-slate-600">{tipo}</td>
-                    <td className="px-4 py-3 text-right text-slate-900 font-medium tabular-nums">
+                    <td className="px-4 py-3 text-muted-foreground">{tipo}</td>
+                    <td className="px-4 py-3 text-right text-foreground font-medium tabular-nums">
                       {hasRevenue && hasCount ? (
                         <span>
                           {formatRevenue(target.targetRevenue)} /{' '}
@@ -188,7 +188,7 @@ export default async function FunnelTargetsPage({ params }: PageProps) {
                       )}
                     </td>
                     <td
-                      className="px-4 py-3 text-right text-slate-400 tabular-nums"
+                      className="px-4 py-3 text-right text-muted-foreground/60 tabular-nums"
                       aria-label="Percentual atingido indisponivel ate Sprint 10"
                     >
                       —
@@ -202,7 +202,7 @@ export default async function FunnelTargetsPage({ params }: PageProps) {
       )}
 
       {/* Nota sobre analytics */}
-      <p className="text-xs text-slate-400">
+      <p className="text-xs text-muted-foreground/60">
         * O percentual atingido sera calculado automaticamente a partir dos dados de vendas
         (disponivel no Sprint 10 — Analytics).
       </p>

@@ -64,7 +64,7 @@ export default function ForgotPage() {
           </Button>
           <a
             href="/login"
-            className="block text-center text-sm text-slate-500 hover:text-slate-800 underline"
+            className="block text-center text-sm text-muted-foreground hover:text-foreground underline"
           >
             Voltar para o login
           </a>

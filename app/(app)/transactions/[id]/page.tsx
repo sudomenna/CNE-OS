@@ -108,20 +108,20 @@ export default async function TransactionDetailPage({
   return (
     <div className="space-y-8 max-w-4xl">
       {/* Breadcrumb */}
-      <nav aria-label="Breadcrumb" className="text-sm text-slate-500">
+      <nav aria-label="Breadcrumb" className="text-sm text-muted-foreground">
         <ol className="flex items-center gap-2">
           <li>
             <Link
               href={'/transactions' as Route}
-              className="hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 rounded"
+              className="hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
             >
               Transacoes
             </Link>
           </li>
-          <li aria-hidden="true" className="text-slate-300">
+          <li aria-hidden="true" className="text-muted-foreground/40">
             /
           </li>
-          <li className="font-medium text-slate-900 truncate max-w-[200px]" aria-current="page">
+          <li className="font-medium text-foreground truncate max-w-[200px]" aria-current="page">
             {id.slice(0, 8)}...
           </li>
         </ol>
@@ -131,12 +131,12 @@ export default async function TransactionDetailPage({
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-slate-900">Transacao</h1>
+            <h1 className="text-2xl font-bold text-foreground">Transacao</h1>
             <Badge variant={STATUS_VARIANT[trx.status as TxStatus]}>
               {STATUS_LABEL[trx.status as TxStatus] ?? trx.status}
             </Badge>
           </div>
-          <p className="text-sm text-slate-500 font-mono">{trx.id}</p>
+          <p className="text-sm text-muted-foreground font-mono">{trx.id}</p>
         </div>
         {/* BR-REFUND: botao visivel apenas se approved sem refund ativo */}
         {canRefund && (
@@ -150,79 +150,79 @@ export default async function TransactionDetailPage({
       </div>
 
       {/* Dados principais */}
-      <section aria-labelledby="info-heading" className="rounded-lg border border-slate-200 bg-white">
+      <section aria-labelledby="info-heading" className="rounded-lg border border-border bg-card">
         <h2
           id="info-heading"
-          className="px-6 py-4 text-sm font-semibold text-slate-700 border-b border-slate-200"
+          className="px-6 py-4 text-sm font-semibold text-muted-foreground border-b border-border"
         >
           Dados Principais
         </h2>
         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 px-6 py-5">
           <div>
-            <dt className="text-xs font-medium text-slate-500">Valor</dt>
-            <dd className="mt-1 text-sm font-semibold text-slate-900 tabular-nums">
+            <dt className="text-xs font-medium text-muted-foreground">Valor</dt>
+            <dd className="mt-1 text-sm font-semibold text-foreground tabular-nums">
               {formatCurrency(trx.amount, trx.currency)}
             </dd>
           </div>
           <div>
-            <dt className="text-xs font-medium text-slate-500">Moeda</dt>
-            <dd className="mt-1 text-sm text-slate-900">{trx.currency}</dd>
+            <dt className="text-xs font-medium text-muted-foreground">Moeda</dt>
+            <dd className="mt-1 text-sm text-foreground">{trx.currency}</dd>
           </div>
           <div>
-            <dt className="text-xs font-medium text-slate-500">Contato</dt>
-            <dd className="mt-1 text-sm text-slate-900">
+            <dt className="text-xs font-medium text-muted-foreground">Contato</dt>
+            <dd className="mt-1 text-sm text-foreground">
               <Link
                 href={`/contacts/${trx.contactId}` as Route}
-                className="text-slate-700 hover:text-slate-900 underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 rounded"
+                className="text-muted-foreground hover:text-foreground underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
               >
                 {trx.contactName}
               </Link>
               {trx.contactEmail && (
-                <span className="block text-xs text-slate-500">{trx.contactEmail}</span>
+                <span className="block text-xs text-muted-foreground">{trx.contactEmail}</span>
               )}
             </dd>
           </div>
           <div>
-            <dt className="text-xs font-medium text-slate-500">Oferta</dt>
-            <dd className="mt-1 text-sm text-slate-900">
+            <dt className="text-xs font-medium text-muted-foreground">Oferta</dt>
+            <dd className="mt-1 text-sm text-foreground">
               <Link
                 href={`/offers/${trx.offerId}` as Route}
-                className="text-slate-700 hover:text-slate-900 underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 rounded"
+                className="text-muted-foreground hover:text-foreground underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
               >
                 {trx.offerName}
               </Link>
             </dd>
           </div>
           <div>
-            <dt className="text-xs font-medium text-slate-500">Criada em</dt>
-            <dd className="mt-1 text-sm text-slate-900">{formatDate(trx.createdAt)}</dd>
+            <dt className="text-xs font-medium text-muted-foreground">Criada em</dt>
+            <dd className="mt-1 text-sm text-foreground">{formatDate(trx.createdAt)}</dd>
           </div>
           <div>
-            <dt className="text-xs font-medium text-slate-500">Aprovada em</dt>
-            <dd className="mt-1 text-sm text-slate-900">{formatDate(trx.approvedAt)}</dd>
+            <dt className="text-xs font-medium text-muted-foreground">Aprovada em</dt>
+            <dd className="mt-1 text-sm text-foreground">{formatDate(trx.approvedAt)}</dd>
           </div>
           {trx.refusedAt && (
             <div>
-              <dt className="text-xs font-medium text-slate-500">Recusada em</dt>
-              <dd className="mt-1 text-sm text-slate-900">{formatDate(trx.refusedAt)}</dd>
+              <dt className="text-xs font-medium text-muted-foreground">Recusada em</dt>
+              <dd className="mt-1 text-sm text-foreground">{formatDate(trx.refusedAt)}</dd>
             </div>
           )}
           {trx.externalProvider && (
             <div>
-              <dt className="text-xs font-medium text-slate-500">Provedor</dt>
-              <dd className="mt-1 text-sm text-slate-900">{trx.externalProvider}</dd>
+              <dt className="text-xs font-medium text-muted-foreground">Provedor</dt>
+              <dd className="mt-1 text-sm text-foreground">{trx.externalProvider}</dd>
             </div>
           )}
           {trx.externalId && (
             <div>
-              <dt className="text-xs font-medium text-slate-500">ID Externo</dt>
-              <dd className="mt-1 text-sm text-slate-900 font-mono">{trx.externalId}</dd>
+              <dt className="text-xs font-medium text-muted-foreground">ID Externo</dt>
+              <dd className="mt-1 text-sm text-foreground font-mono">{trx.externalId}</dd>
             </div>
           )}
           {trx.externalFee && (
             <div>
-              <dt className="text-xs font-medium text-slate-500">Taxa externa</dt>
-              <dd className="mt-1 text-sm text-slate-900 tabular-nums">
+              <dt className="text-xs font-medium text-muted-foreground">Taxa externa</dt>
+              <dd className="mt-1 text-sm text-foreground tabular-nums">
                 {formatCurrency(trx.externalFee, trx.currency)}
               </dd>
             </div>
@@ -235,7 +235,7 @@ export default async function TransactionDetailPage({
         <section aria-labelledby="snapshot-heading">
           <h2
             id="snapshot-heading"
-            className="text-lg font-semibold text-slate-900 mb-3"
+            className="text-lg font-semibold text-foreground mb-3"
           >
             Snapshot da Venda
           </h2>
@@ -248,12 +248,12 @@ export default async function TransactionDetailPage({
         <section aria-labelledby="snapshot-heading">
           <h2
             id="snapshot-heading"
-            className="text-lg font-semibold text-slate-900 mb-3"
+            className="text-lg font-semibold text-foreground mb-3"
           >
             Snapshot da Venda
           </h2>
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-6 text-center">
-            <p className="text-sm text-slate-500">
+          <div className="rounded-lg border border-border bg-muted/50 p-6 text-center">
+            <p className="text-sm text-muted-foreground">
               Snapshot ainda nao disponivel (transacao {trx.status}).
             </p>
           </div>
@@ -264,34 +264,34 @@ export default async function TransactionDetailPage({
       <section aria-labelledby="items-heading">
         <h2
           id="items-heading"
-          className="text-lg font-semibold text-slate-900 mb-3"
+          className="text-lg font-semibold text-foreground mb-3"
         >
           Itens ({trx.items.length})
         </h2>
         {trx.items.length === 0 ? (
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-6 text-center">
-            <p className="text-sm text-slate-500">Nenhum item registrado.</p>
+          <div className="rounded-lg border border-border bg-muted/50 p-6 text-center">
+            <p className="text-sm text-muted-foreground">Nenhum item registrado.</p>
           </div>
         ) : (
-          <div className="rounded-lg border border-slate-200 bg-white overflow-hidden">
+          <div className="rounded-lg border border-border bg-card overflow-hidden">
             <table className="w-full text-sm" role="table" aria-label="Itens da transacao">
               <thead>
-                <tr className="border-b border-slate-200 bg-slate-50">
-                  <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                <tr className="border-b border-border bg-muted/50">
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                     Tipo
                   </th>
-                  <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                     Produto / Beneficio
                   </th>
-                  <th scope="col" className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                  <th scope="col" className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                     Qtd
                   </th>
-                  <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                     Entrega
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-border">
                 {trx.items.map((item) => (
                   <tr key={item.id}>
                     <td className="px-4 py-3">
@@ -299,13 +299,13 @@ export default async function TransactionDetailPage({
                         {ITEM_KIND_LABEL[item.itemKind] ?? item.itemKind}
                       </Badge>
                     </td>
-                    <td className="px-4 py-3 text-slate-700 text-xs font-mono">
+                    <td className="px-4 py-3 text-muted-foreground text-xs font-mono">
                       {item.productId ?? item.commercialBenefitId ?? '—'}
                     </td>
-                    <td className="px-4 py-3 text-right tabular-nums text-slate-900">
+                    <td className="px-4 py-3 text-right tabular-nums text-foreground">
                       {item.quantity}
                     </td>
-                    <td className="px-4 py-3 text-slate-600">
+                    <td className="px-4 py-3 text-muted-foreground">
                       {item.deliveryStatus}
                     </td>
                   </tr>
@@ -320,27 +320,27 @@ export default async function TransactionDetailPage({
       <section aria-labelledby="history-heading">
         <h2
           id="history-heading"
-          className="text-lg font-semibold text-slate-900 mb-3"
+          className="text-lg font-semibold text-foreground mb-3"
         >
           Historico de Status
         </h2>
         {trx.statusHistory.length === 0 ? (
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-6 text-center">
-            <p className="text-sm text-slate-500">Sem historico de status.</p>
+          <div className="rounded-lg border border-border bg-muted/50 p-6 text-center">
+            <p className="text-sm text-muted-foreground">Sem historico de status.</p>
           </div>
         ) : (
-          <ol className="relative border-l-2 border-slate-200 ml-3 space-y-4">
+          <ol className="relative border-l-2 border-border ml-3 space-y-4">
             {trx.statusHistory.map((entry) => (
               <li key={entry.id} className="ml-4">
-                <div className="absolute -left-[9px] mt-1.5 h-3.5 w-3.5 rounded-full border-2 border-white bg-slate-400" />
+                <div className="absolute -left-[9px] mt-1.5 h-3.5 w-3.5 rounded-full border-2 border-white bg-muted-foreground/40" />
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs text-slate-500">{formatDate(entry.createdAt)}</span>
+                  <span className="text-xs text-muted-foreground">{formatDate(entry.createdAt)}</span>
                   {entry.fromStatus && (
                     <>
                       <Badge variant="outline" className="text-xs">
                         {STATUS_LABEL[entry.fromStatus as TxStatus] ?? entry.fromStatus}
                       </Badge>
-                      <span className="text-slate-400" aria-hidden="true">
+                      <span className="text-muted-foreground/60" aria-hidden="true">
                         →
                       </span>
                     </>
@@ -350,7 +350,7 @@ export default async function TransactionDetailPage({
                   </Badge>
                 </div>
                 {(entry.actorSystem || entry.reason) && (
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p className="mt-1 text-xs text-muted-foreground">
                     {entry.actorSystem && <span className="font-medium">{entry.actorSystem}</span>}
                     {entry.actorSystem && entry.reason && ' — '}
                     {entry.reason}

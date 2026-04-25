@@ -68,7 +68,7 @@ export function CreateBrandForm() {
               aria-required="true"
               aria-describedby="brand-slug-hint"
             />
-            <p id="brand-slug-hint" className="text-xs text-slate-400">
+            <p id="brand-slug-hint" className="text-xs text-muted-foreground/60">
               Somente letras minúsculas, números e hífens.
             </p>
           </div>

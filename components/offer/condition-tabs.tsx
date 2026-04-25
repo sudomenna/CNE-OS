@@ -160,9 +160,9 @@ export function ConditionTabs({
     <div className="space-y-4">
       {/* Conditions selector + new condition button */}
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm font-medium text-slate-700">Condição:</span>
+        <span className="text-sm font-medium text-muted-foreground">Condição:</span>
         {conditions.length === 0 ? (
-          <span className="text-sm text-slate-400">Nenhuma condição criada ainda.</span>
+          <span className="text-sm text-muted-foreground/60">Nenhuma condição criada ainda.</span>
         ) : (
           <div className="flex flex-wrap gap-2" role="list" aria-label="Condições da oferta">
             {conditions.map((c) => (
@@ -175,8 +175,8 @@ export function ConditionTabs({
                 className={[
                   'flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                   selectedConditionId === c.id
-                    ? 'border-slate-900 bg-slate-900 text-white'
-                    : 'border-slate-200 bg-white text-slate-700 hover:border-slate-400',
+                    ? 'border-border bg-primary text-primary-foreground'
+                    : 'border-border bg-card text-muted-foreground hover:border-border',
                 ].join(' ')}
               >
                 <span className="max-w-[160px] truncate font-medium">{c.name}</span>
@@ -227,13 +227,13 @@ export function ConditionTabs({
             <section aria-label="Detalhes da condição">
               <dl className="grid grid-cols-1 gap-y-3 sm:grid-cols-2 sm:gap-x-8 text-sm">
                 <div>
-                  <dt className="text-slate-500 font-medium">Nome</dt>
-                  <dd className="mt-0.5 text-slate-900 font-semibold">
+                  <dt className="text-muted-foreground font-medium">Nome</dt>
+                  <dd className="mt-0.5 text-foreground font-semibold">
                     {selectedCondition.name}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-slate-500 font-medium">Status</dt>
+                  <dt className="text-muted-foreground font-medium">Status</dt>
                   <dd className="mt-0.5">
                     <Badge variant={STATUS_VARIANT[selectedCondition.status]}>
                       {STATUS_LABEL[selectedCondition.status]}
@@ -241,14 +241,14 @@ export function ConditionTabs({
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-slate-500 font-medium">Prioridade</dt>
-                  <dd className="mt-0.5 text-slate-900 tabular-nums">
+                  <dt className="text-muted-foreground font-medium">Prioridade</dt>
+                  <dd className="mt-0.5 text-foreground tabular-nums">
                     {selectedCondition.priority}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-slate-500 font-medium">Score de vantagem</dt>
-                  <dd className="mt-0.5 text-slate-900 tabular-nums">
+                  <dt className="text-muted-foreground font-medium">Score de vantagem</dt>
+                  <dd className="mt-0.5 text-foreground tabular-nums">
                     {Number(selectedCondition.advantageScore).toLocaleString('pt-BR', {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
@@ -256,27 +256,27 @@ export function ConditionTabs({
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-slate-500 font-medium">Condição padrão</dt>
+                  <dt className="text-muted-foreground font-medium">Condição padrão</dt>
                   <dd className="mt-0.5">
                     {selectedCondition.isDefault ? (
                       <span className="inline-flex items-center gap-1 text-amber-700 font-medium">
                         <span aria-hidden>★</span> Sim
                       </span>
                     ) : (
-                      <span className="text-slate-400">Não</span>
+                      <span className="text-muted-foreground/60">Não</span>
                     )}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-slate-500 font-medium">Visibilidade</dt>
-                  <dd className="mt-0.5 text-slate-900">
+                  <dt className="text-muted-foreground font-medium">Visibilidade</dt>
+                  <dd className="mt-0.5 text-foreground">
                     {selectedCondition.isPublic ? 'Pública' : 'Somente uso interno'}
                   </dd>
                 </div>
                 {selectedCondition.description && (
                   <div className="sm:col-span-2">
-                    <dt className="text-slate-500 font-medium">Descrição</dt>
-                    <dd className="mt-0.5 text-slate-700">{selectedCondition.description}</dd>
+                    <dt className="text-muted-foreground font-medium">Descrição</dt>
+                    <dd className="mt-0.5 text-muted-foreground">{selectedCondition.description}</dd>
                   </div>
                 )}
               </dl>
@@ -310,8 +310,8 @@ export function ConditionTabs({
           </TabsContent>
         </Tabs>
       ) : (
-        <div className="rounded-md border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
-          <p className="text-sm text-slate-500">
+        <div className="rounded-md border border-dashed border-border bg-muted/50 p-8 text-center">
+          <p className="text-sm text-muted-foreground">
             Selecione ou crie uma condição para editar suas seções.
           </p>
         </div>
@@ -359,18 +359,18 @@ export function ConditionTabs({
                 className="w-32"
                 aria-describedby="cond-priority-hint"
               />
-              <p id="cond-priority-hint" className="text-xs text-slate-400">
+              <p id="cond-priority-hint" className="text-xs text-muted-foreground/60">
                 Maior prioridade vence no desempate de condições. Intervalo: -1000 a 1000.
               </p>
             </div>
 
             {/* Condição padrão */}
-            <div className="flex items-center justify-between rounded-md border border-slate-200 px-4 py-3">
+            <div className="flex items-center justify-between rounded-md border border-border px-4 py-3">
               <div>
                 <Label htmlFor="cond-is-default" className="text-sm font-medium">
                   Condição padrão
                 </Label>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <p className="text-xs text-muted-foreground/60 mt-0.5">
                   Apenas uma condição ativa pode ser o padrão por oferta.
                 </p>
               </div>

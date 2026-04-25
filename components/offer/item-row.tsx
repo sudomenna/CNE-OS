@@ -88,7 +88,7 @@ export function ItemRow({ item }: ItemRowProps) {
   return (
     <div
       role="row"
-      className="flex flex-wrap items-center gap-3 rounded-md border border-slate-200 bg-white px-4 py-3 text-sm"
+      className="flex flex-wrap items-center gap-3 rounded-md border border-border bg-card px-4 py-3 text-sm"
     >
       {/* Kind badge */}
       <Badge
@@ -100,21 +100,21 @@ export function ItemRow({ item }: ItemRowProps) {
       </Badge>
 
       {/* Nome do produto ou benefício */}
-      <span className="flex-1 font-medium text-slate-900 min-w-0 truncate">
+      <span className="flex-1 font-medium text-foreground min-w-0 truncate">
         {displayName}
       </span>
 
       {/* Quantidade */}
       <span
-        className="text-xs text-slate-500 tabular-nums"
+        className="text-xs text-muted-foreground tabular-nums"
         aria-label={`Quantidade: ${item.quantity}`}
       >
-        Qtd: <strong className="text-slate-700">{item.quantity}</strong>
+        Qtd: <strong className="text-muted-foreground">{item.quantity}</strong>
       </span>
 
       {/* Vigência */}
       <span
-        className="text-xs text-slate-500"
+        className="text-xs text-muted-foreground"
         aria-label={`Vigência: ${vigencyLabel}`}
       >
         {vigencyLabel}
@@ -123,7 +123,7 @@ export function ItemRow({ item }: ItemRowProps) {
       {/* Desconto (opcional) */}
       {discountLabel && (
         <span
-          className="text-xs text-slate-500"
+          className="text-xs text-muted-foreground"
           aria-label={`Desconto: ${discountLabel}`}
         >
           {discountLabel}

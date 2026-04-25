@@ -50,22 +50,22 @@ interface SubscriptionCardProps {
 
 export function SubscriptionCard({ subscription: sub }: SubscriptionCardProps) {
   return (
-    <tr className="hover:bg-slate-50 transition-colors">
+    <tr className="hover:bg-muted/50 transition-colors">
       {/* Contato */}
       <td className="px-4 py-3">
         <Link
           href={`/contacts/${sub.contactId}` as Route}
-          className="font-medium text-slate-900 hover:text-slate-700 underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 rounded truncate max-w-[200px] block"
+          className="font-medium text-foreground hover:text-muted-foreground underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded truncate max-w-[200px] block"
         >
           {sub.contactName}
         </Link>
       </td>
 
       {/* Oferta */}
-      <td className="px-4 py-3 text-slate-700 truncate max-w-[200px]">
+      <td className="px-4 py-3 text-muted-foreground truncate max-w-[200px]">
         <Link
           href={`/offers/${sub.offerId}` as Route}
-          className="hover:text-slate-900 underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 rounded"
+          className="hover:text-foreground underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
         >
           {sub.offerName}
         </Link>
@@ -79,12 +79,12 @@ export function SubscriptionCard({ subscription: sub }: SubscriptionCardProps) {
       </td>
 
       {/* Período atual */}
-      <td className="px-4 py-3 text-slate-600 whitespace-nowrap tabular-nums text-sm">
+      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap tabular-nums text-sm">
         {formatDate(sub.currentPeriodStart)} – {formatDate(sub.currentPeriodEnd)}
       </td>
 
       {/* Próximo billing */}
-      <td className="px-4 py-3 text-slate-600 whitespace-nowrap tabular-nums text-sm">
+      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap tabular-nums text-sm">
         {formatDate(sub.nextBillingAt)}
       </td>
 
@@ -92,7 +92,7 @@ export function SubscriptionCard({ subscription: sub }: SubscriptionCardProps) {
       <td className="px-4 py-3 text-right">
         <Link
           href={`/billing/subscriptions/${sub.id}` as Route}
-          className="text-sm font-medium text-slate-700 hover:text-slate-900 underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 rounded"
+          className="text-sm font-medium text-muted-foreground hover:text-foreground underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
         >
           Detalhe
         </Link>

@@ -37,7 +37,7 @@ const KIND_CONFIG: Record<
   other: {
     label: 'Outro',
     borderClass: 'border-l-slate-400',
-    badgeClass: 'bg-slate-100 text-slate-800 border-slate-300',
+    badgeClass: 'bg-muted text-foreground border-border',
   },
 }
 
@@ -73,16 +73,16 @@ export function IssueCard({ issue, relatedContactName }: IssueCardProps) {
             </Badge>
           </div>
 
-          <p className="text-sm text-slate-800">{issue.detail}</p>
+          <p className="text-sm text-foreground">{issue.detail}</p>
 
           {relatedContactName && (
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-muted-foreground">
               Contato relacionado:{' '}
-              <span className="font-medium text-slate-700">{relatedContactName}</span>
+              <span className="font-medium text-muted-foreground">{relatedContactName}</span>
             </p>
           )}
 
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-muted-foreground/60">
             Aberta em {formatDate(issue.createdAt)}
           </p>
         </div>

@@ -80,7 +80,7 @@ export function ProductsClient({ mode, brands, productId, productName }: Props) 
                 id="product-brand"
                 name="brandId"
                 required
-                className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+                className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 aria-required="true"
               >
                 <option value="">Selecione uma marca</option>
@@ -112,7 +112,7 @@ export function ProductsClient({ mode, brands, productId, productName }: Props) 
                 aria-required="true"
                 aria-describedby="product-slug-hint"
               />
-              <p id="product-slug-hint" className="text-xs text-slate-400">
+              <p id="product-slug-hint" className="text-xs text-muted-foreground/60">
                 Somente letras minúsculas, números e hífens.
               </p>
             </div>
@@ -122,7 +122,7 @@ export function ProductsClient({ mode, brands, productId, productName }: Props) 
                 id="product-kind"
                 name="kind"
                 required
-                className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+                className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 aria-required="true"
               >
                 {KIND_OPTIONS.map((opt) => (
@@ -139,7 +139,7 @@ export function ProductsClient({ mode, brands, productId, productName }: Props) 
                 name="description"
                 rows={3}
                 placeholder="Descreva o produto..."
-                className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 resize-none"
+                className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
               />
             </div>
             {error && (
@@ -187,7 +187,7 @@ export function ProductsClient({ mode, brands, productId, productName }: Props) 
         <Button
           size="sm"
           variant="outline"
-          className="text-slate-500 hover:text-red-600 hover:border-red-300"
+          className="text-muted-foreground hover:text-red-600 hover:border-red-300"
           aria-label={`Arquivar produto ${productName}`}
         >
           Arquivar
@@ -198,7 +198,7 @@ export function ProductsClient({ mode, brands, productId, productName }: Props) 
           <DialogTitle>Arquivar produto</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 mt-2">
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-muted-foreground">
             Tem certeza que deseja arquivar o produto{' '}
             <span className="font-semibold">{productName}</span>? Ele não poderá ser incluído
             em novas condições de oferta, mas permanecerá visível no histórico de transações.

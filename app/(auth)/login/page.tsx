@@ -97,14 +97,14 @@ export default function LoginPage() {
             </Button>
             <button
               type="button"
-              className="w-full text-sm text-slate-500 hover:text-slate-800 underline"
+              className="w-full text-sm text-muted-foreground hover:text-foreground underline"
               onClick={() => setMode('magic')}
             >
               Entrar com link magico
             </button>
             <a
               href="/forgot"
-              className="block text-center text-sm text-slate-500 hover:text-slate-800 underline"
+              className="block text-center text-sm text-muted-foreground hover:text-foreground underline"
             >
               Esqueci minha senha
             </a>
@@ -128,7 +128,7 @@ export default function LoginPage() {
             </Button>
             <button
               type="button"
-              className="w-full text-sm text-slate-500 hover:text-slate-800 underline"
+              className="w-full text-sm text-muted-foreground hover:text-foreground underline"
               onClick={() => setMode('password')}
             >
               Usar senha

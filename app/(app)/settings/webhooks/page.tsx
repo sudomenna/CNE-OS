@@ -119,8 +119,8 @@ export default async function WebhooksPage({ searchParams }: PageProps) {
     <div className="space-y-6">
       {/* Cabeçalho */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Webhooks</h1>
-        <p className="text-sm text-slate-500 mt-1">
+        <h1 className="text-2xl font-bold text-foreground">Webhooks</h1>
+        <p className="text-sm text-muted-foreground mt-1">
           Monitore e reprocesse eventos de integrações externas. Entradas{' '}
           <span className="font-medium text-red-600">DLQ</span> exigem atenção imediata.
         </p>
@@ -129,14 +129,14 @@ export default async function WebhooksPage({ searchParams }: PageProps) {
       {/* Filtros */}
       <form method="GET" action="/settings/webhooks" className="flex flex-wrap gap-3">
         <div className="space-y-1">
-          <label htmlFor="filter-status" className="text-xs font-medium text-slate-600 uppercase tracking-wide">
+          <label htmlFor="filter-status" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
             Status
           </label>
           <select
             id="filter-status"
             name="status"
             defaultValue={statusFilter}
-            className="flex h-9 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
+            className="flex h-9 rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
           >
             {STATUS_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -146,14 +146,14 @@ export default async function WebhooksPage({ searchParams }: PageProps) {
           </select>
         </div>
         <div className="space-y-1">
-          <label htmlFor="filter-provider" className="text-xs font-medium text-slate-600 uppercase tracking-wide">
+          <label htmlFor="filter-provider" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
             Provedor
           </label>
           <select
             id="filter-provider"
             name="provider"
             defaultValue={providerFilter}
-            className="flex h-9 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
+            className="flex h-9 rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
           >
             {PROVIDER_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -165,7 +165,7 @@ export default async function WebhooksPage({ searchParams }: PageProps) {
         <div className="flex items-end">
           <button
             type="submit"
-            className="h-9 rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 transition-colors"
+            className="h-9 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-colors"
           >
             Filtrar
           </button>
@@ -174,7 +174,7 @@ export default async function WebhooksPage({ searchParams }: PageProps) {
           <div className="flex items-end">
             <Link
               href="/settings/webhooks"
-              className="h-9 rounded-md border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 inline-flex items-center transition-colors"
+              className="h-9 rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 inline-flex items-center transition-colors"
             >
               Limpar filtros
             </Link>
@@ -183,7 +183,7 @@ export default async function WebhooksPage({ searchParams }: PageProps) {
       </form>
 
       {/* Totalizador */}
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-muted-foreground">
         {total === 0
           ? 'Nenhum evento encontrado.'
           : `${total} evento${total !== 1 ? 's' : ''} encontrado${total !== 1 ? 's' : ''}`}
@@ -200,23 +200,23 @@ export default async function WebhooksPage({ searchParams }: PageProps) {
       )}
 
       {/* Tabela */}
-      <div className="rounded-lg border border-slate-200 bg-white overflow-hidden">
+      <div className="rounded-lg border border-border bg-card overflow-hidden">
         <table className="w-full text-sm" aria-label="Lista de webhooks">
-          <thead className="border-b border-slate-200 bg-slate-50">
+          <thead className="border-b border-border bg-muted/50">
             <tr>
-              <th scope="col" className="px-4 py-3 text-left font-medium text-slate-600">
+              <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">
                 Provedor
               </th>
-              <th scope="col" className="px-4 py-3 text-left font-medium text-slate-600">
+              <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">
                 Tipo de evento
               </th>
-              <th scope="col" className="px-4 py-3 text-left font-medium text-slate-600">
+              <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">
                 Status
               </th>
-              <th scope="col" className="px-4 py-3 text-left font-medium text-slate-600">
+              <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">
                 Tentativas
               </th>
-              <th scope="col" className="px-4 py-3 text-left font-medium text-slate-600">
+              <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">
                 Recebido em
               </th>
             </tr>
@@ -224,7 +224,7 @@ export default async function WebhooksPage({ searchParams }: PageProps) {
           <tbody>
             {items.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-slate-400">
+                <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground/60">
                   Nenhum evento encontrado{statusFilter || providerFilter ? ' com os filtros aplicados' : ''}.
                 </td>
               </tr>
@@ -235,18 +235,18 @@ export default async function WebhooksPage({ searchParams }: PageProps) {
                   <tr
                     key={item.id}
                     className={[
-                      'border-b border-slate-100 last:border-0 transition-colors',
-                      isAlert ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-slate-50',
+                      'border-b border-border last:border-0 transition-colors',
+                      isAlert ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-muted/50',
                     ].join(' ')}
                   >
                     <td className="px-4 py-3">
-                      <span className={`font-medium ${isAlert ? 'text-red-700' : 'text-slate-900'}`}>
+                      <span className={`font-medium ${isAlert ? 'text-red-700' : 'text-foreground'}`}>
                         {PROVIDER_LABELS[item.provider] ?? item.provider}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-slate-500">
+                    <td className="px-4 py-3 text-muted-foreground">
                       {item.eventKind ?? (
-                        <span className="text-slate-300 italic">—</span>
+                        <span className="text-muted-foreground/40 italic">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -254,10 +254,10 @@ export default async function WebhooksPage({ searchParams }: PageProps) {
                         {STATUS_LABELS[item.status] ?? item.status}
                       </Badge>
                     </td>
-                    <td className="px-4 py-3 text-slate-500 tabular-nums">
+                    <td className="px-4 py-3 text-muted-foreground tabular-nums">
                       {item.attempts}
                     </td>
-                    <td className="px-4 py-3 text-slate-500">
+                    <td className="px-4 py-3 text-muted-foreground">
                       {new Date(item.receivedAt).toLocaleString('pt-BR', {
                         dateStyle: 'short',
                         timeStyle: 'short',
@@ -266,7 +266,7 @@ export default async function WebhooksPage({ searchParams }: PageProps) {
                     <td className="px-4 py-3">
                       <Link
                         href={`/settings/webhooks/${item.id}`}
-                        className="text-sm font-medium text-slate-700 underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-1 rounded"
+                        className="text-sm font-medium text-muted-foreground underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 rounded"
                         aria-label={`Ver detalhes do webhook ${item.id}`}
                       >
                         Detalhes
@@ -284,7 +284,7 @@ export default async function WebhooksPage({ searchParams }: PageProps) {
       {totalPages > 1 && (
         <nav
           aria-label="Paginação"
-          className="flex items-center justify-between text-sm text-slate-500"
+          className="flex items-center justify-between text-sm text-muted-foreground"
         >
           <span>
             Página {page} de {totalPages}
@@ -294,7 +294,7 @@ export default async function WebhooksPage({ searchParams }: PageProps) {
               <Link
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 href={buildUrl({ page: String(page - 1) }) as any}
-                className="rounded border border-slate-200 px-3 py-1.5 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-1"
+                className="rounded border border-border px-3 py-1.5 hover:bg-muted/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
               >
                 Anterior
               </Link>
@@ -303,7 +303,7 @@ export default async function WebhooksPage({ searchParams }: PageProps) {
               <Link
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 href={buildUrl({ page: String(page + 1) }) as any}
-                className="rounded border border-slate-200 px-3 py-1.5 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-1"
+                className="rounded border border-border px-3 py-1.5 hover:bg-muted/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
               >
                 Próxima
               </Link>

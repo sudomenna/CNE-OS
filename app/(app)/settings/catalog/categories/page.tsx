@@ -27,8 +27,8 @@ export default async function CategoriesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Categorias</h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <h1 className="text-2xl font-bold text-foreground">Categorias</h1>
+          <p className="text-sm text-muted-foreground mt-1">
             Organize os produtos em categorias hierárquicas por marca.
           </p>
         </div>
@@ -44,15 +44,15 @@ export default async function CategoriesPage() {
         </div>
       )}
 
-      <div className="rounded-lg border border-slate-200 bg-white overflow-hidden">
+      <div className="rounded-lg border border-border bg-card overflow-hidden">
         <table className="w-full text-sm" aria-label="Lista de categorias de produto">
-          <thead className="border-b border-slate-200 bg-slate-50">
+          <thead className="border-b border-border bg-muted/50">
             <tr>
-              <th scope="col" className="px-4 py-3 text-left font-medium text-slate-600">Nome</th>
-              <th scope="col" className="px-4 py-3 text-left font-medium text-slate-600">Slug</th>
-              <th scope="col" className="px-4 py-3 text-left font-medium text-slate-600">Categoria pai</th>
-              <th scope="col" className="px-4 py-3 text-left font-medium text-slate-600">Criado em</th>
-              <th scope="col" className="px-4 py-3 text-left font-medium text-slate-600">
+              <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">Nome</th>
+              <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">Slug</th>
+              <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">Categoria pai</th>
+              <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">Criado em</th>
+              <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">
                 <span className="sr-only">Ações</span>
               </th>
             </tr>
@@ -60,7 +60,7 @@ export default async function CategoriesPage() {
           <tbody>
             {categories.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-slate-400">
+                <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground/60">
                   Nenhuma categoria cadastrada.
                 </td>
               </tr>
@@ -68,18 +68,18 @@ export default async function CategoriesPage() {
               categories.map((cat) => (
                 <tr
                   key={cat.id}
-                  className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors"
+                  className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors"
                 >
-                  <td className="px-4 py-3 font-medium text-slate-900">{cat.name}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-slate-500">{cat.slug}</td>
-                  <td className="px-4 py-3 text-slate-500">
+                  <td className="px-4 py-3 font-medium text-foreground">{cat.name}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{cat.slug}</td>
+                  <td className="px-4 py-3 text-muted-foreground">
                     {cat.parentId ? (
                       <span>{categoryMap.get(cat.parentId) ?? cat.parentId}</span>
                     ) : (
-                      <span className="text-slate-300">—</span>
+                      <span className="text-muted-foreground/40">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-slate-500">
+                  <td className="px-4 py-3 text-muted-foreground">
                     {new Date(cat.createdAt).toLocaleDateString('pt-BR')}
                   </td>
                   <td className="px-4 py-3">

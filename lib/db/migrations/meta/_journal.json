@@ -57,6 +57,27 @@
       "when": 1777076523972,
       "tag": "0007_volatile_sauron",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1777141145318,
+      "tag": "0008_wide_whirlwind",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1777141322922,
+      "tag": "0009_material_doctor_strange",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1777141614839,
+      "tag": "0010_yielding_lord_tyger",
+      "breakpoints": true
     }
   ]
 }

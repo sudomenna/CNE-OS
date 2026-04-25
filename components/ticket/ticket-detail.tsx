@@ -60,7 +60,7 @@ const STATUS_BADGE: Record<TicketStatus, string> = {
   in_progress: 'bg-yellow-100 text-yellow-700',
   waiting_reply: 'bg-orange-100 text-orange-700',
   resolved: 'bg-green-100 text-green-700',
-  cancelled: 'bg-slate-100 text-slate-500',
+  cancelled: 'bg-muted text-muted-foreground',
 }
 
 const PRIORITY_LABELS: Record<TicketPriority, string> = {
@@ -71,8 +71,8 @@ const PRIORITY_LABELS: Record<TicketPriority, string> = {
 }
 
 const PRIORITY_BADGE: Record<TicketPriority, string> = {
-  low: 'bg-slate-100 text-slate-500',
-  medium: 'bg-slate-100 text-slate-700',
+  low: 'bg-muted text-muted-foreground',
+  medium: 'bg-muted text-muted-foreground',
   high: 'bg-amber-100 text-amber-700',
   urgent: 'bg-red-100 text-red-700',
 }
@@ -100,11 +100,11 @@ export function TicketDetail({ ticket }: TicketDetailProps) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="rounded-lg border border-slate-200 bg-white p-6">
+      <div className="rounded-lg border border-border bg-card p-6">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs font-mono text-slate-400">#{ticket.number}</span>
+              <span className="text-xs font-mono text-muted-foreground/60">#{ticket.number}</span>
               <span
                 className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE[ticket.status]}`}
               >
@@ -115,13 +115,13 @@ export function TicketDetail({ ticket }: TicketDetailProps) {
               >
                 {PRIORITY_LABELS[ticket.priority]}
               </span>
-              <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
+              <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                 {CATEGORY_LABELS[ticket.category]}
               </span>
             </div>
-            <h1 className="text-xl font-bold text-slate-900">{ticket.title}</h1>
+            <h1 className="text-xl font-bold text-foreground">{ticket.title}</h1>
             {ticket.description && (
-              <p className="mt-2 text-sm text-slate-600">{ticket.description}</p>
+              <p className="mt-2 text-sm text-muted-foreground">{ticket.description}</p>
             )}
           </div>
 
@@ -132,23 +132,23 @@ export function TicketDetail({ ticket }: TicketDetailProps) {
         </div>
 
         {/* Meta */}
-        <dl className="mt-4 flex flex-wrap gap-4 text-sm text-slate-600 border-t border-slate-100 pt-4">
+        <dl className="mt-4 flex flex-wrap gap-4 text-sm text-muted-foreground border-t border-border pt-4">
           <div>
-            <dt className="font-medium text-slate-500">Responsavel</dt>
+            <dt className="font-medium text-muted-foreground">Responsavel</dt>
             <dd className="mt-0.5">
               {ticket.assignedUserId ? (
                 <span className="font-mono text-xs">{ticket.assignedUserId.slice(0, 8)}…</span>
               ) : (
-                <span className="text-slate-400">Nao atribuido</span>
+                <span className="text-muted-foreground/60">Nao atribuido</span>
               )}
             </dd>
           </div>
           <div>
-            <dt className="font-medium text-slate-500">Aberto por</dt>
+            <dt className="font-medium text-muted-foreground">Aberto por</dt>
             <dd className="mt-0.5 font-mono text-xs">{ticket.openedByUserId.slice(0, 8)}…</dd>
           </div>
           <div>
-            <dt className="font-medium text-slate-500">Criado em</dt>
+            <dt className="font-medium text-muted-foreground">Criado em</dt>
             <dd className="mt-0.5">
               <time dateTime={ticket.createdAt.toISOString()}>
                 {new Date(ticket.createdAt).toLocaleString('pt-BR')}
@@ -157,7 +157,7 @@ export function TicketDetail({ ticket }: TicketDetailProps) {
           </div>
           {ticket.resolvedAt && (
             <div>
-              <dt className="font-medium text-slate-500">Resolvido em</dt>
+              <dt className="font-medium text-muted-foreground">Resolvido em</dt>
               <dd className="mt-0.5">
                 <time dateTime={ticket.resolvedAt.toISOString()}>
                   {new Date(ticket.resolvedAt).toLocaleString('pt-BR')}
@@ -174,13 +174,13 @@ export function TicketDetail({ ticket }: TicketDetailProps) {
       </div>
 
       {/* Notes */}
-      <div className="rounded-lg border border-slate-200 bg-white p-6">
-        <h2 className="text-sm font-semibold text-slate-700 mb-4">
+      <div className="rounded-lg border border-border bg-card p-6">
+        <h2 className="text-sm font-semibold text-muted-foreground mb-4">
           Notas ({ticket.notes.length})
         </h2>
 
         {ticket.notes.length === 0 ? (
-          <p className="text-sm text-slate-400">Nenhuma nota registrada.</p>
+          <p className="text-sm text-muted-foreground/60">Nenhuma nota registrada.</p>
         ) : (
           <ul className="space-y-3" aria-label="Notas do ticket">
             {ticket.notes.map((note) => (
@@ -189,11 +189,11 @@ export function TicketDetail({ ticket }: TicketDetailProps) {
                 className={`rounded-md px-4 py-3 text-sm ${
                   note.isInternal
                     ? 'border border-amber-200 bg-amber-50'
-                    : 'border border-slate-100 bg-slate-50'
+                    : 'border border-border bg-muted/50'
                 }`}
               >
                 <div className="flex items-center justify-between mb-1 gap-2">
-                  <span className="font-mono text-xs text-slate-500">
+                  <span className="font-mono text-xs text-muted-foreground">
                     {note.authorUserId.slice(0, 8)}…
                   </span>
                   <div className="flex items-center gap-2">
@@ -204,13 +204,13 @@ export function TicketDetail({ ticket }: TicketDetailProps) {
                     )}
                     <time
                       dateTime={note.createdAt.toISOString()}
-                      className="text-xs text-slate-400"
+                      className="text-xs text-muted-foreground/60"
                     >
                       {new Date(note.createdAt).toLocaleString('pt-BR')}
                     </time>
                   </div>
                 </div>
-                <p className="text-slate-700 whitespace-pre-wrap">{note.body}</p>
+                <p className="text-muted-foreground whitespace-pre-wrap">{note.body}</p>
               </li>
             ))}
           </ul>
@@ -224,18 +224,18 @@ export function TicketDetail({ ticket }: TicketDetailProps) {
 
       {/* Status history */}
       {ticket.statusHistory.length > 0 && (
-        <div className="rounded-lg border border-slate-200 bg-white p-6">
-          <h2 className="text-sm font-semibold text-slate-700 mb-4">
+        <div className="rounded-lg border border-border bg-card p-6">
+          <h2 className="text-sm font-semibold text-muted-foreground mb-4">
             Historico de status
           </h2>
-          <ol className="relative border-l border-slate-200 space-y-4 ml-3" aria-label="Historico de status">
+          <ol className="relative border-l border-border space-y-4 ml-3" aria-label="Historico de status">
             {ticket.statusHistory.map((entry) => (
               <li key={entry.id} className="ml-4">
                 <span
                   aria-hidden="true"
-                  className="absolute -left-1.5 h-3 w-3 rounded-full border-2 border-white bg-slate-400"
+                  className="absolute -left-1.5 h-3 w-3 rounded-full border-2 border-white bg-muted-foreground/40"
                 />
-                <p className="text-sm text-slate-700">
+                <p className="text-sm text-muted-foreground">
                   {entry.fromStatus ? (
                     <>
                       <span className="font-medium">{STATUS_LABELS[entry.fromStatus]}</span>
@@ -249,12 +249,12 @@ export function TicketDetail({ ticket }: TicketDetailProps) {
                     </>
                   )}
                   {entry.reason && (
-                    <span className="ml-1 text-slate-500">— {entry.reason}</span>
+                    <span className="ml-1 text-muted-foreground">— {entry.reason}</span>
                   )}
                 </p>
                 <time
                   dateTime={entry.createdAt.toISOString()}
-                  className="text-xs text-slate-400"
+                  className="text-xs text-muted-foreground/60"
                 >
                   {new Date(entry.createdAt).toLocaleString('pt-BR')}
                 </time>

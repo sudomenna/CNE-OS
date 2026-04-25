@@ -54,7 +54,7 @@ function ResultBadge({ result }: ResultBadgeProps) {
     },
     none: {
       label: 'Sem condição elegível',
-      className: 'bg-slate-100 text-slate-600 border-slate-200',
+      className: 'bg-muted text-muted-foreground border-border',
     },
   }
 
@@ -79,31 +79,31 @@ function EvaluationTable({ rows }: { rows: EvaluatedCondition[] }) {
   if (rows.length === 0) return null
 
   return (
-    <div className="overflow-x-auto rounded-md border border-slate-200">
+    <div className="overflow-x-auto rounded-md border border-border">
       <table className="w-full text-sm" role="table" aria-label="Avaliação de condições">
         <thead>
-          <tr className="border-b border-slate-200 bg-slate-50">
+          <tr className="border-b border-border bg-muted/50">
             <th
               scope="col"
-              className="px-4 py-2.5 text-left font-medium text-slate-600"
+              className="px-4 py-2.5 text-left font-medium text-muted-foreground"
             >
               Condição
             </th>
             <th
               scope="col"
-              className="px-4 py-2.5 text-left font-medium text-slate-600"
+              className="px-4 py-2.5 text-left font-medium text-muted-foreground"
             >
               Elegível
             </th>
             <th
               scope="col"
-              className="px-4 py-2.5 text-left font-medium text-slate-600"
+              className="px-4 py-2.5 text-left font-medium text-muted-foreground"
             >
               Prioridade
             </th>
             <th
               scope="col"
-              className="px-4 py-2.5 text-left font-medium text-slate-600"
+              className="px-4 py-2.5 text-left font-medium text-muted-foreground"
             >
               Score
             </th>
@@ -113,9 +113,9 @@ function EvaluationTable({ rows }: { rows: EvaluatedCondition[] }) {
           {rows.map((row) => (
             <tr
               key={row.conditionId}
-              className="border-b border-slate-100 last:border-0 hover:bg-slate-50"
+              className="border-b border-border last:border-0 hover:bg-muted/50"
             >
-              <td className="px-4 py-2.5 text-slate-900">
+              <td className="px-4 py-2.5 text-foreground">
                 <span className="font-medium">{row.conditionName}</span>
                 {row.isDefault && (
                   <span className="ml-2 rounded bg-blue-50 px-1.5 py-0.5 text-xs text-blue-600 font-medium">
@@ -140,10 +140,10 @@ function EvaluationTable({ rows }: { rows: EvaluatedCondition[] }) {
                   </span>
                 )}
               </td>
-              <td className="px-4 py-2.5 text-slate-700 tabular-nums">
+              <td className="px-4 py-2.5 text-muted-foreground tabular-nums">
                 {row.priority}
               </td>
-              <td className="px-4 py-2.5 text-slate-700 tabular-nums">
+              <td className="px-4 py-2.5 text-muted-foreground tabular-nums">
                 {row.advantageScore.toFixed(2)}
               </td>
             </tr>
@@ -411,7 +411,7 @@ export function DecisionPreview({ offerId }: Props) {
             {/* Nenhuma elegível */}
             {simulateResult.result.kind === 'none' && (
               <div
-                className="rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600"
+                className="rounded-md border border-border bg-muted/50 px-4 py-3 text-sm text-muted-foreground"
                 role="status"
               >
                 Nenhuma condição elegível encontrada e nenhuma condição default configurada.
@@ -421,7 +421,7 @@ export function DecisionPreview({ offerId }: Props) {
 
             {/* Tabela de avaliação */}
             <div>
-              <h3 className="text-sm font-medium text-slate-700 mb-2">
+              <h3 className="text-sm font-medium text-muted-foreground mb-2">
                 Avaliação por condição
               </h3>
               <EvaluationTable rows={simulateResult.evaluated} />

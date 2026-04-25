@@ -63,8 +63,8 @@ export default async function CampaignsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Campanhas</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <h1 className="text-2xl font-bold text-foreground">Campanhas</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             Organize suas ações de marketing e gere links rastreáveis com UTMs canônicas.
           </p>
         </div>
@@ -75,9 +75,9 @@ export default async function CampaignsPage() {
 
       {/* Lista */}
       {campaigns.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 py-16 text-center">
-          <p className="text-sm font-medium text-slate-600">Nenhuma campanha cadastrada</p>
-          <p className="mt-1 text-xs text-slate-400">
+        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-16 text-center">
+          <p className="text-sm font-medium text-muted-foreground">Nenhuma campanha cadastrada</p>
+          <p className="mt-1 text-xs text-muted-foreground/60">
             Crie a primeira campanha para começar a rastrear suas ações.
           </p>
           <div className="mt-4">
@@ -89,52 +89,52 @@ export default async function CampaignsPage() {
           </div>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+        <div className="overflow-hidden rounded-lg border border-border bg-card">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50">
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <tr className="border-b border-border bg-muted/50">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Campanha
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 hidden md:table-cell">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground hidden md:table-cell">
                   Slug
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 hidden lg:table-cell">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground hidden lg:table-cell">
                   Funil
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 hidden lg:table-cell">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground hidden lg:table-cell">
                   Período
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Status
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 hidden sm:table-cell">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground hidden sm:table-cell">
                   Criada em
                 </th>
                 <th className="w-10" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-border">
               {campaigns.map((c) => (
-                <tr key={c.id} className="hover:bg-slate-50 transition-colors">
+                <tr key={c.id} className="hover:bg-muted/50 transition-colors">
                   <td className="px-4 py-3">
                     <div className="flex flex-col gap-0.5">
                       <Link
                         href={`/campaigns/${c.id}` as Route}
-                        className="font-medium text-slate-900 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 rounded"
+                        className="font-medium text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
                       >
                         {c.name}
                       </Link>
-                      <span className="text-xs text-slate-400">{c.brandName}</span>
+                      <span className="text-xs text-muted-foreground/60">{c.brandName}</span>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-slate-500 font-mono text-xs hidden md:table-cell">
+                  <td className="px-4 py-3 text-muted-foreground font-mono text-xs hidden md:table-cell">
                     {c.slug}
                   </td>
-                  <td className="px-4 py-3 text-xs text-slate-500 hidden lg:table-cell">
+                  <td className="px-4 py-3 text-xs text-muted-foreground hidden lg:table-cell">
                     {c.funnelName}
                   </td>
-                  <td className="px-4 py-3 text-xs text-slate-500 hidden lg:table-cell">
+                  <td className="px-4 py-3 text-xs text-muted-foreground hidden lg:table-cell">
                     {c.startsAt || c.endsAt ? (
                       <>
                         {c.startsAt
@@ -146,7 +146,7 @@ export default async function CampaignsPage() {
                           : '—'}
                       </>
                     ) : (
-                      <span className="text-slate-300">—</span>
+                      <span className="text-muted-foreground/40">—</span>
                     )}
                   </td>
                   <td className="px-4 py-3">
@@ -155,13 +155,13 @@ export default async function CampaignsPage() {
                       className={
                         c.isActive
                           ? 'bg-green-100 text-green-700 hover:bg-green-100'
-                          : 'bg-slate-100 text-slate-500 hover:bg-slate-100'
+                          : 'bg-muted text-muted-foreground hover:bg-muted'
                       }
                     >
                       {c.isActive ? 'Ativa' : 'Inativa'}
                     </Badge>
                   </td>
-                  <td className="px-4 py-3 text-xs text-slate-400 hidden sm:table-cell">
+                  <td className="px-4 py-3 text-xs text-muted-foreground/60 hidden sm:table-cell">
                     <time dateTime={c.createdAt.toISOString()}>
                       {new Date(c.createdAt).toLocaleDateString('pt-BR')}
                     </time>
@@ -169,7 +169,7 @@ export default async function CampaignsPage() {
                   <td className="px-4 py-3">
                     <Link
                       href={`/campaigns/${c.id}` as Route}
-                      className="text-xs text-slate-500 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 rounded px-1"
+                      className="text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded px-1"
                       aria-label={`Ver detalhes da campanha ${c.name}`}
                     >
                       Ver

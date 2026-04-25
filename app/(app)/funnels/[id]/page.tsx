@@ -105,17 +105,17 @@ export default async function FunnelDetailPage({ params }: FunnelDetailPageProps
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden">
       {/* Cabeçalho */}
-      <div className="flex-shrink-0 px-6 py-4 border-b border-slate-200 bg-white">
-        <nav aria-label="Breadcrumb" className="text-sm text-slate-500 mb-1">
-          <a href="/funnels" className="hover:text-slate-700 transition-colors">
+      <div className="flex-shrink-0 px-6 py-4 border-b border-border bg-card">
+        <nav aria-label="Breadcrumb" className="text-sm text-muted-foreground mb-1">
+          <a href="/funnels" className="hover:text-muted-foreground transition-colors">
             Funis
           </a>
           <span className="mx-2" aria-hidden="true">
             /
           </span>
-          <span className="text-slate-900 font-medium">{funnelRow.name}</span>
+          <span className="text-foreground font-medium">{funnelRow.name}</span>
         </nav>
-        <h1 className="text-xl font-semibold text-slate-900">{funnelRow.name}</h1>
+        <h1 className="text-xl font-semibold text-foreground">{funnelRow.name}</h1>
       </div>
 
       {/* Kanban */}

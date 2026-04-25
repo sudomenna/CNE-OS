@@ -80,7 +80,7 @@ export function CategoriesClient({ mode, brands, categories, categoryId, categor
                 required
                 value={selectedBrandId}
                 onChange={(e) => setSelectedBrandId(e.target.value)}
-                className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+                className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 aria-required="true"
               >
                 <option value="">Selecione uma marca</option>
@@ -112,7 +112,7 @@ export function CategoriesClient({ mode, brands, categories, categoryId, categor
                 aria-required="true"
                 aria-describedby="cat-slug-hint"
               />
-              <p id="cat-slug-hint" className="text-xs text-slate-400">
+              <p id="cat-slug-hint" className="text-xs text-muted-foreground/60">
                 Somente letras minúsculas, números e hífens.
               </p>
             </div>
@@ -122,7 +122,7 @@ export function CategoriesClient({ mode, brands, categories, categoryId, categor
                 <select
                   id="cat-parent"
                   name="parentId"
-                  className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+                  className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <option value="">Nenhuma (categoria raiz)</option>
                   {parentOptions.map((c) => (
@@ -178,7 +178,7 @@ export function CategoriesClient({ mode, brands, categories, categoryId, categor
         <Button
           size="sm"
           variant="outline"
-          className="text-slate-500 hover:text-red-600 hover:border-red-300"
+          className="text-muted-foreground hover:text-red-600 hover:border-red-300"
           aria-label={`Excluir categoria ${categoryName}`}
         >
           Excluir
@@ -189,7 +189,7 @@ export function CategoriesClient({ mode, brands, categories, categoryId, categor
           <DialogTitle>Excluir categoria</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 mt-2">
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-muted-foreground">
             Tem certeza que deseja excluir a categoria{' '}
             <span className="font-semibold">{categoryName}</span>? Os produtos vinculados a ela
             ficam sem categoria. Subcategorias filhas perdem a referência pai.

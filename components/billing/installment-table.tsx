@@ -99,14 +99,14 @@ interface InstallmentTableProps {
 export function InstallmentTable({ installments, canRetry = false }: InstallmentTableProps) {
   if (installments.length === 0) {
     return (
-      <div className="rounded-lg border border-slate-200 bg-slate-50 p-6 text-center">
-        <p className="text-sm text-slate-500">Nenhuma parcela registrada.</p>
+      <div className="rounded-lg border border-border bg-muted/50 p-6 text-center">
+        <p className="text-sm text-muted-foreground">Nenhuma parcela registrada.</p>
       </div>
     )
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+    <div className="overflow-hidden rounded-lg border border-border bg-card">
       <div className="overflow-x-auto">
         <table
           className="w-full text-sm"
@@ -114,63 +114,63 @@ export function InstallmentTable({ installments, canRetry = false }: Installment
           aria-label="Parcelas da assinatura"
         >
           <thead>
-            <tr className="border-b border-slate-200 bg-slate-50">
+            <tr className="border-b border-border bg-muted/50">
               <th
                 scope="col"
-                className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide"
+                className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide"
               >
                 #
               </th>
               <th
                 scope="col"
-                className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide"
+                className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide"
               >
                 Vencimento
               </th>
               <th
                 scope="col"
-                className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wide"
+                className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wide"
               >
                 Valor
               </th>
               <th
                 scope="col"
-                className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide"
+                className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide"
               >
                 Status
               </th>
               <th
                 scope="col"
-                className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide"
+                className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide"
               >
                 Pago em
               </th>
               <th
                 scope="col"
-                className="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wide"
+                className="px-4 py-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wide"
               >
                 Retries
               </th>
               {canRetry && (
                 <th
                   scope="col"
-                  className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wide"
+                  className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wide"
                 >
                   Acao
                 </th>
               )}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-border">
             {installments.map((inst) => (
-              <tr key={inst.id} className="hover:bg-slate-50 transition-colors">
-                <td className="px-4 py-3 tabular-nums text-slate-700 font-medium">
+              <tr key={inst.id} className="hover:bg-muted/50 transition-colors">
+                <td className="px-4 py-3 tabular-nums text-muted-foreground font-medium">
                   {inst.sequence}
                 </td>
-                <td className="px-4 py-3 whitespace-nowrap tabular-nums text-slate-700">
+                <td className="px-4 py-3 whitespace-nowrap tabular-nums text-muted-foreground">
                   {formatDate(inst.dueAt)}
                 </td>
-                <td className="px-4 py-3 text-right tabular-nums font-medium text-slate-900 whitespace-nowrap">
+                <td className="px-4 py-3 text-right tabular-nums font-medium text-foreground whitespace-nowrap">
                   {formatCurrency(inst.amount)}
                 </td>
                 <td className="px-4 py-3">
@@ -178,10 +178,10 @@ export function InstallmentTable({ installments, canRetry = false }: Installment
                     {STATUS_LABEL[inst.status]}
                   </Badge>
                 </td>
-                <td className="px-4 py-3 whitespace-nowrap tabular-nums text-slate-500">
+                <td className="px-4 py-3 whitespace-nowrap tabular-nums text-muted-foreground">
                   {formatDate(inst.paidAt)}
                 </td>
-                <td className="px-4 py-3 text-center tabular-nums text-slate-500">
+                <td className="px-4 py-3 text-center tabular-nums text-muted-foreground">
                   {inst.retryCount > 0 ? (
                     <span title={`Ultimo: ${formatDate(inst.lastRetryAt)}`}>
                       {inst.retryCount}
@@ -195,7 +195,7 @@ export function InstallmentTable({ installments, canRetry = false }: Installment
                     {inst.status === 'overdue' ? (
                       <RetryButton installmentId={inst.id} />
                     ) : (
-                      <span className="text-xs text-slate-400">—</span>
+                      <span className="text-xs text-muted-foreground/60">—</span>
                     )}
                   </td>
                 )}

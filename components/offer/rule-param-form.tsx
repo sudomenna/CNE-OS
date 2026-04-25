@@ -210,7 +210,7 @@ export function RuleParamForm({ ruleGroupId, onSuccess, onCancel }: RuleParamFor
       {/* Dynamic fields per kind */}
       {kind === 'date_range' && (
         <fieldset className="space-y-3 border rounded-md p-3">
-          <legend className="text-xs font-medium px-1 text-slate-600">Intervalo de datas</legend>
+          <legend className="text-xs font-medium px-1 text-muted-foreground">Intervalo de datas</legend>
           <div className="space-y-1.5">
             <Label htmlFor="start_at">Início (ISO 8601)</Label>
             <Input
@@ -248,7 +248,7 @@ export function RuleParamForm({ ruleGroupId, onSuccess, onCancel }: RuleParamFor
 
       {kind === 'sales_count_reached' && (
         <fieldset className="space-y-3 border rounded-md p-3">
-          <legend className="text-xs font-medium px-1 text-slate-600">Limite de vendas</legend>
+          <legend className="text-xs font-medium px-1 text-muted-foreground">Limite de vendas</legend>
           <div className="space-y-1.5">
             <Label htmlFor="max_count">Máximo de aprovações</Label>
             <Input
@@ -267,7 +267,7 @@ export function RuleParamForm({ ruleGroupId, onSuccess, onCancel }: RuleParamFor
                 {fieldErrors['max']}
               </p>
             )}
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-muted-foreground/60">
               Elegível enquanto aprovações &lt; máximo. Pode exceder por concorrência (ADR-07).
             </p>
           </div>
@@ -276,7 +276,7 @@ export function RuleParamForm({ ruleGroupId, onSuccess, onCancel }: RuleParamFor
 
       {kind === 'campaign' && (
         <fieldset className="space-y-3 border rounded-md p-3">
-          <legend className="text-xs font-medium px-1 text-slate-600">Campanha</legend>
+          <legend className="text-xs font-medium px-1 text-muted-foreground">Campanha</legend>
           <div className="space-y-1.5">
             <Label htmlFor="campaign_ids">UUIDs das campanhas (um por linha)</Label>
             <textarea
@@ -300,7 +300,7 @@ export function RuleParamForm({ ruleGroupId, onSuccess, onCancel }: RuleParamFor
 
       {kind === 'channel' && (
         <fieldset className="space-y-3 border rounded-md p-3">
-          <legend className="text-xs font-medium px-1 text-slate-600">Canal</legend>
+          <legend className="text-xs font-medium px-1 text-muted-foreground">Canal</legend>
           <div className="space-y-2" role="group" aria-label="Canais elegíveis">
             {CHANNEL_OPTIONS.map((opt) => (
               <label key={opt.value} className="flex items-center gap-2 cursor-pointer">
@@ -309,7 +309,7 @@ export function RuleParamForm({ ruleGroupId, onSuccess, onCancel }: RuleParamFor
                   value={opt.value}
                   checked={channels.includes(opt.value)}
                   onChange={() => handleChannelToggle(opt.value)}
-                  className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-ring"
+                  className="h-4 w-4 rounded border-border text-primary focus:ring-ring"
                 />
                 <span className="text-sm">{opt.label}</span>
               </label>
@@ -325,7 +325,7 @@ export function RuleParamForm({ ruleGroupId, onSuccess, onCancel }: RuleParamFor
 
       {kind === 'creative' && (
         <fieldset className="space-y-3 border rounded-md p-3">
-          <legend className="text-xs font-medium px-1 text-slate-600">Criativo</legend>
+          <legend className="text-xs font-medium px-1 text-muted-foreground">Criativo</legend>
           <div className="space-y-1.5">
             <Label htmlFor="creative_ids">UUIDs dos criativos (um por linha)</Label>
             <textarea
@@ -348,7 +348,7 @@ export function RuleParamForm({ ruleGroupId, onSuccess, onCancel }: RuleParamFor
       )}
 
       {kind === 'internal_use' && (
-        <div className="rounded-md bg-slate-50 border border-slate-200 p-3 text-sm text-slate-600">
+        <div className="rounded-md bg-muted/50 border border-border p-3 text-sm text-muted-foreground">
           Sem parâmetros adicionais. Elegível apenas quando a venda for marcada como uso interno.
         </div>
       )}

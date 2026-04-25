@@ -44,12 +44,12 @@ export function StageColumn({ stage, entries, isDropTarget = false }: StageColum
       className="flex flex-col w-72 min-w-72 flex-shrink-0"
     >
       {/* Cabeçalho da coluna */}
-      <div className="flex items-center justify-between px-3 py-2 bg-slate-50 rounded-t-lg border border-b-0 border-slate-200">
+      <div className="flex items-center justify-between px-3 py-2 bg-muted/50 rounded-t-lg border border-b-0 border-border">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-slate-700">{stage.name}</span>
+          <span className="text-sm font-medium text-muted-foreground">{stage.name}</span>
           {stage.isTerminal && (
             <span
-              className="text-xs bg-slate-200 text-slate-600 rounded px-1.5 py-0.5"
+              className="text-xs bg-muted text-muted-foreground rounded px-1.5 py-0.5"
               aria-label="Estágio terminal"
             >
               Terminal
@@ -57,7 +57,7 @@ export function StageColumn({ stage, entries, isDropTarget = false }: StageColum
           )}
         </div>
         <span
-          className="text-xs font-tabular text-slate-500 tabular-nums"
+          className="text-xs font-tabular text-muted-foreground tabular-nums"
           aria-label={`${entries.length} oportunidades`}
         >
           {entries.length}
@@ -68,7 +68,7 @@ export function StageColumn({ stage, entries, isDropTarget = false }: StageColum
       <div
         ref={setNodeRef}
         className={cn(
-          'flex-1 rounded-b-lg border border-slate-200 p-2 min-h-40',
+          'flex-1 rounded-b-lg border border-border p-2 min-h-40',
           'bg-white transition-colors duration-150',
           (isOver || isDropTarget) && 'bg-blue-50 border-blue-300',
         )}
@@ -83,7 +83,7 @@ export function StageColumn({ stage, entries, isDropTarget = false }: StageColum
               <div
                 className={cn(
                   'flex items-center justify-center h-32 rounded-md',
-                  'border-2 border-dashed border-slate-200 text-slate-400 text-sm',
+                  'border-2 border-dashed border-border text-muted-foreground/60 text-sm',
                   (isOver || isDropTarget) && 'border-blue-300 text-blue-400',
                 )}
                 aria-live="polite"

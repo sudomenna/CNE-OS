@@ -50,7 +50,7 @@ export function SendMessageForm({ conversationId }: SendMessageFormProps) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="border-t border-slate-200 bg-white p-3 flex flex-col gap-2"
+      className="border-t border-border bg-card p-3 flex flex-col gap-2"
       aria-label="Enviar mensagem"
     >
       {error && (

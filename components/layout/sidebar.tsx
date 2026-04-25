@@ -19,16 +19,16 @@ const NAV_ITEMS: NavItem[] = [
 
 export function Sidebar() {
   return (
-    <aside className="flex h-screen w-60 flex-col border-r border-slate-200 bg-white">
-      <div className="flex h-14 items-center border-b border-slate-200 px-4">
-        <span className="text-lg font-bold text-slate-900">CNE-OS</span>
+    <aside className="flex h-screen w-60 flex-col border-r border-border bg-background">
+      <div className="flex h-14 items-center border-b border-border px-4">
+        <span className="text-lg font-bold text-foreground">CNE-OS</span>
       </div>
       <nav className="flex-1 space-y-1 p-3" aria-label="Navegação principal">
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => (
           <Link
             key={href}
             href={href}
-            className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
+            className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Icon className="h-4 w-4" aria-hidden="true" />
             {label}

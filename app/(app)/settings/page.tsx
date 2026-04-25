@@ -36,8 +36,8 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Configurações</h1>
-        <p className="text-sm text-slate-500 mt-1">
+        <h1 className="text-2xl font-bold text-foreground">Configurações</h1>
+        <p className="text-sm text-muted-foreground mt-1">
           Gerencie a organização, entidades fiscais e usuários.
         </p>
       </div>
@@ -46,12 +46,12 @@ export default function SettingsPage() {
           <Link
             key={href}
             href={href}
-            className="rounded-lg border border-slate-200 bg-white p-6 hover:border-slate-300 hover:shadow-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+            className="rounded-lg border border-border bg-card p-6 hover:border-border hover:shadow-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             aria-label={`${label}: ${description}`}
           >
-            <Icon className="h-6 w-6 text-slate-400 mb-3" aria-hidden="true" />
-            <h2 className="font-semibold text-slate-900">{label}</h2>
-            <p className="text-sm text-slate-500 mt-1">{description}</p>
+            <Icon className="h-6 w-6 text-muted-foreground/60 mb-3" aria-hidden="true" />
+            <h2 className="font-semibold text-foreground">{label}</h2>
+            <p className="text-sm text-muted-foreground mt-1">{description}</p>
           </Link>
         ))}
       </div>

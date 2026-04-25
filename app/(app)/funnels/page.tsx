@@ -61,8 +61,8 @@ export default function FunnelsPage() {
     <div className="flex flex-col gap-6 p-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900">Funis</h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <h1 className="text-2xl font-semibold text-foreground">Funis</h1>
+          <p className="text-sm text-muted-foreground mt-1">
             Gerencie seus funis de vendas e acompanhe as oportunidades.
           </p>
         </div>
@@ -74,7 +74,7 @@ export default function FunnelsPage() {
             {Array.from({ length: 3 }).map((_, i) => (
               <div
                 key={i}
-                className="animate-pulse rounded-lg border border-slate-200 bg-white p-5 h-36"
+                className="animate-pulse rounded-lg border border-border bg-card p-5 h-36"
               />
             ))}
           </div>

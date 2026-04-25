@@ -84,17 +84,17 @@ export default async function TicketDetailPage({ params }: PageProps) {
   return (
     <div className="space-y-4">
       {/* Breadcrumb */}
-      <nav aria-label="Navegacao" className="text-sm text-slate-500">
+      <nav aria-label="Navegacao" className="text-sm text-muted-foreground">
         <Link
           href={'/tickets' as Route}
-          className="hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 rounded"
+          className="hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
         >
           Tickets
         </Link>
         <span aria-hidden="true" className="mx-2">
           /
         </span>
-        <span className="text-slate-900">#{row.number}</span>
+        <span className="text-foreground">#{row.number}</span>
       </nav>
 
       <TicketDetail ticket={ticketData} />

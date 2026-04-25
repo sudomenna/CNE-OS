@@ -39,7 +39,7 @@ interface ContactPaneProps {
 export async function ContactPane({ conversationId }: ContactPaneProps) {
   if (!conversationId) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-6 text-slate-400 text-sm">
+      <div className="flex flex-col items-center justify-center h-full p-6 text-muted-foreground/60 text-sm">
         <p>Selecione uma conversa para ver os dados do contato.</p>
       </div>
     )
@@ -68,7 +68,7 @@ export async function ContactPane({ conversationId }: ContactPaneProps) {
 
   if (!row) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-6 text-slate-400 text-sm">
+      <div className="flex flex-col items-center justify-center h-full p-6 text-muted-foreground/60 text-sm">
         <p>Conversa nao encontrada.</p>
       </div>
     )
@@ -96,40 +96,40 @@ export async function ContactPane({ conversationId }: ContactPaneProps) {
       <div className="flex flex-col items-center gap-2 pt-2">
         <div
           aria-hidden="true"
-          className="h-14 w-14 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-lg font-semibold"
+          className="h-14 w-14 rounded-full bg-muted text-muted-foreground flex items-center justify-center text-lg font-semibold"
         >
           {initials}
         </div>
-        <h2 className="text-sm font-semibold text-slate-900 text-center">
+        <h2 className="text-sm font-semibold text-foreground text-center">
           {row.contactName}
         </h2>
-        <span className="text-xs text-slate-500">
+        <span className="text-xs text-muted-foreground">
           {CONTACT_STATUS_LABELS[row.contactStatus] ?? row.contactStatus}
         </span>
       </div>
 
       {/* Dados do contato */}
       <section aria-label="Dados do contato">
-        <h3 className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-2">
+        <h3 className="text-xs font-medium text-muted-foreground/60 uppercase tracking-wide mb-2">
           Contato
         </h3>
         <dl className="space-y-1.5 text-sm">
           {row.contactCpf && (
             <div className="flex justify-between">
-              <dt className="text-slate-500">CPF</dt>
-              <dd className="font-mono text-slate-700">{maskCpf(row.contactCpf)}</dd>
+              <dt className="text-muted-foreground">CPF</dt>
+              <dd className="font-mono text-muted-foreground">{maskCpf(row.contactCpf)}</dd>
             </div>
           )}
           <div className="flex justify-between">
-            <dt className="text-slate-500">Classificacao</dt>
-            <dd className="text-slate-700 capitalize">{row.contactClassification}</dd>
+            <dt className="text-muted-foreground">Classificacao</dt>
+            <dd className="text-muted-foreground capitalize">{row.contactClassification}</dd>
           </div>
         </dl>
       </section>
 
       {/* Status da conversa */}
       <section aria-label="Status da conversa">
-        <h3 className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-2">
+        <h3 className="text-xs font-medium text-muted-foreground/60 uppercase tracking-wide mb-2">
           Status da conversa
         </h3>
         <ConversationStatusSelect
@@ -140,12 +140,12 @@ export async function ContactPane({ conversationId }: ContactPaneProps) {
 
       {/* Responsavel */}
       <section aria-label="Responsavel pela conversa">
-        <h3 className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-2">
+        <h3 className="text-xs font-medium text-muted-foreground/60 uppercase tracking-wide mb-2">
           Responsavel
         </h3>
-        <p className="text-sm text-slate-700 mb-2">
+        <p className="text-sm text-muted-foreground mb-2">
           {row.assignedUserName ?? (
-            <span className="text-slate-400">Nao atribuida</span>
+            <span className="text-muted-foreground/60">Nao atribuida</span>
           )}
         </p>
         {currentUserId && row.assignedUserId !== currentUserId && (

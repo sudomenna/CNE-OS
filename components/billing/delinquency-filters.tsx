@@ -77,7 +77,7 @@ export function DelinquencyFilters({ brands }: DelinquencyFiltersProps) {
     >
       {/* Marca */}
       <div className="w-full sm:w-52">
-        <label htmlFor="brand_id" className="mb-1 block text-sm font-medium text-slate-700">
+        <label htmlFor="brand_id" className="mb-1 block text-sm font-medium text-muted-foreground">
           Marca
         </label>
         <select
@@ -85,7 +85,7 @@ export function DelinquencyFilters({ brands }: DelinquencyFiltersProps) {
           name="brand_id"
           defaultValue={currentBrand}
           disabled={isPending}
-          className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent disabled:opacity-50"
+          className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent disabled:opacity-50"
         >
           <option value="">Todas as marcas</option>
           {brands.map((b) => (
@@ -98,7 +98,7 @@ export function DelinquencyFilters({ brands }: DelinquencyFiltersProps) {
 
       {/* Bucket de atraso */}
       <div className="w-full sm:w-48">
-        <label htmlFor="bucket" className="mb-1 block text-sm font-medium text-slate-700">
+        <label htmlFor="bucket" className="mb-1 block text-sm font-medium text-muted-foreground">
           Idade do atraso
         </label>
         <select
@@ -106,7 +106,7 @@ export function DelinquencyFilters({ brands }: DelinquencyFiltersProps) {
           name="bucket"
           defaultValue={currentBucket}
           disabled={isPending}
-          className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent disabled:opacity-50"
+          className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent disabled:opacity-50"
         >
           {AGE_BUCKET_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -118,7 +118,7 @@ export function DelinquencyFilters({ brands }: DelinquencyFiltersProps) {
 
       {/* Faixa de valor */}
       <div className="w-full sm:w-36">
-        <label htmlFor="min_amount" className="mb-1 block text-sm font-medium text-slate-700">
+        <label htmlFor="min_amount" className="mb-1 block text-sm font-medium text-muted-foreground">
           Valor mínimo (R$)
         </label>
         <input
@@ -130,12 +130,12 @@ export function DelinquencyFilters({ brands }: DelinquencyFiltersProps) {
           defaultValue={currentMinAmount}
           placeholder="0,00"
           disabled={isPending}
-          className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent disabled:opacity-50"
+          className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent disabled:opacity-50"
         />
       </div>
 
       <div className="w-full sm:w-36">
-        <label htmlFor="max_amount" className="mb-1 block text-sm font-medium text-slate-700">
+        <label htmlFor="max_amount" className="mb-1 block text-sm font-medium text-muted-foreground">
           Valor máximo (R$)
         </label>
         <input
@@ -147,7 +147,7 @@ export function DelinquencyFilters({ brands }: DelinquencyFiltersProps) {
           defaultValue={currentMaxAmount}
           placeholder="Sem limite"
           disabled={isPending}
-          className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent disabled:opacity-50"
+          className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent disabled:opacity-50"
         />
       </div>
 
@@ -156,7 +156,7 @@ export function DelinquencyFilters({ brands }: DelinquencyFiltersProps) {
         <button
           type="submit"
           disabled={isPending}
-          className="inline-flex h-9 items-center justify-center rounded-md bg-slate-900 px-4 text-sm font-medium text-white transition-colors hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
+          className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
         >
           {isPending ? 'Filtrando...' : 'Filtrar'}
         </button>
@@ -165,7 +165,7 @@ export function DelinquencyFilters({ brands }: DelinquencyFiltersProps) {
           type="button"
           onClick={handleReset}
           disabled={isPending}
-          className="inline-flex h-9 items-center justify-center rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
+          className="inline-flex h-9 items-center justify-center rounded-md border border-border bg-card px-4 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
         >
           Limpar
         </button>

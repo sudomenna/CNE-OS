@@ -230,7 +230,7 @@ export function KanbanBoard({ data }: KanbanBoardProps) {
         ))}
 
         {stages.length === 0 && (
-          <div className="flex items-center justify-center w-full h-40 text-slate-400 text-sm">
+          <div className="flex items-center justify-center w-full h-40 text-muted-foreground/60 text-sm">
             Nenhum estágio configurado neste funil.
           </div>
         )}

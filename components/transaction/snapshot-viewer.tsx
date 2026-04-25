@@ -64,21 +64,21 @@ function Section({ title, defaultOpen = true, children }: SectionProps) {
   const [open, setOpen] = useState(defaultOpen)
 
   return (
-    <div className="border border-slate-200 rounded-lg overflow-hidden">
+    <div className="border border-border rounded-lg overflow-hidden">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between px-4 py-3 bg-slate-50 hover:bg-slate-100 transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-900"
+        className="w-full flex items-center justify-between px-4 py-3 bg-muted/50 hover:bg-muted transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
         aria-expanded={open}
       >
-        <span className="text-sm font-semibold text-slate-700">{title}</span>
+        <span className="text-sm font-semibold text-muted-foreground">{title}</span>
         {open ? (
-          <ChevronDown className="h-4 w-4 text-slate-500" aria-hidden="true" />
+          <ChevronDown className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
         ) : (
-          <ChevronRight className="h-4 w-4 text-slate-500" aria-hidden="true" />
+          <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
         )}
       </button>
-      {open && <div className="px-4 py-4 bg-white space-y-2">{children}</div>}
+      {open && <div className="px-4 py-4 bg-card space-y-2">{children}</div>}
     </div>
   )
 }
@@ -90,8 +90,8 @@ function Section({ title, defaultOpen = true, children }: SectionProps) {
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-0.5 sm:flex-row sm:items-baseline">
-      <span className="text-xs font-medium text-slate-500 sm:w-40 shrink-0">{label}</span>
-      <span className="text-sm text-slate-900">{value ?? <em className="text-slate-400">—</em>}</span>
+      <span className="text-xs font-medium text-muted-foreground sm:w-40 shrink-0">{label}</span>
+      <span className="text-sm text-foreground">{value ?? <em className="text-muted-foreground/60">—</em>}</span>
     </div>
   )
 }
@@ -109,7 +109,7 @@ export function SnapshotViewer({ payload, capturedAt }: SnapshotViewerProps) {
   return (
     <div className="space-y-3" role="region" aria-label="Snapshot da venda">
       {/* Cabeçalho informativo */}
-      <div className="flex items-center gap-2 text-xs text-slate-500 border border-amber-200 bg-amber-50 rounded-md px-3 py-2">
+      <div className="flex items-center gap-2 text-xs text-muted-foreground border border-amber-200 bg-amber-50 rounded-md px-3 py-2">
         <span className="font-medium text-amber-700">Snapshot imutavel</span>
         <span className="text-amber-600">capturado em {formatDate(capturedAt)}</span>
       </div>
@@ -176,13 +176,13 @@ export function SnapshotViewer({ payload, capturedAt }: SnapshotViewerProps) {
       {/* Itens */}
       <Section title={`Itens (${payload.items.length})`}>
         {payload.items.length === 0 ? (
-          <p className="text-sm text-slate-400">Nenhum item no snapshot.</p>
+          <p className="text-sm text-muted-foreground/60">Nenhum item no snapshot.</p>
         ) : (
           <div className="space-y-4">
             {payload.items.map((item, idx) => (
-              <div key={item.condition_item_id} className="rounded-md border border-slate-100 p-3 space-y-2">
+              <div key={item.condition_item_id} className="rounded-md border border-border p-3 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-700">
+                  <span className="text-xs font-semibold text-muted-foreground">
                     Item {idx + 1}
                   </span>
                   <Badge variant="secondary">
@@ -233,7 +233,7 @@ export function SnapshotViewer({ payload, capturedAt }: SnapshotViewerProps) {
           <Field label="Evento webhook" value={payload.source.raw_event_id} />
         )}
         {!payload.source.provider && !payload.source.external_id && !payload.source.raw_event_id && (
-          <p className="text-sm text-slate-400">Transacao manual sem fonte externa.</p>
+          <p className="text-sm text-muted-foreground/60">Transacao manual sem fonte externa.</p>
         )}
       </Section>
     </div>

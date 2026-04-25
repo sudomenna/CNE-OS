@@ -36,22 +36,22 @@ export default async function NewOfferPage() {
   return (
     <div className="space-y-6">
       {/* Breadcrumb */}
-      <nav aria-label="Navegação" className="flex items-center gap-1 text-sm text-slate-500">
+      <nav aria-label="Navegação" className="flex items-center gap-1 text-sm text-muted-foreground">
         <Link
           href={'/offers' as Route}
-          className="hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 rounded"
+          className="hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
         >
           Ofertas
         </Link>
         <span aria-hidden="true">/</span>
-        <span className="text-slate-900 font-medium">Nova Oferta</span>
+        <span className="text-foreground font-medium">Nova Oferta</span>
       </nav>
 
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Nova Oferta</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <h1 className="text-2xl font-bold text-foreground">Nova Oferta</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             Preencha os dados básicos. Condições, itens e opções de pagamento são
             configuradas na página de detalhe após a criação.
           </p>
@@ -63,7 +63,7 @@ export default async function NewOfferPage() {
 
       {/* Formulário */}
       <div className="max-w-2xl">
-        <div className="rounded-lg border border-slate-200 bg-white p-6">
+        <div className="rounded-lg border border-border bg-card p-6">
           <NewOfferForm brands={brands} legalEntities={legalEntities} />
         </div>
       </div>

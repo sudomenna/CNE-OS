@@ -142,13 +142,13 @@ function GroupNode({
   return (
     <div style={indentStyle} className="space-y-2">
       {/* Group header */}
-      <div className="flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+      <div className="flex items-center gap-2 rounded-md border border-border bg-muted/50 px-3 py-2">
         {/* Collapse toggle */}
         <button
           type="button"
           onClick={() => setCollapsed((c) => !c)}
           aria-label={collapsed ? 'Expandir grupo' : 'Recolher grupo'}
-          className="rounded p-0.5 text-slate-400 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="rounded p-0.5 text-muted-foreground/60 hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           {collapsed ? (
             <ChevronRight className="h-4 w-4" aria-hidden />
@@ -171,7 +171,7 @@ function GroupNode({
         </Badge>
 
         {isRoot && (
-          <span className="text-xs text-slate-400 ml-1">grupo raiz</span>
+          <span className="text-xs text-muted-foreground/60 ml-1">grupo raiz</span>
         )}
 
         <span className="flex-1" />
@@ -221,7 +221,7 @@ function GroupNode({
           </SortableContext>
 
           {group.rules.length === 0 && group.children.length === 0 && (
-            <p className="text-xs text-slate-400 pl-1 py-1">
+            <p className="text-xs text-muted-foreground/60 pl-1 py-1">
               Grupo vazio — adicione regras ou sub-grupos.
             </p>
           )}
@@ -403,9 +403,9 @@ function EmptyGroupPrompt({ conditionId, onGroupCreated }: EmptyGroupPromptProps
   }
 
   return (
-    <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-slate-300 py-10 text-center">
-      <p className="text-sm text-slate-500">Nenhum grupo de regras criado ainda.</p>
-      <p className="text-xs text-slate-400">Escolha o operador do grupo raiz:</p>
+    <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border py-10 text-center">
+      <p className="text-sm text-muted-foreground">Nenhum grupo de regras criado ainda.</p>
+      <p className="text-xs text-muted-foreground/60">Escolha o operador do grupo raiz:</p>
       <div className="flex gap-2">
         <Button
           type="button"

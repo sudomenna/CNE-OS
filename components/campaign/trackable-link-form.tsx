@@ -140,8 +140,8 @@ function UtmPreview({
   }
 
   return (
-    <div className="rounded-md border border-slate-200 bg-slate-50 p-3 space-y-2">
-      <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+    <div className="rounded-md border border-border bg-muted/50 p-3 space-y-2">
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
         Preview UTM
       </p>
       <div className="grid grid-cols-[max-content_1fr] gap-x-3 gap-y-1 text-xs">
@@ -155,15 +155,15 @@ function UtmPreview({
           ] as [string, string][]
         ).map(([key, val]) => (
           <React.Fragment key={key}>
-            <span className="font-mono text-slate-500">{key}</span>
-            <span className="font-medium text-slate-800 break-all">{val}</span>
+            <span className="font-mono text-muted-foreground">{key}</span>
+            <span className="font-medium text-foreground break-all">{val}</span>
           </React.Fragment>
         ))}
       </div>
       {previewUrl && (
-        <div className="mt-2 pt-2 border-t border-slate-200">
-          <p className="text-xs text-slate-500 mb-1">URL final:</p>
-          <p className="text-xs font-mono text-slate-700 break-all leading-relaxed">
+        <div className="mt-2 pt-2 border-t border-border">
+          <p className="text-xs text-muted-foreground mb-1">URL final:</p>
+          <p className="text-xs font-mono text-muted-foreground break-all leading-relaxed">
             {previewUrl}
           </p>
         </div>

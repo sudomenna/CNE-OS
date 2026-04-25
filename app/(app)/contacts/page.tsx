@@ -85,8 +85,8 @@ export default async function ContactsPage({ searchParams }: PageProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Contatos</h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <h1 className="text-2xl font-bold text-foreground">Contatos</h1>
+          <p className="text-sm text-muted-foreground mt-1">
             {total} {total === 1 ? 'contato encontrado' : 'contatos encontrados'}
           </p>
         </div>
@@ -94,7 +94,7 @@ export default async function ContactsPage({ searchParams }: PageProps) {
           type="button"
           disabled
           aria-disabled="true"
-          className="inline-flex h-9 items-center justify-center rounded-md bg-slate-900 px-4 text-sm font-medium text-white opacity-40 cursor-not-allowed"
+          className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground opacity-40 cursor-not-allowed"
           title="Disponivel em breve"
         >
           Novo Contato
@@ -111,24 +111,24 @@ export default async function ContactsPage({ searchParams }: PageProps) {
       {totalPages > 1 && (
         <nav
           aria-label="Paginacao de contatos"
-          className="flex items-center justify-between border-t border-slate-200 pt-4"
+          className="flex items-center justify-between border-t border-border pt-4"
         >
           <div>
             {page > 1 ? (
               <Link
                 href={buildPageUrl(page - 1) as Route}
-                className="inline-flex h-9 items-center rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+                className="inline-flex h-9 items-center rounded-md border border-border bg-card px-4 text-sm font-medium text-muted-foreground hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 Anterior
               </Link>
             ) : (
-              <span className="inline-flex h-9 items-center rounded-md border border-slate-200 bg-slate-50 px-4 text-sm font-medium text-slate-400 cursor-not-allowed">
+              <span className="inline-flex h-9 items-center rounded-md border border-border bg-muted/50 px-4 text-sm font-medium text-muted-foreground/60 cursor-not-allowed">
                 Anterior
               </span>
             )}
           </div>
 
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-muted-foreground">
             Pagina <strong>{page}</strong> de <strong>{totalPages}</strong>
           </p>
 
@@ -136,12 +136,12 @@ export default async function ContactsPage({ searchParams }: PageProps) {
             {page < totalPages ? (
               <Link
                 href={buildPageUrl(page + 1) as Route}
-                className="inline-flex h-9 items-center rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+                className="inline-flex h-9 items-center rounded-md border border-border bg-card px-4 text-sm font-medium text-muted-foreground hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 Proxima
               </Link>
             ) : (
-              <span className="inline-flex h-9 items-center rounded-md border border-slate-200 bg-slate-50 px-4 text-sm font-medium text-slate-400 cursor-not-allowed">
+              <span className="inline-flex h-9 items-center rounded-md border border-border bg-muted/50 px-4 text-sm font-medium text-muted-foreground/60 cursor-not-allowed">
                 Proxima
               </span>
             )}

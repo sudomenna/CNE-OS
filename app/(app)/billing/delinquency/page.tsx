@@ -182,15 +182,15 @@ export default async function DelinquencyPage({ searchParams }: PageProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Inadimplencia</h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <h1 className="text-2xl font-bold text-foreground">Inadimplencia</h1>
+          <p className="text-sm text-muted-foreground mt-1">
             {delinquencyRows.length}{' '}
             {delinquencyRows.length === 1 ? 'assinatura inadimplente' : 'assinaturas inadimplentes'}
             {delinquencyRows.length > 0 && (
               <>
                 {' '}
                 &middot; Total vencido:{' '}
-                <strong className="text-slate-700">{totalOverdueFormatted}</strong>
+                <strong className="text-muted-foreground">{totalOverdueFormatted}</strong>
               </>
             )}
           </p>
@@ -199,7 +199,7 @@ export default async function DelinquencyPage({ searchParams }: PageProps) {
         {/* Export CSV */}
         <Link
           href={exportUrl as Route}
-          className="inline-flex h-9 items-center gap-2 rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
+          className="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-card px-4 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           aria-label="Exportar lista de inadimplencia como CSV"
         >
           <svg
@@ -220,20 +220,20 @@ export default async function DelinquencyPage({ searchParams }: PageProps) {
       </div>
 
       {/* Breadcrumb */}
-      <nav aria-label="Breadcrumb" className="text-sm text-slate-500">
+      <nav aria-label="Breadcrumb" className="text-sm text-muted-foreground">
         <ol className="flex items-center gap-2">
           <li>
             <Link
               href={'/billing' as Route}
-              className="hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 rounded"
+              className="hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
             >
               Cobrancas
             </Link>
           </li>
-          <li aria-hidden="true" className="text-slate-300">
+          <li aria-hidden="true" className="text-muted-foreground/40">
             /
           </li>
-          <li className="font-medium text-slate-900" aria-current="page">
+          <li className="font-medium text-foreground" aria-current="page">
             Inadimplencia
           </li>
         </ol>
