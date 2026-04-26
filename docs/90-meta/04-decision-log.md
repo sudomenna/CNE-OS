@@ -158,3 +158,15 @@ Decisões não-óbvias, formato ADR leve. Ordem cronológica.
 - Alternativas: UUID gerado por nós — rejeitada: perde idempotência real (mesmo evento chegando 2x teria ids diferentes).
 - Consequências: mappers de integração (`lib/integrations/<p>/mapper.ts`) têm função `buildExternalId(payload)` pura e testada.
 
+## ADR-17 — `refund_status` com `failed` e `cancelled` como valores distintos
+- Data: 2026-04-25
+- Status: aceito
+- Contexto: OQ-REFUND-01 surgiu na implementação de T-8-06. `docs/20-domain/14-refund.md` usava `'cancelled'` no DDL, mas `docs/30-contracts/01-enums.md` listava apenas `'failed'`. Decisão humana solicitada antes de avançar.
+- Decisão: manter **ambos** no enum `refund_status` com semânticas distintas:
+  - `failed` — falha técnica no processamento do estorno (erro de provedor, timeout, rejeição gateway)
+  - `cancelled` — cancelamento intencional pelo solicitante antes da aprovação
+- Alternativas consideradas:
+  - Usar só `failed` para tudo — rejeitada: perde rastreabilidade da causa (técnica vs. humana)
+  - Usar só `cancelled` — rejeitada: não distingue falha técnica de decisão humana
+- Consequências: migration `ALTER TYPE refund_status ADD VALUE 'cancelled'` gerada; `14-refund.md` atualizado.
+

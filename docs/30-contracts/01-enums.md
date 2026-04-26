@@ -109,7 +109,10 @@ Referenciado em [`BR-CONTACT-CLASSIFICATION`](../50-business-rules/BR-CONTACT-CL
 `scheduled`, `paid`, `overdue`, `refunded`, `cancelled`
 
 ### `refund_status`
-`requested`, `approved`, `rejected`, `processed`, `failed`
+`requested`, `approved`, `rejected`, `processed`, `failed`, `cancelled`
+
+- `failed` — falha técnica no processamento do estorno (erro de provedor, timeout, etc.)
+- `cancelled` — solicitação cancelada pelo solicitante antes de ser aprovada (ADR-03)
 
 ## Integração
 

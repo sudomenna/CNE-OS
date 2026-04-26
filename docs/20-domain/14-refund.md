@@ -11,7 +11,7 @@ O reembolso **não** altera `transaction_snapshot.payload` — a imutabilidade �
 - Arquivos que POSSUI (edita):
   - `lib/db/schema/refund.ts` (`refund`, `refund_effect_log`, `refund_status_history`)
   - `lib/db/schema/_relations/refund.ts`
-  - `lib/domain/refund/` (`openRefund`, `approveRefund`, `rejectRefund`, `markProcessed`)
+  - `lib/domain/refund/` (`openRefund`, `approveRefund`, `rejectRefund`, `executeRefundEffects`)
   - `app/(app)/transactions/[id]/refund/`
   - `tests/unit/refund/**`
 - Arquivos que LÊ (read-only):
@@ -22,11 +22,11 @@ O reembolso **não** altera `transaction_snapshot.payload` — a imutabilidade �
   - `docs/50-business-rules/BR-REFUND.md`
   - `docs/50-business-rules/BR-OFFER-UNIQUENESS.md` (refund libera recompra)
   - `docs/50-business-rules/BR-RBAC.md` (só admin/financial aprova)
-- Interfaces públicas expostas em `lib/domain/refund/index.ts`:
-  - `openRefund(tx: DbTx, input: { transactionId, requesterUserId, amount, reason }): Promise<Refund>` — abre solicitação
-  - `approveRefund(tx: DbTx, input: { refundId, approverUserId, note? }): Promise<Refund>` — aprova e executa 8 efeitos atomicamente
-  - `rejectRefund(tx: DbTx, input: { refundId, approverUserId, reason }): Promise<Refund>` — rejeita
-  - `markProcessed(tx: DbTx, input: { refundId, externalRefundId, externalProvider }): Promise<Refund>` — marca como processado (webhook do provedor)
+- Interfaces públicas expostas:
+  - `openRefund(transactionId, userId, amount, reason): Refund`
+  - `approveRefund(refundId, approverUserId): Refund`
+  - `rejectRefund(refundId, approverUserId, reason): Refund`
+  - `markProcessed(refundId, externalRefundId): Refund` (webhook do provedor confirmando estorno)
 
 ## 3. Entidades e campos
 
@@ -40,7 +40,7 @@ O reembolso **não** altera `transaction_snapshot.payload` — a imutabilidade �
 | `approved_by_user_id` | uuid | sim | — | FK `user_account(id) ON DELETE RESTRICT` |
 | `amount` | numeric(12,2) | não | — | `CHECK amount > 0 AND amount <= transaction.amount` (guard app; ver OQ) |
 | `reason` | text | não | — | — |
-| `status` | `refund_status` | não | `requested` | enum `refund_status` — `requested\|approved\|rejected\|processed\|failed` |
+| `status` | `refund_status` | não | `requested` | enum `refund_status` — `requested\|approved\|rejected\|processed\|failed\|cancelled` (ADR-03) |
 | `external_refund_id` | text | sim | — | id do estorno no provedor |
 | `external_provider` | `integration_provider` | sim | — | — |
 | `created_at` | timestamptz | não | `now()` | — |
@@ -91,7 +91,7 @@ CREATE TABLE refund (
   processed_at timestamptz,
   updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT ck_refund_amount CHECK (amount > 0),
-  CONSTRAINT ck_refund_status CHECK (status IN ('requested','approved','rejected','processed','failed')),
+  CONSTRAINT ck_refund_status CHECK (status IN ('requested','approved','rejected','processed','cancelled')),
   CONSTRAINT ck_refund_approved_coherence CHECK (
     (status = 'approved' AND approved_at IS NOT NULL AND approved_by_user_id IS NOT NULL)
     OR (status NOT IN ('approved','processed'))
@@ -145,8 +145,8 @@ transaction ──< refund >── user (opened_by, approved_by)
 | — | `openRefund` | `requested` | usuário tem papel `support`/`financial`/`admin` (abrir) |
 | `requested` | admin/financial aprova | `approved` | RBAC; executa efeitos atomicamente |
 | `requested` | admin/financial rejeita | `rejected` | RBAC |
+| `requested` | solicitante cancela | `cancelled` | antes de aprovação |
 | `approved` | webhook do provedor confirma estorno | `processed` | `external_refund_id` presente |
-| `approved` ou `requested` | falha técnica no processamento | `failed` | automático via DLQ/retry esgotado |
 
 ## 7. Efeitos colaterais ao aprovar (ordem canônica)
 
@@ -200,7 +200,7 @@ Qualquer falha ⇒ ROLLBACK. `refund.status` volta para `requested`; operador po
 
 ## 12. Open Questions
 
-- `OQ-REFUND-01` — **Resolvido (2026-04-25)**: enum `refund_status` implementado com valores `requested|approved|rejected|processed|failed`. `cancelled` descartado — DG não envia evento de refund cancelado; `failed` cobre falha técnica de processamento.
+- `OQ-REFUND-01` — **Resolvido (ADR-17, 2026-04-25)**: enum `refund_status` tem ambos `failed` (falha técnica) e `cancelled` (cancelamento pelo solicitante). Migration `0012_colorful_odin.sql` gerada.
 - `OQ-REFUND-02` — reembolso **parcial** (`amount < transaction.amount`) afeta direitos proporcionalmente? Proposta Fase 1: refund parcial **não** revoga direitos (apenas financial). Validar com negócio.
 - `OQ-REFUND-03` — quem pode abrir (`openRefund`)? Hoje suporte/financial/admin. Confirmar.
 - `OQ-REFUND-04` — chargeback do provedor também abre refund automaticamente? Ou é fluxo separado que resulta em `transaction.status='chargeback'`?

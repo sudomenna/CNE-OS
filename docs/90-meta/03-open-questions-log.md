@@ -104,23 +104,21 @@ Perguntas pendentes que precisam de decisão do produto/negócio antes de serem 
 - Impacto: bloqueia `pnpm typecheck` — cne-schema-author corrigiu `timeline.ts` ao detectar o erro (fora do ownership declarado; motivo: bloqueio total de typecheck).
 - Status: corrigida inline por T-0-06; aguarda confirmação do responsável por T-0-11.
 
-### OQ-17 — T-8-20: Notazz outbound — suposições documentadas (Fase 1)
-- Origem: `lib/integrations/notazz/send.ts`, `inngest/functions/notazz-send.ts`
-- Contexto: T-8-20 implementou o stub outbound de emissão de NF. Algumas decisões foram necessárias.
-- Perguntas:
-  1. `unit_price` por item: Fase 1 repassa `amount` total para cada item com produto. Fase 2 deve ratear por item?
-  2. `issuingIe` (Inscrição Estadual): Fase 1 não envia — o campo existe em `NotazzIssuer` mas não é populado. Notazz aceita ausência de IE?
-  3. Retry count: `docs/40-integrations/04-notazz.md` define 5×, T-8-20 especificou 3×. Confirmar valor correto para Fase 1.
-  4. CPF fallback via `contact_document.kind='cpf'`: suposição razoável? Alternativa: buscar direto do campo `contact.cpf`.
-- Impacto: OQ-NZ-01 (NCM/CFOP), quantidade de retries, dados fiscais corretos.
-- Status: aberta — implementado com campos mínimos conforme T-8-20 scope.
+### OQ-18 — T-8-06 bloqueada: `transaction.ts` não existe (T-8-01 pendente)
+- Origem: `lib/db/schema/refund.ts` (T-8-06)
+- Contexto: cne-schema-author iniciou T-8-06 (schema `refund` + `refund_effect_log` + `refund_status_history`). A tabela `refund` referencia `transaction(id)` em FK `transaction_id ON DELETE RESTRICT`. O arquivo `lib/db/schema/transaction.ts` (criado em T-8-01) ainda não existe no repositório.
+- Pergunta: T-8-01 foi concluída? Se sim, qual o commit/branch? Se não, T-8-06 deve aguardar T-8-01 ser executada primeiro (ordem serial conforme roadmap §Onda A — T-8-01 → T-8-06).
+- Impacto se decidir errado: migration de `refund` falha com FK inválida em Postgres; `pnpm typecheck` falha com módulo não encontrado.
+- Status: respondida
+- Resposta: Resolvido — T-8-01 concluído (commit db31bbf, `lib/db/schema/transaction.ts` existe). T-8-06 executada com sucesso: schema `refund`, `refund_effect_log`, `refund_status_history` criados; migration `0010_slimy_true_believers.sql` gerada; `pnpm typecheck` limpo. 2026-04-24.
 
-### OQ-18 — RBAC: parâmetro `_resource` em `can()` é stub incompleto
-- Origem: `lib/auth/rbac/matrix.ts` — função `can(user, action, _resource)`
-- Contexto: security-review Sprint 8 (2026-04-25) identificou que o terceiro parâmetro `_resource` é prefixado com `_` e ignorado internamente. Todas as chamadas passam `{ kind: 'global' }` ou um objeto de recurso, mas o resultado é idêntico — apenas role + 2FA são avaliados.
-- Pergunta: quando/se o sistema precisar de permissões por recurso (ex: `refund.approve` apenas para transações acima de R$ X, ou permissão limitada a uma marca específica), qual é o design correto? Implementar resource-level enforcement dentro de `can()`, ou manter RBAC global e fazer a checagem de recurso na camada de aplicação (Server Action)?
-- Impacto: `lib/auth/rbac/matrix.ts`, todos os `requirePermission()` que passam recurso. Não é vulnerabilidade no threat model atual (single-operation, single-tenant), mas é dívida técnica que afeta expansão futura do RBAC.
-- Status: aberta — baixa urgência; registrada para Sprint 11+ ou quando surgir caso de uso concreto.
+### OQ-17 — T-8-04 bloqueada: `transaction.ts` não existe (T-8-01 pendente)
+- Origem: `lib/db/schema/entitlement.ts` (T-8-04)
+- Contexto: cne-schema-author iniciou T-8-04 (schema `customer_entitlement`). A tabela `customer_entitlement` referencia `transaction(id)` em duas FKs: `origin_transaction_id` e `last_update_transaction_id`. O arquivo `lib/db/schema/transaction.ts` (criado em T-8-01) ainda não existe no repositório.
+- Pergunta: T-8-01 foi concluída? Se sim, qual o commit/branch? Se não, T-8-04 deve aguardar T-8-01 ser executada primeiro (ordem serial conforme roadmap §Onda A).
+- Impacto se decidir errado: migration de `customer_entitlement` falha com FK inválida em Postgres; `pnpm typecheck` falha com módulo não encontrado.
+- Status: respondida
+- Resposta: Resolvido — T-8-01 foi concluída (commit db31bbf, `lib/db/schema/transaction.ts` existe). T-8-04 executada com sucesso: `lib/db/schema/entitlement.ts` criado, migration `0009_flippant_felicia_hardy.sql` gerada, `pnpm typecheck` limpo. (2026-04-24, T-8-04)
 
 ---
 

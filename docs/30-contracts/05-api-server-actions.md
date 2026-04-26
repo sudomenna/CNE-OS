@@ -490,6 +490,17 @@ Testes vivem em `tests/integration/actions/<module>.test.ts` + `tests/unit/actio
 |---|---|---|---|
 | `createBrand(rawInput)` | `user.write` (admin+2FA) | `create / brand` | `/settings/brands` |
 | `listBrands()` | `requireSession` | — | — |
+| `listBrandsForSwitcher()` | `requireSession` | — | — |
+
+Nota: `listBrandsForSwitcher()` é adicionada em T-12-02 para o Brand Switcher da topbar. Retorna lista simples `{ id, name }` sem filtro por usuário (brand_id é contexto fiscal, não RBAC).
+
+### MOD-ORGANIZATION — `app/(app)/settings/account/actions.ts` (T-12-22)
+
+| Função | Guard | Audit | Revalida |
+|---|---|---|---|
+| `updateProfileAction(rawInput)` | `profile.write` (todos autenticados) | `update / user_account` | `/settings/account` |
+
+Nota: `updateProfileAction` é adicionada em T-12-22 para `/settings/account`. Atualiza `name` (fullName) e `phone` do usuário logado.
 
 ### MOD-ORGANIZATION — `app/(app)/settings/legal-entities/actions.ts`
 
@@ -521,6 +532,7 @@ Nota: `issueTrackableLink` gera slug via `crypto.randomBytes(8).toString('hex')`
 | Função | Guard | Audit | Revalida |
 |---|---|---|---|
 | `createFunnelAction(rawInput)` | `funnel.create` (admin, marketing, commercial) | `create / funnel` | `/funnels` |
+| `createFunnelFullAction(rawInput)` | `funnel.create` (admin, marketing, commercial) | `create / funnel` | `/funnels` |
 | `createFunnelStageAction(rawInput)` | `funnel.create` (admin, marketing, commercial) | `create / funnel_stage` | `/funnels/[id]` |
 | `enterFunnelAction(rawInput)` | `funnel.manage` (admin, marketing, commercial) | `create / funnel_entry` (só se criada) | `/funnels/[id]` |
 | `moveStageAction(rawInput)` | `funnel.manage` (admin, marketing, commercial) | `update / funnel_entry` | `/funnels` (layout) |
@@ -531,6 +543,8 @@ Nota: `issueTrackableLink` gera slug via `crypto.randomBytes(8).toString('hex')`
 | `getEntryTimelineAction(rawInput)` | `funnel.manage` | — | — |
 | `updateEntryAction(rawInput)` | `funnel.manage` | `update / funnel_entry` | `/funnels` (layout) |
 | `listFunnelEntriesAction(rawInput)` | `funnel.manage` | — | — |
+
+Nota: `createFunnelAction` gera slug automaticamente a partir do nome com sufixo numérico em caso de conflito. `createFunnelFullAction` aceita slug explícito + initialStages array — para uso programático (automações, seed).
 
 Nota: `moveStageAction` inclui comentário `// BR-FUNNEL-OPPORTUNITY: drag-drop usa SELECT FOR UPDATE via tx` — a transação SQL garante consistência de leitura de `current_stage_id` sem dupla-atualização.
 
@@ -548,10 +562,13 @@ Nota: `listFunnelEntriesAction` aceita filtros opcionais `assignee` (UUID), `dat
 | Função | Guard | Audit | Revalida |
 |---|---|---|---|
 | `createProductAction(rawInput)` | `catalog.write` (admin, marketing) | `create / product` | `/settings/catalog/products` |
+| `updateProductAction(rawInput)` | `catalog.write` (admin, marketing) | `update / product` | `/settings/catalog/products` |
 | `archiveProductAction(rawInput)` | `catalog.write` (admin, marketing) | `update / product` | `/settings/catalog/products` |
 | `listProductsAction(brandId?)` | `requireSession` | — | — |
 | `listBrandsForSelectAction()` | `requireSession` | — | — |
 | `listCategoriesForSelectAction(brandId?)` | `requireSession` | — | — |
+
+Nota: `updateProductAction` atualiza `name`, `kind`, `categoryId`, `description`. Brand e slug são imutáveis.
 
 Nota: `archiveProductAction` rejeita com `FORBIDDEN` + `rule: 'INV-CATALOG-05'` se o produto estiver referenciado em `offer_condition_item` com condição `status='active'`.
 
@@ -560,9 +577,12 @@ Nota: `archiveProductAction` rejeita com `FORBIDDEN` + `rule: 'INV-CATALOG-05'` 
 | Função | Guard | Audit | Revalida |
 |---|---|---|---|
 | `createCategoryAction(rawInput)` | `catalog.write` (admin, marketing) | `create / product_category` | `/settings/catalog/categories` |
+| `updateCategoryAction(rawInput)` | `catalog.write` (admin, marketing) | `update / product_category` | `/settings/catalog/categories` |
 | `archiveCategoryAction(rawInput)` | `catalog.write` (admin, marketing) | `delete / product_category` | `/settings/catalog/categories` |
 | `listCategoriesAction(brandId?)` | `requireSession` | — | — |
 | `listBrandsForCategorySelectAction()` | `requireSession` | — | — |
+
+Nota: `updateCategoryAction` atualiza `name` e `parentId` (null para top-level). Slug e brand são imutáveis. Rejeita ciclos diretos (pai = self).
 
 Nota: `archiveCategoryAction` efetua exclusão física (DELETE). `product.category_id` e `product_category.parent_id` têm `ON DELETE SET NULL` — nenhuma FK bloqueia a operação. Produtos vinculados ficam sem categoria.
 
@@ -571,9 +591,12 @@ Nota: `archiveCategoryAction` efetua exclusão física (DELETE). `product.catego
 | Função | Guard | Audit | Revalida |
 |---|---|---|---|
 | `createBenefitAction(rawInput)` | `catalog.write` (admin, marketing) | `create / commercial_benefit` | `/settings/catalog/benefits` |
+| `updateBenefitAction(rawInput)` | `catalog.write` (admin, marketing) | `update / commercial_benefit` | `/settings/catalog/benefits` |
 | `archiveBenefitAction(rawInput)` | `catalog.write` (admin, marketing) | `update / commercial_benefit` | `/settings/catalog/benefits` |
 | `listBenefitsAction(brandId?)` | `requireSession` | — | — |
 | `listBrandsForBenefitSelectAction()` | `requireSession` | — | — |
+
+Nota: `updateBenefitAction` atualiza `name`, `description`, `autoTag`, `defaultDurationMonths`, `deliveryStatusRequired`. Slug é imutável (INV-CATALOG-06: autoTag deve ser kebab-case).
 
 Nota: `archiveBenefitAction` rejeita com `FORBIDDEN` se o benefício estiver referenciado em condição ativa (`offer_condition.status='active'`).
 
@@ -688,6 +711,72 @@ Notas:
 RBAC novas ações adicionadas em `lib/auth/rbac/types.ts` e `lib/auth/rbac/matrix.ts`:
 - `automation.write`: roles `admin`, `marketing`, `requires2fa: false`
 - `automation.reprocess`: roles `admin`, `requires2fa: false`
+
+### MOD-NOTIFICATIONS — `app/(app)/notifications/actions.ts` (T-12-04)
+
+| Função | Guard | Audit | Revalida |
+|---|---|---|---|
+| `listNotifications(limit?)` | `requireSession` | — | — |
+| `markAllAsRead()` | `requireSession` | — | — |
+| `markAsRead(rawInput)` | `requireSession` | — | — |
+
+Notas:
+- `listNotifications` retorna últimas N notificações do usuário (default 20), atualmente fallback em `audit_log` filtrado por `actor_user_id`. TODO: migrar para tabela `user_notification` quando criada.
+- `markAllAsRead` e `markAsRead` são stubs em T-12-04 (no-op) — implementação real vira TODO quando tabela `user_notification` criada.
+- Tipo de retorno: `NotificationItem[]` com campos `id, message, resourceKind, resourceId, isRead, createdAt`.
+
+### MOD-ANALYTICS — `app/(app)/analytics/actions.ts` (T-12-27)
+
+| Função | Guard | Audit | Revalida |
+|---|---|---|---|
+| `saveAnalyticsFiltersAction(input)` | `requireSession` | — | — |
+| `listBrandsForAnalytics()` | `requireSession` | — | — |
+| `getAnalyticsFilters()` | (helper server-side, não-action) | — | — |
+
+Notas:
+- Filtros globais de analytics (`brandId`, `period`) persistidos em cookie `cne_analytics_filters` (max-age: 30 dias).
+- `saveAnalyticsFiltersAction` grava cookie (sem mutação de domínio, sem audit, sem RBAC além de session).
+- `getAnalyticsFilters` é helper server-side puro (pode ser chamado de Server Components, não é action).
+- `listBrandsForAnalytics` retorna marcas ativas `{ id, name }` para dropdown de filtros.
+
+### MOD-SETTINGS — `app/(app)/settings/integrations/actions.ts` (T-12-23)
+
+| Função | Guard | Audit | Revalida |
+|---|---|---|---|
+| `testIntegrationAction(rawInput)` | `integration.configure` (admin+2FA) | — | — |
+
+Nota: `testIntegrationAction` valida env vars do provedor (digital_guru, brevo, whatsapp_official, instagram, notazz) sem fazer request externo. Retorna `{ ok: boolean, message: string }`.
+
+### MOD-SETTINGS — `app/(app)/settings/funnels/actions.ts` (T-12-24)
+
+| Função | Guard | Audit | Revalida |
+|---|---|---|---|
+| `listFunnelsForSettings()` | `funnel.write` (admin, marketing) | — | — |
+| `getFunnelWithStages(funnelId)` | `funnel.write` (admin, marketing) | — | — |
+| `updateFunnelAction(rawInput)` | `funnel.write` (admin, marketing) | `update / funnel` | `/settings/funnels`, `/funnels/[id]` |
+| `listScoreRulesAction(funnelId)` | `funnel.write` (admin, marketing) | — | — |
+| `createScoreRuleAction(rawInput)` | `funnel.write` (admin, marketing) | `create / funnel_score_rule` | `/settings/funnels` |
+| `updateScoreRuleAction(rawInput)` | `funnel.write` (admin, marketing) | `update / funnel_score_rule` | `/settings/funnels` |
+| `deleteScoreRuleAction(rawInput)` | `funnel.write` (admin, marketing) | `delete / funnel_score_rule` | `/settings/funnels` |
+
+Notas (T-12-24):
+- `listFunnelsForSettings` retorna funis com metadados: brandName, stageCount, isActive (não deletados).
+- `getFunnelWithStages` carrega funil + estágios ordenados por position para edição.
+- `updateFunnelAction` atualiza nome + upsert estágios (sem id = criar, com id = atualizar posição/nome). Remove estágios não presentes no input.
+- Score rules (create/update/delete) permitem configurar ganho/perda de pontos por evento de funil.
+
+### MOD-SETTINGS (Audit Log Export) — `app/(app)/settings/audit/export/route.ts` (T-12-25)
+
+Route Handler GET para exportar trilha de auditoria como CSV:
+
+| Endpoint | Guard | Filtros | Resposta |
+|---|---|---|---|
+| `GET /settings/audit/export` | `requireSession` + `audit.read` (admin) | `userId`, `actionKind`, `resourceKind`, `resourceId`, `dateFrom`, `dateTo` (via searchParams) | text/csv com Content-Disposition attachment |
+
+Notas:
+- Limita exportação a 10.000 linhas (`EXPORT_LIMIT`).
+- CSV contém colunas: `timestamp, actor_email, action_kind, resource_kind, resource_id, changes` (JSON dos before/after).
+- Filename: `audit-log-YYYY-MM-DD.csv`.
 
 ---
 
