@@ -49,6 +49,15 @@ export const RBAC_MATRIX: Record<Action, MatrixEntry> = {
   'automation.write':      { roles: ['admin', 'marketing'],                                           requires2fa: false },
   // BR-RBAC: automation.reprocess — reenfileirar execução com falha na DLQ (admin)
   'automation.reprocess':  { roles: ['admin'],                                                        requires2fa: false },
+  // BR-RBAC: profile.write — atualizar próprio perfil (nome, telefone); todos os papéis autenticados
+  'profile.write':         { roles: ['admin', 'financial', 'marketing', 'support', 'commercial'],     requires2fa: false },
+  // BR-RBAC: audit.read — visualizar trilha de auditoria (admin apenas)
+  'audit.read':            { roles: ['admin'],                                                        requires2fa: false },
+  // BR-RBAC: analytics.read — acessar dashboards e exportar CSVs de analytics
+  // docs/70-ux/08-screen-dashboards.md §8
+  'analytics.read':        { roles: ['admin', 'financial', 'marketing', 'support', 'commercial'],     requires2fa: false },
+  // BR-RBAC: transaction.manage — reemitir/cancelar NF-e e reprocessar webhook de origem
+  'transaction.manage':    { roles: ['admin', 'financial'],                                           requires2fa: true  },
 }
 
 /**

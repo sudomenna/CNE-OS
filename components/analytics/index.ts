@@ -6,3 +6,7 @@ export { FunnelConversionChart } from "./funnel-conversion";
 export { CampaignRoi } from "./campaign-roi";
 export { InboxHeatmap } from "./inbox-heatmap";
 export { RefundReasons } from "./refund-reasons";
+export { MetricCard } from "./metric-card";
+export type { MetricCardProps } from "./metric-card";
+export { ExportButton } from "./export-button";
+export type { ExportButtonProps } from "./export-button";

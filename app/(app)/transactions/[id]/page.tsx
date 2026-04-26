@@ -1,14 +1,11 @@
 /**
- * /transactions/[id] — Detalhe de transacao com snapshot viewer.
+ * /transactions/[id] — Detalhe de transação com 6 tabs.
  * Server Component.
  * T-8-16: docs/20-domain/11-transaction-snapshot.md
+ * T-12-31: docs/70-ux/07-screen-transaction-detail.md — tabs + ações NF-e
  *
- * - Header com campos principais (id externo, valor, status, datas)
- * - SnapshotViewer com payload em arvore colapsavel
- * - Secao de itens da transacao (transaction_item)
- * - Secao de historico de status (transaction_status_history)
- * - Botao "Reembolsar" visivel APENAS se status='approved' E sem refund ativo
- *   (leva para /transactions/[id]/refund — T-8-19)
+ * Tabs: Itens | Snapshot | Parcelas/Assinatura | Direitos | Auditoria | Timeline
+ * Header: status badge, campos principais, botão Reembolsar, menu NF-e ▾
  */
 
 import { notFound } from 'next/navigation'
@@ -16,6 +13,12 @@ import Link from 'next/link'
 import type { Route } from 'next'
 import { Badge } from '@/components/ui/badge'
 import { SnapshotViewer } from '@/components/transaction/snapshot-viewer'
+import { TransactionTabs } from '@/components/transaction/transaction-tabs'
+import { TransactionActionsMenu } from '@/components/transaction/transaction-actions-menu'
+import { TabInstallments } from '@/components/transaction/tab-installments'
+import { TabEntitlements } from '@/components/transaction/tab-entitlements'
+import { TabAuditLog } from '@/components/transaction/tab-audit-log'
+import { TabTimeline } from '@/components/transaction/tab-timeline'
 import { getTransaction, hasActiveRefund } from '@/app/(app)/transactions/actions'
 
 // ---------------------------------------------------------------------------
@@ -70,12 +73,136 @@ const ITEM_KIND_LABEL: Record<string, string> = {
 }
 
 // ---------------------------------------------------------------------------
-// Metadados da pagina
+// Metadata
 // ---------------------------------------------------------------------------
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   return { title: `Transacao ${id.slice(0, 8)}... — CNE-OS` }
+}
+
+// ---------------------------------------------------------------------------
+// Tab: Itens
+// ---------------------------------------------------------------------------
+
+interface ItemsTabProps {
+  items: Array<{
+    id: string
+    itemKind: string
+    productId: string | null
+    commercialBenefitId: string | null
+    quantity: number
+    resolvedRules: Record<string, unknown>
+    deliveryStatus: string
+    responsibleUserId: string | null
+    createdAt: Date
+  }>
+}
+
+function ItemsTabContent({ items }: ItemsTabProps) {
+  if (items.length === 0) {
+    return (
+      <div className="rounded-lg border border-border bg-muted/50 p-6 text-center">
+        <p className="text-sm text-muted-foreground">Nenhum item registrado.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="rounded-lg border border-border bg-card overflow-hidden">
+      <table className="w-full text-sm" role="table" aria-label="Itens da transacao">
+        <caption className="sr-only">Itens desta transacao</caption>
+        <thead>
+          <tr className="border-b border-border bg-muted/50">
+            <th
+              scope="col"
+              className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide"
+            >
+              Tipo
+            </th>
+            <th
+              scope="col"
+              className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide"
+            >
+              Produto / Beneficio
+            </th>
+            <th
+              scope="col"
+              className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wide"
+            >
+              Qtd
+            </th>
+            <th
+              scope="col"
+              className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide"
+            >
+              Entrega
+            </th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border">
+          {items.map((item) => (
+            <tr key={item.id}>
+              <td className="px-4 py-3">
+                <Badge variant="secondary">
+                  {ITEM_KIND_LABEL[item.itemKind] ?? item.itemKind}
+                </Badge>
+              </td>
+              <td className="px-4 py-3 text-muted-foreground text-xs font-mono">
+                {item.productId ?? item.commercialBenefitId ?? '—'}
+              </td>
+              <td className="px-4 py-3 text-right tabular-nums text-foreground">
+                {item.quantity}
+              </td>
+              <td className="px-4 py-3 text-muted-foreground">{item.deliveryStatus}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Tab: Snapshot
+// ---------------------------------------------------------------------------
+
+interface SnapshotTabProps {
+  snapshot: {
+    id: string
+    flag: 'normal' | 'refunded' | 'disputed'
+    payload: import('@/app/(app)/transactions/actions').SnapshotPayload
+    createdAt: Date
+  } | null
+}
+
+function SnapshotTabContent({ snapshot }: SnapshotTabProps) {
+  if (!snapshot) {
+    return (
+      <div className="rounded-lg border border-border bg-muted/50 p-6 text-center">
+        <p className="text-sm text-muted-foreground">
+          Snapshot ainda nao disponivel.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      {snapshot.flag !== 'normal' && (
+        <div
+          role="alert"
+          className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+        >
+          Flag do snapshot: <strong>{snapshot.flag}</strong>
+        </div>
+      )}
+      <SnapshotViewer
+        payload={snapshot.payload}
+        capturedAt={snapshot.createdAt.toISOString()}
+      />
+    </div>
+  )
 }
 
 // ---------------------------------------------------------------------------
@@ -105,8 +232,11 @@ export default async function TransactionDetailPage({
   // BR-REFUND: botao de reembolso visivel apenas se approved e sem refund ativo
   const canRefund = trx.status === 'approved' && !hasRefundActive
 
+  // OQ-TD-03: botao de reprocessar webhook só aparece se há externalId
+  const hasWebhook = Boolean(trx.externalId)
+
   return (
-    <div className="space-y-8 max-w-4xl">
+    <div className="space-y-6 max-w-5xl">
       {/* Breadcrumb */}
       <nav aria-label="Breadcrumb" className="text-sm text-muted-foreground">
         <ol className="flex items-center gap-2">
@@ -121,36 +251,81 @@ export default async function TransactionDetailPage({
           <li aria-hidden="true" className="text-muted-foreground/40">
             /
           </li>
-          <li className="font-medium text-foreground truncate max-w-[200px]" aria-current="page">
+          <li
+            className="font-medium text-foreground truncate max-w-[200px]"
+            aria-current="page"
+          >
             {id.slice(0, 8)}...
           </li>
         </ol>
       </nav>
 
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="space-y-1">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-2xl font-bold text-foreground">Transacao</h1>
             <Badge variant={STATUS_VARIANT[trx.status as TxStatus]}>
               {STATUS_LABEL[trx.status as TxStatus] ?? trx.status}
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground font-mono">{trx.id}</p>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-sm text-muted-foreground">
+            <span className="font-semibold text-foreground">
+              {formatCurrency(trx.amount, trx.currency)}
+            </span>
+            {trx.approvedAt && <span>Aprovada {formatDate(trx.approvedAt)}</span>}
+            {trx.refusedAt && <span>Recusada {formatDate(trx.refusedAt)}</span>}
+          </div>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm">
+            <Link
+              href={`/contacts/${trx.contactId}` as Route}
+              className="text-muted-foreground hover:text-foreground underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+            >
+              {trx.contactName}
+            </Link>
+            <Link
+              href={`/offers/${trx.offerId}` as Route}
+              className="text-muted-foreground hover:text-foreground underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+            >
+              {trx.offerName}
+            </Link>
+          </div>
+          {trx.externalProvider && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Provedor: <span className="font-medium">{trx.externalProvider}</span>
+              {trx.externalId && (
+                <span className="ml-2 font-mono">ref: {trx.externalId}</span>
+              )}
+            </p>
+          )}
         </div>
-        {/* BR-REFUND: botao visivel apenas se approved sem refund ativo */}
-        {canRefund && (
-          <Link
-            href={`/transactions/${trx.id}/refund` as Route}
-            className="inline-flex h-9 items-center rounded-md bg-red-600 px-4 text-sm font-medium text-white hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 whitespace-nowrap"
-          >
-            Reembolsar
-          </Link>
-        )}
+
+        {/* Ações */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* BR-REFUND: botao visivel apenas se approved sem refund ativo */}
+          {canRefund && (
+            <Link
+              href={`/transactions/${trx.id}/refund` as Route}
+              className="inline-flex h-9 items-center rounded-md bg-red-600 px-4 text-sm font-medium text-white hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 whitespace-nowrap"
+            >
+              Reembolsar
+            </Link>
+          )}
+
+          {/* Menu dropdown NF-e / webhook */}
+          <TransactionActionsMenu
+            transactionId={trx.id}
+            hasWebhook={hasWebhook}
+          />
+        </div>
       </div>
 
       {/* Dados principais */}
-      <section aria-labelledby="info-heading" className="rounded-lg border border-border bg-card">
+      <section
+        aria-labelledby="info-heading"
+        className="rounded-lg border border-border bg-card"
+      >
         <h2
           id="info-heading"
           className="px-6 py-4 text-sm font-semibold text-muted-foreground border-b border-border"
@@ -178,7 +353,9 @@ export default async function TransactionDetailPage({
                 {trx.contactName}
               </Link>
               {trx.contactEmail && (
-                <span className="block text-xs text-muted-foreground">{trx.contactEmail}</span>
+                <span className="block text-xs text-muted-foreground">
+                  {trx.contactEmail}
+                </span>
               )}
             </dd>
           </div>
@@ -204,7 +381,9 @@ export default async function TransactionDetailPage({
           {trx.refusedAt && (
             <div>
               <dt className="text-xs font-medium text-muted-foreground">Recusada em</dt>
-              <dd className="mt-1 text-sm text-foreground">{formatDate(trx.refusedAt)}</dd>
+              <dd className="mt-1 text-sm text-foreground">
+                {formatDate(trx.refusedAt)}
+              </dd>
             </div>
           )}
           {trx.externalProvider && (
@@ -230,137 +409,16 @@ export default async function TransactionDetailPage({
         </dl>
       </section>
 
-      {/* Snapshot Viewer */}
-      {trx.snapshot ? (
-        <section aria-labelledby="snapshot-heading">
-          <h2
-            id="snapshot-heading"
-            className="text-lg font-semibold text-foreground mb-3"
-          >
-            Snapshot da Venda
-          </h2>
-          <SnapshotViewer
-            payload={trx.snapshot.payload}
-            capturedAt={trx.snapshot.createdAt.toISOString()}
-          />
-        </section>
-      ) : (
-        <section aria-labelledby="snapshot-heading">
-          <h2
-            id="snapshot-heading"
-            className="text-lg font-semibold text-foreground mb-3"
-          >
-            Snapshot da Venda
-          </h2>
-          <div className="rounded-lg border border-border bg-muted/50 p-6 text-center">
-            <p className="text-sm text-muted-foreground">
-              Snapshot ainda nao disponivel (transacao {trx.status}).
-            </p>
-          </div>
-        </section>
-      )}
-
-      {/* Itens da transacao */}
-      <section aria-labelledby="items-heading">
-        <h2
-          id="items-heading"
-          className="text-lg font-semibold text-foreground mb-3"
-        >
-          Itens ({trx.items.length})
-        </h2>
-        {trx.items.length === 0 ? (
-          <div className="rounded-lg border border-border bg-muted/50 p-6 text-center">
-            <p className="text-sm text-muted-foreground">Nenhum item registrado.</p>
-          </div>
-        ) : (
-          <div className="rounded-lg border border-border bg-card overflow-hidden">
-            <table className="w-full text-sm" role="table" aria-label="Itens da transacao">
-              <thead>
-                <tr className="border-b border-border bg-muted/50">
-                  <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    Tipo
-                  </th>
-                  <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    Produto / Beneficio
-                  </th>
-                  <th scope="col" className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    Qtd
-                  </th>
-                  <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    Entrega
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {trx.items.map((item) => (
-                  <tr key={item.id}>
-                    <td className="px-4 py-3">
-                      <Badge variant="secondary">
-                        {ITEM_KIND_LABEL[item.itemKind] ?? item.itemKind}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground text-xs font-mono">
-                      {item.productId ?? item.commercialBenefitId ?? '—'}
-                    </td>
-                    <td className="px-4 py-3 text-right tabular-nums text-foreground">
-                      {item.quantity}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {item.deliveryStatus}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-
-      {/* Historico de status */}
-      <section aria-labelledby="history-heading">
-        <h2
-          id="history-heading"
-          className="text-lg font-semibold text-foreground mb-3"
-        >
-          Historico de Status
-        </h2>
-        {trx.statusHistory.length === 0 ? (
-          <div className="rounded-lg border border-border bg-muted/50 p-6 text-center">
-            <p className="text-sm text-muted-foreground">Sem historico de status.</p>
-          </div>
-        ) : (
-          <ol className="relative border-l-2 border-border ml-3 space-y-4">
-            {trx.statusHistory.map((entry) => (
-              <li key={entry.id} className="ml-4">
-                <div className="absolute -left-[9px] mt-1.5 h-3.5 w-3.5 rounded-full border-2 border-white bg-muted-foreground/40" />
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs text-muted-foreground">{formatDate(entry.createdAt)}</span>
-                  {entry.fromStatus && (
-                    <>
-                      <Badge variant="outline" className="text-xs">
-                        {STATUS_LABEL[entry.fromStatus as TxStatus] ?? entry.fromStatus}
-                      </Badge>
-                      <span className="text-muted-foreground/60" aria-hidden="true">
-                        →
-                      </span>
-                    </>
-                  )}
-                  <Badge variant={STATUS_VARIANT[entry.toStatus as TxStatus] ?? 'secondary'}>
-                    {STATUS_LABEL[entry.toStatus as TxStatus] ?? entry.toStatus}
-                  </Badge>
-                </div>
-                {(entry.actorSystem || entry.reason) && (
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {entry.actorSystem && <span className="font-medium">{entry.actorSystem}</span>}
-                    {entry.actorSystem && entry.reason && ' — '}
-                    {entry.reason}
-                  </p>
-                )}
-              </li>
-            ))}
-          </ol>
-        )}
-      </section>
+      {/* 6 tabs */}
+      <TransactionTabs
+        defaultTab="itens"
+        itensContent={<ItemsTabContent items={trx.items} />}
+        snapshotContent={<SnapshotTabContent snapshot={trx.snapshot} />}
+        parcelasContent={<TabInstallments transactionId={trx.id} />}
+        direitosContent={<TabEntitlements transactionId={trx.id} />}
+        auditoriaContent={<TabAuditLog transactionId={trx.id} />}
+        timelineContent={<TabTimeline transactionId={trx.id} />}
+      />
     </div>
   )
 }

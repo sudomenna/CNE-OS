@@ -4,14 +4,18 @@
  * docs/20-domain/06-ticket.md
  */
 
-import { eq } from 'drizzle-orm'
+import { eq, and, isNull } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import type { Route } from 'next'
 import { db } from '@/lib/db/client'
 import { ticket, ticketNote, ticketStatusHistory } from '@/lib/db/schema/ticket'
+import { userAccount } from '@/lib/db/schema/organization'
+import { requireSession } from '@/lib/auth/session'
 import { TicketDetail } from '@/components/ticket/ticket-detail'
 import type { TicketDetailData } from '@/components/ticket/ticket-detail'
+import { TicketDetailTabs } from '@/components/ticket/ticket-detail-tabs'
+import { TicketEditForm } from '@/components/ticket/ticket-edit-form'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -33,7 +37,10 @@ export async function generateMetadata({ params }: PageProps) {
 export default async function TicketDetailPage({ params }: PageProps) {
   const { id } = await params
 
-  const [ticketRows, notesRows, historyRows] = await Promise.all([
+  // Auth — get current user for tabs + form
+  const ctx = await requireSession()
+
+  const [ticketRows, notesRows, historyRows, usersRows] = await Promise.all([
     db.select().from(ticket).where(eq(ticket.id, id)).limit(1),
     db
       .select()
@@ -45,6 +52,11 @@ export default async function TicketDetailPage({ params }: PageProps) {
       .from(ticketStatusHistory)
       .where(eq(ticketStatusHistory.ticketId, id))
       .orderBy(ticketStatusHistory.createdAt),
+    db
+      .select({ id: userAccount.id, name: userAccount.fullName })
+      .from(userAccount)
+      .where(and(eq(userAccount.isActive, true), isNull(userAccount.deletedAt)))
+      .orderBy(userAccount.fullName),
   ])
 
   const row = ticketRows[0]
@@ -81,6 +93,8 @@ export default async function TicketDetailPage({ params }: PageProps) {
     })),
   }
 
+  const users = usersRows.map((u) => ({ id: u.id, name: u.name }))
+
   return (
     <div className="space-y-4">
       {/* Breadcrumb */}
@@ -97,7 +111,40 @@ export default async function TicketDetailPage({ params }: PageProps) {
         <span className="text-foreground">#{row.number}</span>
       </nav>
 
-      <TicketDetail ticket={ticketData} />
+      {/* Two-column layout on md+ */}
+      <div className="grid gap-6 md:grid-cols-[1fr_320px]">
+        {/* Left: header summary + tabs */}
+        <div className="space-y-6">
+          {/* Header card with status controls */}
+          <TicketDetail ticket={ticketData} />
+
+          {/* Tabs: Descricao | Atividade | Notas | Historico */}
+          <div className="rounded-lg border border-border bg-card p-6">
+            <TicketDetailTabs
+              ticketId={row.id}
+              description={row.description}
+              currentUserId={ctx.user.id}
+              notes={ticketData.notes}
+              statusHistory={ticketData.statusHistory}
+            />
+          </div>
+        </div>
+
+        {/* Right: inline edit form */}
+        <div className="space-y-4">
+          <TicketEditForm
+            ticket={{
+              id: row.id,
+              title: row.title,
+              category: row.category,
+              priority: row.priority,
+              status: row.status,
+              assignedUserId: row.assignedUserId,
+            }}
+            users={users}
+          />
+        </div>
+      </div>
     </div>
   )
 }

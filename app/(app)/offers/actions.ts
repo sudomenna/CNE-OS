@@ -368,6 +368,115 @@ export async function archiveOfferAction(rawInput: unknown) {
 }
 
 // ---------------------------------------------------------------------------
+// UPDATE OFFER
+// ---------------------------------------------------------------------------
+
+const updateOfferSchema = z.object({
+  offerId: z.string().uuid('offerId deve ser UUID'),
+  name: z.string().min(1, 'Nome é obrigatório').max(255),
+  slug: z
+    .string()
+    .min(1)
+    .max(120)
+    .regex(/^[a-z0-9][a-z0-9-]*$/, 'slug deve ser kebab-case'),
+  description: z.string().max(2000).optional().nullable(),
+  type: z.enum(['regular', 'renewal']).default('regular'),
+  renewsOfferId: z.string().uuid().optional().nullable(),
+})
+
+/**
+ * updateOfferAction — atualiza metadados de uma oferta existente.
+ * Guard: offer.write (admin, commercial — requires 2FA)
+ * Campos mutáveis: name, slug, description, type.
+ * INV-OFFER-04: type='renewal' exige renewsOfferId.
+ */
+export async function updateOfferAction(rawInput: unknown) {
+  return toActionResult(async () => {
+    const ctx = await requireSession()
+    const input = updateOfferSchema.parse(rawInput)
+
+    await requirePermission(ctx, 'offer.write', { kind: 'offer', id: input.offerId })
+
+    // INV-OFFER-04: type consistency
+    if (input.type === 'renewal' && !input.renewsOfferId) {
+      throw new ActionError(
+        'VALIDATION',
+        'Oferta do tipo "renewal" exige renewsOfferId',
+        { rule: 'INV-OFFER-04' },
+      )
+    }
+    if (input.type === 'regular' && input.renewsOfferId) {
+      throw new ActionError(
+        'VALIDATION',
+        'Oferta do tipo "regular" não deve ter renewsOfferId',
+        { rule: 'INV-OFFER-04' },
+      )
+    }
+
+    const result = await db.transaction(async (tx) => {
+      const [current] = await tx
+        .select()
+        .from(offer)
+        .where(eq(offer.id, input.offerId))
+        .limit(1)
+
+      if (!current) {
+        throw new ActionError('NOT_FOUND', `Oferta ${input.offerId} não encontrada`)
+      }
+
+      if (current.status === 'archived') {
+        throw new ActionError('VALIDATION', 'Oferta arquivada não pode ser editada')
+      }
+
+      const updatedRows = await tx
+        .update(offer)
+        .set({
+          name: input.name,
+          slug: input.slug,
+          description: input.description ?? null,
+          type: input.type,
+          renewsOfferId: input.renewsOfferId ?? null,
+          updatedAt: new Date(),
+        })
+        .where(eq(offer.id, input.offerId))
+        .returning()
+      const updated = updatedRows[0]
+      if (!updated) throw new ActionError('INTERNAL', 'Falha ao atualizar oferta')
+
+      await logAudit(tx, {
+        actorUserId: ctx.user.id,
+        actionKind: 'update',
+        resourceKind: 'offer',
+        resourceId: input.offerId,
+        before: {
+          name: current.name,
+          slug: current.slug,
+          description: current.description,
+          type: current.type,
+          renewsOfferId: current.renewsOfferId,
+        },
+        after: {
+          name: input.name,
+          slug: input.slug,
+          description: input.description ?? null,
+          type: input.type,
+          renewsOfferId: input.renewsOfferId ?? null,
+        },
+        ip: ctx.ip,
+        userAgent: ctx.userAgent,
+        context: { correlationId: ctx.correlationId },
+      })
+
+      return updated
+    })
+
+    revalidatePath('/offers')
+    revalidatePath(`/offers/${input.offerId}`)
+    return result
+  })
+}
+
+// ---------------------------------------------------------------------------
 // CONDIÇÕES
 // ---------------------------------------------------------------------------
 

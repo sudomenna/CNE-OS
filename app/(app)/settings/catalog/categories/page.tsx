@@ -1,11 +1,11 @@
 /**
  * MOD-CATALOG — Página de Categorias de Produto
- * Server Component: lista categorias + Client Component para criar/arquivar.
- * Spec: docs/20-domain/09-catalog.md §3.2, T-6-04
+ * Server Component: lista categorias + Client Components para criar/editar/excluir.
+ * Spec: docs/20-domain/09-catalog.md §3.2, T-6-04, T-12-26
  */
 
 import { listCategoriesAction, listBrandsForCategorySelectAction } from './actions'
-import { CategoriesClient } from './categories-client'
+import { CategoryCreateButton, CategoryEditButton, CategoryDeleteButton } from './categories-client'
 
 export const metadata = {
   title: 'Categorias — Catálogo',
@@ -32,7 +32,7 @@ export default async function CategoriesPage() {
             Organize os produtos em categorias hierárquicas por marca.
           </p>
         </div>
-        <CategoriesClient brands={brands} categories={categories} mode="create-only" />
+        <CategoryCreateButton brands={brands} categories={categories} />
       </div>
 
       {!categoriesResult.ok && (
@@ -83,13 +83,10 @@ export default async function CategoriesPage() {
                     {new Date(cat.createdAt).toLocaleDateString('pt-BR')}
                   </td>
                   <td className="px-4 py-3">
-                    <CategoriesClient
-                      brands={brands}
-                      categories={categories}
-                      mode="archive-only"
-                      categoryId={cat.id}
-                      categoryName={cat.name}
-                    />
+                    <div className="flex items-center gap-2">
+                      <CategoryEditButton category={cat} categories={categories} />
+                      <CategoryDeleteButton categoryId={cat.id} categoryName={cat.name} />
+                    </div>
                   </td>
                 </tr>
               ))

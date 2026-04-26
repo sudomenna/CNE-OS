@@ -40,9 +40,11 @@ interface OpportunityCardProps {
   entry: OpportunityCardData
   /** Quando true, o card está sendo arrastado (overlay visual) */
   isDragOverlay?: boolean
+  /** Callback ao clicar no card (sem arrastar) — abre EntrySheet (T-12-20) */
+  onClick?: (() => void) | undefined
 }
 
-export function OpportunityCard({ entry, isDragOverlay = false }: OpportunityCardProps) {
+export function OpportunityCard({ entry, isDragOverlay = false, onClick }: OpportunityCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: entry.id,
     data: { type: 'entry', entry },
@@ -66,13 +68,23 @@ export function OpportunityCard({ entry, isDragOverlay = false }: OpportunityCar
       style={style}
       {...attributes}
       {...listeners}
-      aria-label={`Oportunidade: ${entry.contactName}`}
+      role="button"
+      tabIndex={0}
+      aria-label={`Oportunidade: ${entry.contactName}. Pressione Enter para abrir detalhes.`}
       aria-roledescription="item arrastável"
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (onClick && (e.key === 'Enter' || e.key === ' ')) {
+          e.preventDefault()
+          onClick()
+        }
+      }}
       className={cn(
         'rounded-md border border-border bg-card p-3 shadow-sm',
         'cursor-grab active:cursor-grabbing',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         'transition-shadow hover:shadow-md',
+        onClick && 'hover:border-blue-300',
         isDragging && !isDragOverlay && 'opacity-40',
         isDragOverlay && 'rotate-1 shadow-lg opacity-95',
       )}

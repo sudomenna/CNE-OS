@@ -1,5 +1,7 @@
 "use client";
 
+import { useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -8,28 +10,59 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useAnalyticsFilters } from "@/lib/hooks/use-analytics-filters";
+import { saveAnalyticsFiltersAction } from "@/app/(app)/analytics/actions";
+import type { AnalyticsPeriod } from "@/app/(app)/analytics/actions";
 
 export type GlobalFiltersProps = {
-  brands: Array<{ id: string; name: string }>;
+  brands?: Array<{ id: string; name: string }>;
+  defaultFilters?: { brandId: string | null; period: string };
   funnels?: Array<{ id: string; name: string }>;
   campaigns?: Array<{ id: string; name: string }>;
 };
 
-export function GlobalFilters({ brands, funnels, campaigns }: GlobalFiltersProps) {
-  const { filters, setFilters } = useAnalyticsFilters();
+const PERIOD_LABELS: Record<AnalyticsPeriod, string> = {
+  "7d": "Últimos 7 dias",
+  "30d": "Últimos 30 dias",
+  "90d": "Últimos 90 dias",
+};
+
+export function GlobalFilters({
+  brands = [],
+  defaultFilters = { brandId: null, period: "30d" },
+  funnels,
+  campaigns,
+}: GlobalFiltersProps) {
+  const router = useRouter();
+
+  const handleChange = useCallback(
+    async (updates: { brandId?: string | null; period?: string }) => {
+      const next = {
+        brandId: updates.brandId !== undefined ? updates.brandId : defaultFilters.brandId,
+        period: (updates.period !== undefined ? updates.period : defaultFilters.period) as AnalyticsPeriod,
+      };
+      await saveAnalyticsFiltersAction(next);
+      router.refresh();
+    },
+    [defaultFilters, router],
+  );
+
+  const currentBrandId = defaultFilters.brandId ?? "";
+  const currentPeriod = (defaultFilters.period as AnalyticsPeriod) ?? "30d";
 
   return (
     <div className="flex flex-wrap items-end gap-3">
       {/* Brand */}
       <div className="flex flex-col gap-1">
-        <Label htmlFor="filter-brand" className="text-xs font-medium text-muted-foreground">
+        <Label
+          htmlFor="filter-brand"
+          className="text-xs font-medium text-muted-foreground"
+        >
           Marca
         </Label>
         <Select
-          value={filters.brandId ?? ""}
+          value={currentBrandId}
           onValueChange={(value) =>
-            setFilters({ brandId: value === "" ? null : value })
+            handleChange({ brandId: value === "" ? null : value })
           }
         >
           <SelectTrigger id="filter-brand" className="h-9 w-40 text-sm">
@@ -37,67 +70,58 @@ export function GlobalFilters({ brands, funnels, campaigns }: GlobalFiltersProps
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="">Todas as marcas</SelectItem>
-            {brands.map((brand) => (
-              <SelectItem key={brand.id} value={brand.id}>
-                {brand.name}
+            {brands.map((b) => (
+              <SelectItem key={b.id} value={b.id}>
+                {b.name}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
 
-      {/* From */}
+      {/* Period */}
       <div className="flex flex-col gap-1">
-        <Label htmlFor="filter-from" className="text-xs font-medium text-muted-foreground">
-          De
+        <Label
+          htmlFor="filter-period"
+          className="text-xs font-medium text-muted-foreground"
+        >
+          Período
         </Label>
-        <input
-          id="filter-from"
-          type="date"
-          value={filters.from ?? ""}
-          onChange={(e) =>
-            setFilters({ from: e.target.value === "" ? null : e.target.value })
-          }
-          className="h-9 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-        />
-      </div>
-
-      {/* To */}
-      <div className="flex flex-col gap-1">
-        <Label htmlFor="filter-to" className="text-xs font-medium text-muted-foreground">
-          Até
-        </Label>
-        <input
-          id="filter-to"
-          type="date"
-          value={filters.to ?? ""}
-          onChange={(e) =>
-            setFilters({ to: e.target.value === "" ? null : e.target.value })
-          }
-          className="h-9 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-        />
+        <Select
+          value={currentPeriod}
+          onValueChange={(value) => handleChange({ period: value })}
+        >
+          <SelectTrigger id="filter-period" className="h-9 w-44 text-sm">
+            <SelectValue placeholder="Período" />
+          </SelectTrigger>
+          <SelectContent>
+            {(Object.keys(PERIOD_LABELS) as AnalyticsPeriod[]).map((p) => (
+              <SelectItem key={p} value={p}>
+                {PERIOD_LABELS[p]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Funnel (opcional) */}
       {funnels && funnels.length > 0 && (
         <div className="flex flex-col gap-1">
-          <Label htmlFor="filter-funnel" className="text-xs font-medium text-muted-foreground">
+          <Label
+            htmlFor="filter-funnel"
+            className="text-xs font-medium text-muted-foreground"
+          >
             Funil
           </Label>
-          <Select
-            value={filters.funnelId ?? ""}
-            onValueChange={(value) =>
-              setFilters({ funnelId: value === "" ? null : value })
-            }
-          >
+          <Select>
             <SelectTrigger id="filter-funnel" className="h-9 w-40 text-sm">
               <SelectValue placeholder="Todos os funis" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="">Todos os funis</SelectItem>
-              {funnels.map((funnel) => (
-                <SelectItem key={funnel.id} value={funnel.id}>
-                  {funnel.name}
+              {funnels.map((f) => (
+                <SelectItem key={f.id} value={f.id}>
+                  {f.name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -108,23 +132,21 @@ export function GlobalFilters({ brands, funnels, campaigns }: GlobalFiltersProps
       {/* Campaign (opcional) */}
       {campaigns && campaigns.length > 0 && (
         <div className="flex flex-col gap-1">
-          <Label htmlFor="filter-campaign" className="text-xs font-medium text-muted-foreground">
+          <Label
+            htmlFor="filter-campaign"
+            className="text-xs font-medium text-muted-foreground"
+          >
             Campanha
           </Label>
-          <Select
-            value={filters.campaignId ?? ""}
-            onValueChange={(value) =>
-              setFilters({ campaignId: value === "" ? null : value })
-            }
-          >
+          <Select>
             <SelectTrigger id="filter-campaign" className="h-9 w-44 text-sm">
               <SelectValue placeholder="Todas as campanhas" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="">Todas as campanhas</SelectItem>
-              {campaigns.map((campaign) => (
-                <SelectItem key={campaign.id} value={campaign.id}>
-                  {campaign.name}
+              {campaigns.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.name}
                 </SelectItem>
               ))}
             </SelectContent>

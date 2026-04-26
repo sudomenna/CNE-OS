@@ -5,9 +5,14 @@
  * Read-only: nenhuma acao de mutacao nesta pagina.
  */
 
+import { Suspense } from 'react'
 import Link from 'next/link'
 import type { Route } from 'next'
 import { TransactionList } from '@/components/transaction/transaction-list'
+import {
+  TransactionListSkeleton,
+  TransactionListEmptyState,
+} from '@/components/transaction/transaction-list-skeleton'
 import { getTransactions } from './actions'
 
 export const metadata = {
@@ -40,6 +45,47 @@ interface PageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }
 
+// ---------------------------------------------------------------------------
+// Async sub-component — isolado para Suspense streaming
+// ---------------------------------------------------------------------------
+
+interface TransactionListDataProps {
+  selectedStatus?: TransactionStatus | undefined
+  dateFrom?: string | undefined
+  dateTo?: string | undefined
+  page: number
+}
+
+async function TransactionListData({ selectedStatus, dateFrom, dateTo, page }: TransactionListDataProps) {
+  const result = await getTransactions({
+    status: selectedStatus,
+    dateFrom: dateFrom ? `${dateFrom}T00:00:00.000Z` : undefined,
+    dateTo: dateTo ? `${dateTo}T23:59:59.999Z` : undefined,
+    page,
+    pageSize: PAGE_SIZE,
+  })
+
+  if (!result.ok) {
+    return (
+      <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        Erro ao carregar transacoes: {result.error.message}
+      </div>
+    )
+  }
+
+  const { items } = result.data
+
+  if (items.length === 0) {
+    return <TransactionListEmptyState />
+  }
+
+  return <TransactionList transactions={items} />
+}
+
+// ---------------------------------------------------------------------------
+// Page
+// ---------------------------------------------------------------------------
+
 export default async function TransactionsPage({ searchParams }: PageProps) {
   const params = await searchParams
   const statusParam = typeof params['status'] === 'string' ? params['status'] : ''
@@ -51,19 +97,19 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
     ? (statusParam as TransactionStatus)
     : undefined
 
-  const result = await getTransactions({
+  // Run count separately so the header shows immediately
+  const countResult = await getTransactions({
     status: selectedStatus,
     dateFrom: dateFrom ? `${dateFrom}T00:00:00.000Z` : undefined,
     dateTo: dateTo ? `${dateTo}T23:59:59.999Z` : undefined,
-    page,
-    pageSize: PAGE_SIZE,
+    page: 1,
+    pageSize: 1,
   })
 
-  const { items, total, totalPages } = result.ok
-    ? result.data
-    : { items: [], total: 0, totalPages: 1 }
+  const { total, totalPages } = countResult.ok
+    ? countResult.data
+    : { total: 0, totalPages: 1 }
 
-  // Build pagination URLs preserving filters
   const buildPageUrl = (p: number) => {
     const qs = new URLSearchParams()
     if (selectedStatus) qs.set('status', selectedStatus)
@@ -152,14 +198,15 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
         )}
       </form>
 
-      {/* Lista */}
-      {!result.ok ? (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          Erro ao carregar transacoes: {result.error.message}
-        </div>
-      ) : (
-        <TransactionList transactions={items} />
-      )}
+      {/* Lista com Suspense streaming */}
+      <Suspense fallback={<TransactionListSkeleton rows={8} />}>
+        <TransactionListData
+          selectedStatus={selectedStatus}
+          dateFrom={dateFrom || undefined}
+          dateTo={dateTo || undefined}
+          page={page}
+        />
+      </Suspense>
 
       {/* Paginacao */}
       {totalPages > 1 && (

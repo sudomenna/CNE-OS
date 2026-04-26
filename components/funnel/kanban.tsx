@@ -91,11 +91,25 @@ function groupEntriesByStage(
 // Componente
 // ---------------------------------------------------------------------------
 
-interface KanbanBoardProps {
-  data: KanbanFunnel
+// ---------------------------------------------------------------------------
+// Callback types — T-12-20
+// ---------------------------------------------------------------------------
+
+export type EntryDroppedPayload = {
+  entryId: string
+  /** Terminal stage dropped on — indicates won/lost modal should open */
+  stageKind: 'won' | 'lost'
 }
 
-export function KanbanBoard({ data }: KanbanBoardProps) {
+interface KanbanBoardProps {
+  data: KanbanFunnel
+  /** Called when user clicks a card — opens EntrySheet */
+  onCardClick?: (entryId: string) => void
+  /** Called when a card is dropped on a terminal stage — opens Won/Lost modal */
+  onEntryDropped?: (payload: EntryDroppedPayload) => void
+}
+
+export function KanbanBoard({ data, onCardClick, onEntryDropped }: KanbanBoardProps) {
   // Estado local das entradas — iniciado dos props do server
   const [entries, setEntries] = useState<KanbanEntry[]>(data.entries)
   // ID do card em drag (para DragOverlay)
@@ -170,6 +184,16 @@ export function KanbanBoard({ data }: KanbanBoardProps) {
       return
     }
 
+    // ---- Verifica se estágio alvo é terminal (won/lost) — T-12-20 ----
+    const targetStage = data.stages.find((s) => s.id === targetStageId)
+    if (targetStage?.isTerminal && onEntryDropped) {
+      // Detecta won vs lost pelo nome do estágio (Fase 1: convenção de nome)
+      const nameLower = targetStage.name.toLowerCase()
+      const stageKind = nameLower.includes('perd') ? 'lost' : 'won'
+      onEntryDropped({ entryId: draggedEntryId, stageKind })
+      return // Não move direto — modal confirma e chama markWon/markLost
+    }
+
     // ---- Atualização otimista ----
     const snapshot = entries.slice() // cópia imutável para rollback
     setEntries((prev) =>
@@ -226,6 +250,7 @@ export function KanbanBoard({ data }: KanbanBoardProps) {
             stage={stage}
             entries={(grouped[stage.id] ?? []).map(toCardData)}
             isDropTarget={overStageId === stage.id}
+            {...(onCardClick !== undefined ? { onCardClick } : {})}
           />
         ))}
 

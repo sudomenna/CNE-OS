@@ -8,10 +8,10 @@
  */
 
 import { z } from 'zod'
-import { eq } from 'drizzle-orm'
+import { eq, and, isNull } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { db } from '@/lib/db/client'
-import { productCategory } from '@/lib/db/schema/catalog'
+import { productCategory, product } from '@/lib/db/schema/catalog'
 import { brand } from '@/lib/db/schema/organization'
 import { requireSession } from '@/lib/auth/session'
 import { requirePermission } from '@/lib/auth/permissions'
@@ -36,6 +36,12 @@ const createCategorySchema = z.object({
 
 const archiveCategorySchema = z.object({
   categoryId: z.string().uuid('categoryId deve ser UUID'),
+})
+
+const updateCategorySchema = z.object({
+  categoryId: z.string().uuid('categoryId deve ser UUID'),
+  name: z.string().min(2, 'Nome deve ter ao menos 2 caracteres').max(200, 'Nome muito longo'),
+  parentId: z.string().uuid('parentId deve ser UUID').nullable().optional(),
 })
 
 // ---------------------------------------------------------------------------
@@ -108,6 +114,25 @@ export async function archiveCategoryAction(rawInput: unknown) {
 
     const { categoryId } = archiveCategorySchema.parse(rawInput)
 
+    // Guard: rejeita exclusão se houver produtos ativos referenciando a categoria
+    const activeProducts = await db
+      .select({ id: product.id })
+      .from(product)
+      .where(
+        and(
+          eq(product.categoryId, categoryId),
+          eq(product.status, 'active'),
+          isNull(product.deletedAt),
+        ),
+      )
+      .limit(1)
+
+    if (activeProducts.length > 0) {
+      throw new ActionError('FORBIDDEN', 'Categoria referenciada por produto ativo — reatribua ou arquive os produtos antes de excluir.', {
+        rule: 'INV-CATALOG-03',
+      })
+    }
+
     const result = await db.transaction(async (tx) => {
       const [before] = await tx
         .select({ name: productCategory.name, brandId: productCategory.brandId })
@@ -140,6 +165,69 @@ export async function archiveCategoryAction(rawInput: unknown) {
       })
 
       return deleted!
+    })
+
+    revalidatePath('/settings/catalog/categories')
+    return result
+  })
+}
+
+// ---------------------------------------------------------------------------
+// updateCategoryAction
+// ---------------------------------------------------------------------------
+
+/**
+ * updateCategoryAction — atualiza nome e categoria pai.
+ * Guard: catalog.write (admin, marketing)
+ * slug é imutável após criação (preserva referências externas).
+ * brand_id é imutável (INV-CATALOG-01 variant).
+ */
+export async function updateCategoryAction(rawInput: unknown) {
+  return toActionResult(async () => {
+    const ctx = await requireSession()
+    await requirePermission(ctx, 'catalog.write', { kind: 'catalog' })
+
+    const input = updateCategorySchema.parse(rawInput)
+
+    // Guard: parent não pode ser o próprio nó (ciclo direto)
+    if (input.parentId && input.parentId === input.categoryId) {
+      throw new ActionError('VALIDATION', 'Categoria não pode ser pai de si mesma.')
+    }
+
+    const result = await db.transaction(async (tx) => {
+      const [before] = await tx
+        .select({ name: productCategory.name, parentId: productCategory.parentId })
+        .from(productCategory)
+        .where(eq(productCategory.id, input.categoryId))
+        .limit(1)
+
+      if (!before) {
+        throw new ActionError('NOT_FOUND', 'Categoria não encontrada.')
+      }
+
+      const [updated] = await tx
+        .update(productCategory)
+        .set({
+          name: input.name,
+          parentId: input.parentId ?? null,
+          updatedAt: new Date(),
+        })
+        .where(eq(productCategory.id, input.categoryId))
+        .returning()
+
+      await logAudit(tx, {
+        actorUserId: ctx.user.id,
+        actionKind: 'update',
+        resourceKind: 'product_category',
+        resourceId: input.categoryId,
+        before: { name: before.name, parentId: before.parentId },
+        after: { name: input.name, parentId: input.parentId ?? null },
+        ip: ctx.ip,
+        userAgent: ctx.userAgent,
+        context: { correlationId: ctx.correlationId },
+      })
+
+      return updated!
     })
 
     revalidatePath('/settings/catalog/categories')

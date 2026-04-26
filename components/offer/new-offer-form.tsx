@@ -39,6 +39,11 @@ interface LegalEntityOption {
 interface NewOfferFormProps {
   brands: BrandOption[]
   legalEntities: LegalEntityOption[]
+  /**
+   * Se fornecido, adiciona ?step=N ao redirect após criação.
+   * Usado pela página /offers/new para inicializar o wizard no passo 2.
+   */
+  redirectStep?: number
 }
 
 type FormState = ActionResult<Offer> | null
@@ -65,7 +70,7 @@ async function handleCreateOffer(
 // Component
 // ---------------------------------------------------------------------------
 
-export function NewOfferForm({ brands, legalEntities }: NewOfferFormProps) {
+export function NewOfferForm({ brands, legalEntities, redirectStep }: NewOfferFormProps) {
   const router = useRouter()
   const [state, dispatch, isPending] = useActionState<FormState, FormData>(
     handleCreateOffer,
@@ -75,9 +80,11 @@ export function NewOfferForm({ brands, legalEntities }: NewOfferFormProps) {
   // Redirect to detail page on success
   React.useEffect(() => {
     if (state?.ok) {
-      router.push(`/offers/${state.data.id}` as Route)
+      const base = `/offers/${state.data.id}`
+      const target = redirectStep ? `${base}?step=${redirectStep}` : base
+      router.push(target as Route)
     }
-  }, [state, router])
+  }, [state, router, redirectStep])
 
   const errorMessage = state && !state.ok ? state.error.message : null
 
@@ -103,7 +110,7 @@ export function NewOfferForm({ brands, legalEntities }: NewOfferFormProps) {
   }
 
   return (
-    <form action={dispatch} className="flex flex-col gap-5">
+    <form id="new-offer-form" action={dispatch} className="flex flex-col gap-5">
       {/* Marca */}
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="nof-brandId">
@@ -209,12 +216,14 @@ export function NewOfferForm({ brands, legalEntities }: NewOfferFormProps) {
         </p>
       )}
 
-      {/* Footer */}
-      <div className="flex justify-end gap-2 pt-2">
-        <Button type="submit" disabled={isPending}>
-          {isPending ? 'Criando…' : 'Criar oferta'}
-        </Button>
-      </div>
+      {/* Footer — oculto quando o wizard controla o submit via form="new-offer-form" */}
+      {!redirectStep && (
+        <div className="flex justify-end gap-2 pt-2">
+          <Button type="submit" disabled={isPending}>
+            {isPending ? 'Criando…' : 'Criar oferta'}
+          </Button>
+        </div>
+      )}
     </form>
   )
 }

@@ -1,11 +1,11 @@
 /**
- * /offers/[id] — detalhe de uma oferta com tabs de edição.
+ * /offers/[id] — Editor de oferta (wizard 3 passos).
  *
  * Server Component: carrega oferta + condições + itens + payment options + rule groups via Drizzle.
- * Header: nome, status badge, botões "Publicar" e "Arquivar".
- * Tabs (via ConditionTabs): Condições | Regras | Itens | Opções de Pagamento.
+ * Renderiza <OfferWizard> passando todos os dados.
  *
- * T-6-18 — spec: docs/20-domain/10-offer-engine.md
+ * T-12 — spec: docs/70-ux/06-screen-offer-builder.md
+ * T-6-18 — spec original: docs/20-domain/10-offer-engine.md
  */
 
 import { notFound } from 'next/navigation'
@@ -24,35 +24,9 @@ import {
 } from '@/lib/db/schema/offer'
 import { brand } from '@/lib/db/schema/organization'
 import { product, commercialBenefit } from '@/lib/db/schema/catalog'
-import { Badge } from '@/components/ui/badge'
-import { ConditionTabs } from '@/components/offer/condition-tabs'
+import { OfferWizard } from '@/components/offer/offer-wizard'
 import type { ConditionData } from '@/components/offer/condition-tabs'
 import type { RuleGroupData } from '@/components/offer/rule-group-editor'
-import { PublishOfferButton } from '@/app/(app)/offers/[id]/publish-button'
-import { ArchiveOfferButton } from '@/app/(app)/offers/[id]/archive-button'
-
-// ---------------------------------------------------------------------------
-// Status badge helpers
-// ---------------------------------------------------------------------------
-
-type OfferStatus = 'draft' | 'active' | 'paused' | 'archived'
-
-const OFFER_STATUS_LABEL: Record<OfferStatus, string> = {
-  draft: 'Rascunho',
-  active: 'Ativa',
-  paused: 'Pausada',
-  archived: 'Arquivada',
-}
-
-const OFFER_STATUS_VARIANT: Record<
-  OfferStatus,
-  'default' | 'secondary' | 'outline' | 'destructive'
-> = {
-  draft: 'secondary',
-  active: 'default',
-  paused: 'outline',
-  archived: 'destructive',
-}
 
 // ---------------------------------------------------------------------------
 // Rule group tree builder
@@ -98,7 +72,7 @@ function buildGroupTree(
 }
 
 // ---------------------------------------------------------------------------
-// Page
+// Metadata
 // ---------------------------------------------------------------------------
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
@@ -112,6 +86,10 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   if (!row[0]) return { title: 'Oferta não encontrada — CNE-OS' }
   return { title: `${row[0].name} — CNE-OS` }
 }
+
+// ---------------------------------------------------------------------------
+// Page
+// ---------------------------------------------------------------------------
 
 export default async function OfferDetailPage({
   params,
@@ -143,28 +121,28 @@ export default async function OfferDetailPage({
   const conditions = await db
     .select()
     .from(offerCondition)
-    .where(
-      eq(offerCondition.offerId, id),
-    )
+    .where(eq(offerCondition.offerId, id))
     .orderBy(asc(offerCondition.priority))
 
-  // Collect condition IDs — skip loading if no conditions
   const conditionIds = conditions.map((c) => c.id)
 
   if (conditionIds.length === 0) {
-    // Nothing to load — render page with empty conditions
     const [allProducts, allBenefits] = await Promise.all([
       db.select({ id: product.id, name: product.name }).from(product).where(isNull(product.deletedAt)),
       db.select({ id: commercialBenefit.id, name: commercialBenefit.name }).from(commercialBenefit),
     ])
 
-    return renderPage(offerRow, [], allProducts, allBenefits)
+    return renderPage(
+      { ...offerRow, type: offerRow.type as 'regular' | 'renewal' },
+      [],
+      allProducts,
+      allBenefits,
+    )
   }
 
   // Load all related data in parallel
   const [allItems, allPaymentOptions, allGroups, allRules, allProducts, allBenefits] =
     await Promise.all([
-      // Items with product/benefit names
       db
         .select({
           id: offerConditionItem.id,
@@ -179,13 +157,9 @@ export default async function OfferDetailPage({
         })
         .from(offerConditionItem)
         .leftJoin(product, eq(product.id, offerConditionItem.productId))
-        .leftJoin(
-          commercialBenefit,
-          eq(commercialBenefit.id, offerConditionItem.commercialBenefitId),
-        )
+        .leftJoin(commercialBenefit, eq(commercialBenefit.id, offerConditionItem.commercialBenefitId))
         .where(inArray(offerConditionItem.offerConditionId, conditionIds)),
 
-      // Payment options
       db
         .select({
           id: offerPaymentOption.id,
@@ -198,7 +172,6 @@ export default async function OfferDetailPage({
         .from(offerPaymentOption)
         .where(inArray(offerPaymentOption.offerConditionId, conditionIds)),
 
-      // Rule groups
       db
         .select({
           id: offerConditionRuleGroup.id,
@@ -209,7 +182,6 @@ export default async function OfferDetailPage({
         .from(offerConditionRuleGroup)
         .where(inArray(offerConditionRuleGroup.offerConditionId, conditionIds)),
 
-      // Rules (fetched after groups so we have group IDs)
       db
         .select({
           id: offerConditionRule.id,
@@ -219,18 +191,13 @@ export default async function OfferDetailPage({
           createdAt: offerConditionRule.createdAt,
         })
         .from(offerConditionRule)
-        .innerJoin(
-          offerConditionRuleGroup,
-          eq(offerConditionRuleGroup.id, offerConditionRule.ruleGroupId),
-        )
+        .innerJoin(offerConditionRuleGroup, eq(offerConditionRuleGroup.id, offerConditionRule.ruleGroupId))
         .where(inArray(offerConditionRuleGroup.offerConditionId, conditionIds)),
 
-      // Catalog for item editor
       db.select({ id: product.id, name: product.name }).from(product).where(isNull(product.deletedAt)),
       db.select({ id: commercialBenefit.id, name: commercialBenefit.name }).from(commercialBenefit),
     ])
 
-  // Build per-condition data maps
   const conditionData: ConditionData[] = conditions.map((c) => {
     const condGroups = allGroups.filter((g) => g.offerConditionId === c.id) as FlatGroup[]
     const condRules = allRules.filter((r) => {
@@ -272,11 +239,16 @@ export default async function OfferDetailPage({
     }
   })
 
-  return renderPage(offerRow, conditionData, allProducts, allBenefits)
+  return renderPage(
+    { ...offerRow, type: offerRow.type as 'regular' | 'renewal' },
+    conditionData,
+    allProducts,
+    allBenefits,
+  )
 }
 
 // ---------------------------------------------------------------------------
-// Render helper (avoids duplication in early-return branch)
+// Render helper
 // ---------------------------------------------------------------------------
 
 type OfferRow = {
@@ -284,7 +256,7 @@ type OfferRow = {
   name: string
   slug: string
   status: string
-  type: string
+  type: 'regular' | 'renewal'
   description: string | null
   brandId: string
   brandName: string
@@ -296,10 +268,6 @@ function renderPage(
   allProducts: { id: string; name: string }[],
   allBenefits: { id: string; name: string }[],
 ) {
-  const isArchived = offerRow.status === 'archived'
-  const canPublish = offerRow.status === 'draft' || offerRow.status === 'paused'
-  const canArchive = offerRow.status !== 'archived'
-
   return (
     <div className="space-y-6">
       {/* Breadcrumb */}
@@ -316,46 +284,9 @@ function renderPage(
         <span className="text-foreground font-medium">{offerRow.name}</span>
       </nav>
 
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-1.5">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-bold text-foreground">{offerRow.name}</h1>
-            <Badge
-              variant={OFFER_STATUS_VARIANT[offerRow.status as OfferStatus]}
-              aria-label={`Status da oferta: ${OFFER_STATUS_LABEL[offerRow.status as OfferStatus]}`}
-            >
-              {OFFER_STATUS_LABEL[offerRow.status as OfferStatus]}
-            </Badge>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            <span className="font-medium">{offerRow.brandName}</span>
-            {' · '}
-            <code className="rounded bg-muted px-1 py-0.5 text-xs font-mono text-muted-foreground">
-              {offerRow.slug}
-            </code>
-            {offerRow.type === 'renewal' && (
-              <span className="ml-2 text-xs font-medium text-purple-600">[Renovação]</span>
-            )}
-          </p>
-          {offerRow.description && (
-            <p className="text-sm text-muted-foreground max-w-xl">{offerRow.description}</p>
-          )}
-        </div>
-
-        {/* Action buttons */}
-        {!isArchived && (
-          <div className="flex shrink-0 gap-2">
-            {canPublish && <PublishOfferButton offerId={offerRow.id} />}
-            {canArchive && <ArchiveOfferButton offerId={offerRow.id} />}
-          </div>
-        )}
-      </div>
-
-      {/* Condition tabs */}
-      <ConditionTabs
-        offerId={offerRow.id}
-        conditions={conditionData}
+      <OfferWizard
+        offerRow={offerRow}
+        conditionData={conditionData}
         products={allProducts}
         benefits={allBenefits}
       />

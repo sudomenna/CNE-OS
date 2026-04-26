@@ -73,3 +73,25 @@ export type OverviewKpis = {
   avgResponseTimeMinutes: number | null;
   openConversations: number;
 };
+
+export type ConversationHeatmapRow = {
+  hour: number;
+  dow: number; // 0=Sunday ... 6=Saturday
+  count: number;
+};
+
+export type ConversationSlaRow = {
+  total: number;
+  withinSla: number; // respondidas em <= 15 min
+  pct: number; // 0–100
+};
+
+export type ConversationAvgResolutionRow = {
+  avgMinutes: number | null;
+};
+
+export type TopAttendantRow = {
+  userId: string;
+  userName: string;
+  conversationsCount: number;
+};

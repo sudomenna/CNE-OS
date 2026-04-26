@@ -1,17 +1,20 @@
 'use server'
 
 /**
- * MOD-TRANSACTION — Server Actions de leitura
+ * MOD-TRANSACTION — Server Actions de leitura e mutação
  * T-8-16: UI /transactions lista + detalhe + snapshot viewer read-only
+ * T-12-31: Actions de NF-e e reprocessamento de webhook
  *
  * Spec: docs/20-domain/11-transaction-snapshot.md
  * Contract: docs/30-contracts/05-api-server-actions.md
  * RBAC: Leituras usam requireSession() apenas (sem requirePermission —
  *       consistente com o padrão de outras listagens read-only neste projeto).
+ *       Mutações (NF-e, webhook reprocess) usam requirePermission('transaction.manage').
  */
 
 import { z } from 'zod'
 import { and, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm'
+import { revalidatePath } from 'next/cache'
 
 import { db } from '@/lib/db/client'
 import {
@@ -23,8 +26,11 @@ import {
 import { refund } from '@/lib/db/schema/refund'
 import { contact, contactEmail } from '@/lib/db/schema/contact'
 import { offer } from '@/lib/db/schema/offer'
+import { webhookLog } from '@/lib/db/schema/webhook-log'
 import { requireSession } from '@/lib/auth/session'
+import { requirePermission } from '@/lib/auth/permissions'
 import { toActionResult, ActionError } from '@/lib/actions/result'
+import { inngest } from '@/inngest/client'
 
 // ---------------------------------------------------------------------------
 // Schemas Zod
@@ -427,5 +433,186 @@ export async function hasActiveRefund(rawInput: unknown) {
       .limit(1)
 
     return { hasActive: rows.length > 0 }
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Schemas Zod — ações de NF-e / webhook
+// ---------------------------------------------------------------------------
+
+const transactionIdSchema = z.object({
+  transactionId: z.string().uuid(),
+})
+
+// ---------------------------------------------------------------------------
+// reemitirNfeAction — dispara job Inngest notazz/invoice.requested
+// RBAC: transaction.manage (admin, financeiro com 2FA)
+// ---------------------------------------------------------------------------
+
+export async function reemitirNfeAction(rawInput: unknown) {
+  return toActionResult(async () => {
+    const ctx = await requireSession()
+    const { transactionId } = transactionIdSchema.parse(rawInput)
+
+    // BR-RBAC: apenas admin/financial com 2FA podem reemitir NF-e
+    await requirePermission(ctx, 'transaction.manage', {
+      kind: 'transaction',
+      id: transactionId,
+    })
+
+    // Verificar que a transação existe e está aprovada
+    const rows = await db
+      .select({ id: transaction.id, status: transaction.status })
+      .from(transaction)
+      .where(eq(transaction.id, transactionId))
+      .limit(1)
+
+    const trx = rows[0]
+    if (!trx) {
+      throw new ActionError('NOT_FOUND', `Transação ${transactionId} não encontrada`)
+    }
+    if (trx.status !== 'approved') {
+      throw new ActionError(
+        'VALIDATION',
+        `Não é possível reemitir NF-e para transação com status '${trx.status}'`,
+      )
+    }
+
+    // Disparar job Inngest — evento notazz/invoice.requested
+    await inngest.send({
+      name: 'notazz/invoice.requested',
+      data: {
+        transactionId,
+        correlationId: ctx.correlationId,
+        triggeredBy: ctx.user.id,
+        reissue: true,
+      },
+    })
+
+    revalidatePath(`/transactions/${transactionId}`)
+
+    return { dispatched: true, transactionId }
+  })
+}
+
+// ---------------------------------------------------------------------------
+// cancelarNfeAction — dispara job Inngest notazz/invoice.cancel
+// RBAC: transaction.manage (admin, financeiro com 2FA)
+// ---------------------------------------------------------------------------
+
+export async function cancelarNfeAction(rawInput: unknown) {
+  return toActionResult(async () => {
+    const ctx = await requireSession()
+    const { transactionId } = transactionIdSchema.parse(rawInput)
+
+    // BR-RBAC: apenas admin/financial com 2FA podem cancelar NF-e
+    await requirePermission(ctx, 'transaction.manage', {
+      kind: 'transaction',
+      id: transactionId,
+    })
+
+    // Verificar que a transação existe
+    const rows = await db
+      .select({ id: transaction.id, status: transaction.status })
+      .from(transaction)
+      .where(eq(transaction.id, transactionId))
+      .limit(1)
+
+    const trx = rows[0]
+    if (!trx) {
+      throw new ActionError('NOT_FOUND', `Transação ${transactionId} não encontrada`)
+    }
+
+    // Disparar job Inngest — evento notazz/invoice.cancel
+    await inngest.send({
+      name: 'notazz/invoice.cancel',
+      data: {
+        transactionId,
+        correlationId: ctx.correlationId,
+        triggeredBy: ctx.user.id,
+      },
+    })
+
+    revalidatePath(`/transactions/${transactionId}`)
+
+    return { dispatched: true, transactionId }
+  })
+}
+
+// ---------------------------------------------------------------------------
+// reprocessarWebhookAction — reenvia o webhook_log mais recente da transação
+// RBAC: transaction.manage (admin, financeiro com 2FA)
+// OQ-TD-03: esconde botão se não há webhook_log
+// ---------------------------------------------------------------------------
+
+export async function reprocessarWebhookAction(rawInput: unknown) {
+  return toActionResult(async () => {
+    const ctx = await requireSession()
+    const { transactionId } = transactionIdSchema.parse(rawInput)
+
+    // BR-RBAC: apenas admin/financial com 2FA podem reprocessar webhook
+    await requirePermission(ctx, 'transaction.manage', {
+      kind: 'transaction',
+      id: transactionId,
+    })
+
+    // Verificar que a transação existe
+    const trxRows = await db
+      .select({ id: transaction.id, externalId: transaction.externalId })
+      .from(transaction)
+      .where(eq(transaction.id, transactionId))
+      .limit(1)
+
+    const trx = trxRows[0]
+    if (!trx) {
+      throw new ActionError('NOT_FOUND', `Transação ${transactionId} não encontrada`)
+    }
+
+    // Buscar webhook_log mais recente relacionado à transação via external_id
+    // O webhook_log não tem FK direta para transaction — correlacionamos via external_id
+    if (!trx.externalId) {
+      throw new ActionError(
+        'NOT_FOUND',
+        'Esta transação não possui webhook de origem para reprocessar',
+      )
+    }
+
+    const webhookRows = await db
+      .select({
+        id: webhookLog.id,
+        provider: webhookLog.provider,
+        externalEventId: webhookLog.externalEventId,
+        status: webhookLog.status,
+      })
+      .from(webhookLog)
+      .where(eq(webhookLog.externalEventId, trx.externalId))
+      .orderBy(desc(webhookLog.receivedAt))
+      .limit(1)
+
+    const webhook = webhookRows[0]
+    if (!webhook) {
+      throw new ActionError(
+        'NOT_FOUND',
+        'Nenhum webhook_log encontrado para esta transação (OQ-TD-03)',
+      )
+    }
+
+    // Disparar via Inngest — reutiliza o flow digital-guru-process
+    // docs/60-flows/FLOW-12: reprocessamento manual de webhook DLQ
+    await inngest.send({
+      name: 'webhook/reprocess.requested',
+      data: {
+        webhookLogId: webhook.id,
+        provider: webhook.provider,
+        externalEventId: webhook.externalEventId,
+        transactionId,
+        correlationId: ctx.correlationId,
+        triggeredBy: ctx.user.id,
+      },
+    })
+
+    revalidatePath(`/transactions/${transactionId}`)
+
+    return { dispatched: true, webhookLogId: webhook.id }
   })
 }

@@ -90,7 +90,7 @@ export function FunnelListClient({ funnels }: FunnelListClientProps) {
     }
 
     startTransition(async () => {
-      const result = await createFunnelAction({ name, slug, brandId })
+      const result = await createFunnelAction({ name, brandId, stages: ['Novo lead', 'Em negociação', 'Proposta enviada'] })
       if (result.ok) {
         toast.success('Funil criado com sucesso!')
         setOpen(false)

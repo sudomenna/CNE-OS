@@ -11,7 +11,10 @@ import { Suspense } from 'react'
 import { eq, isNull, count } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import { funnel, funnelStage, funnelEntry } from '@/lib/db/schema/funnel'
+import { brand } from '@/lib/db/schema/organization'
 import { FunnelListClient } from '@/components/funnel/funnel-list-client'
+import { CreateFunnelDialog } from '@/components/funnel/create-funnel-dialog'
+import { FunnelListSkeleton } from '@/components/funnel/funnel-list-skeleton'
 
 export const metadata = {
   title: 'Funis — CNE-OS',
@@ -56,7 +59,17 @@ async function FunnelList() {
   return <FunnelListClient funnels={funnelsWithCounts} />
 }
 
-export default function FunnelsPage() {
+async function fetchBrands() {
+  return db
+    .select({ id: brand.id, name: brand.name })
+    .from(brand)
+    .where(isNull(brand.deletedAt))
+    .orderBy(brand.name)
+}
+
+export default async function FunnelsPage() {
+  const brands = await fetchBrands()
+
   return (
     <div className="flex flex-col gap-6 p-6">
       <div className="flex items-center justify-between">
@@ -66,20 +79,10 @@ export default function FunnelsPage() {
             Gerencie seus funis de vendas e acompanhe as oportunidades.
           </p>
         </div>
+        <CreateFunnelDialog brands={brands} />
       </div>
 
-      <Suspense
-        fallback={
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div
-                key={i}
-                className="animate-pulse rounded-lg border border-border bg-card p-5 h-36"
-              />
-            ))}
-          </div>
-        }
-      >
+      <Suspense fallback={<FunnelListSkeleton count={6} />}>
         <FunnelList />
       </Suspense>
     </div>

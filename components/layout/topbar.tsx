@@ -1,11 +1,14 @@
-import type { SessionContext } from '@/lib/auth/session'
-import { ThemeToggle } from '@/components/layout/theme-toggle'
+import { BrandSwitcher } from '@/components/layout/brand-switcher'
+import { NotificationCenter } from '@/components/layout/notification-center'
+import { AvatarDropdown } from '@/components/layout/avatar-dropdown'
 
-type TopbarProps = {
-  user: SessionContext['user']
+export type TopbarProps = {
+  userName: string
+  userEmail: string
+  avatarUrl: string | null
 }
 
-export function Topbar({ user }: TopbarProps) {
+export function Topbar({ userName, userEmail, avatarUrl }: TopbarProps) {
   return (
     <header className="flex h-14 items-center justify-between border-b border-border bg-background px-6">
       <div />
@@ -16,14 +19,9 @@ export function Topbar({ user }: TopbarProps) {
         >
           ⌘K
         </kbd>
-        <ThemeToggle />
-        <div
-          className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground uppercase"
-          aria-label={`Usuário com role ${user.role}`}
-          role="img"
-        >
-          {user.role.charAt(0)}
-        </div>
+        <BrandSwitcher />
+        <NotificationCenter />
+        <AvatarDropdown userName={userName} userEmail={userEmail} avatarUrl={avatarUrl ?? null} />
       </div>
     </header>
   )

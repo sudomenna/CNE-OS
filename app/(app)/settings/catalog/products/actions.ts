@@ -41,6 +41,14 @@ const archiveProductSchema = z.object({
   productId: z.string().uuid('productId deve ser UUID'),
 })
 
+const updateProductSchema = z.object({
+  productId: z.string().uuid('productId deve ser UUID'),
+  name: z.string().min(2, 'Nome deve ter ao menos 2 caracteres').max(200, 'Nome muito longo'),
+  kind: z.enum(productKindEnum.enumValues),
+  categoryId: z.string().uuid('categoryId deve ser UUID').nullable().optional(),
+  description: z.string().max(2000).nullable().optional(),
+})
+
 // ---------------------------------------------------------------------------
 // createProductAction
 // ---------------------------------------------------------------------------
@@ -155,6 +163,66 @@ export async function archiveProductAction(rawInput: unknown) {
         resourceId: productId,
         before: { status: before.status },
         after: { status: 'archived' },
+        ip: ctx.ip,
+        userAgent: ctx.userAgent,
+        context: { correlationId: ctx.correlationId },
+      })
+
+      return updated!
+    })
+
+    revalidatePath('/settings/catalog/products')
+    return result
+  })
+}
+
+// ---------------------------------------------------------------------------
+// updateProductAction
+// ---------------------------------------------------------------------------
+
+/**
+ * updateProductAction — atualiza produto (nome, tipo, categoria, descrição).
+ * Guard: catalog.write (admin, marketing)
+ * INV-CATALOG-01: brand_id é imutável — não exposto neste update.
+ * slug é imutável após criação para preservar referências externas.
+ */
+export async function updateProductAction(rawInput: unknown) {
+  return toActionResult(async () => {
+    const ctx = await requireSession()
+    await requirePermission(ctx, 'catalog.write', { kind: 'catalog' })
+
+    const input = updateProductSchema.parse(rawInput)
+
+    const result = await db.transaction(async (tx) => {
+      const [before] = await tx
+        .select({ name: product.name, kind: product.kind, categoryId: product.categoryId, description: product.description, status: product.status })
+        .from(product)
+        .where(eq(product.id, input.productId))
+        .limit(1)
+
+      if (!before) {
+        throw new ActionError('NOT_FOUND', 'Produto não encontrado.')
+      }
+
+      const [updated] = await tx
+        .update(product)
+        .set({
+          name: input.name,
+          kind: input.kind,
+          categoryId: input.categoryId ?? null,
+          description: input.description ?? null,
+          updatedAt: new Date(),
+        })
+        .where(eq(product.id, input.productId))
+        .returning()
+
+      await logAudit(tx, {
+        actorUserId: ctx.user.id,
+        actionKind: 'update',
+        resourceKind: 'product',
+        resourceId: input.productId,
+        before: { name: before.name, kind: before.kind, categoryId: before.categoryId },
+        after: { name: input.name, kind: input.kind, categoryId: input.categoryId ?? null },
         ip: ctx.ip,
         userAgent: ctx.userAgent,
         context: { correlationId: ctx.correlationId },

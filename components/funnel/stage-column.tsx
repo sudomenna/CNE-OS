@@ -28,9 +28,11 @@ interface StageColumnProps {
   entries: OpportunityCardData[]
   /** Quando true, coluna está sendo alvo de drop ativo */
   isDropTarget?: boolean
+  /** Callback ao clicar em um card — abre EntrySheet (T-12-20) */
+  onCardClick?: ((entryId: string) => void) | undefined
 }
 
-export function StageColumn({ stage, entries, isDropTarget = false }: StageColumnProps) {
+export function StageColumn({ stage, entries, isDropTarget = false, onCardClick }: StageColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: `stage-${stage.id}`,
     data: { type: 'stage', stageId: stage.id },
@@ -75,9 +77,16 @@ export function StageColumn({ stage, entries, isDropTarget = false }: StageColum
       >
         <SortableContext items={entryIds} strategy={verticalListSortingStrategy}>
           <div className="flex flex-col gap-2">
-            {entries.map((entry) => (
-              <OpportunityCard key={entry.id} entry={entry} />
-            ))}
+            {entries.map((entry) => {
+              const handleClick = onCardClick ? () => onCardClick(entry.id) : undefined
+              return (
+                <OpportunityCard
+                  key={entry.id}
+                  entry={entry}
+                  {...(handleClick !== undefined ? { onClick: handleClick } : {})}
+                />
+              )
+            })}
 
             {entries.length === 0 && (
               <div

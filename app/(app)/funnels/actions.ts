@@ -10,9 +10,14 @@
 
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
+import { and, desc, eq, sql } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
-import { funnel, funnelStage } from '@/lib/db/schema/funnel'
+import { funnel, funnelEntry, funnelStage } from '@/lib/db/schema/funnel'
 import type { Funnel, FunnelStage } from '@/lib/db/schema/funnel'
+import { contact, contactEmail, contactPhone } from '@/lib/db/schema/contact'
+import { userAccount } from '@/lib/db/schema/organization'
+import { campaign, creative } from '@/lib/db/schema/campaign'
+import { timelineEvent } from '@/lib/db/schema/timeline'
 import {
   enterFunnel,
   moveStage,
@@ -25,6 +30,7 @@ import { requireSession } from '@/lib/auth/session'
 import { requirePermission } from '@/lib/auth/permissions'
 import { logAudit } from '@/lib/audit/log'
 import { toActionResult } from '@/lib/actions/result'
+import type { ActionResult } from '@/lib/actions/result'
 import { ActionError } from '@/lib/actions/errors'
 
 // ---------------------------------------------------------------------------
@@ -83,7 +89,16 @@ const setOpportunityLabelSchema = z.object({
 
 const markWonSchema = z.object({
   entryId: z.string().uuid('entryId deve ser UUID'),
-  transactionId: z.string().uuid('transactionId deve ser UUID'),
+  /**
+   * UUID da transação aprovada — obrigatório quando isManual=false (INV-FUNNEL-05).
+   * Opcional quando isManual=true (OQ-FB-01: Fase 1 aceita venda manual sem transaction_id).
+   */
+  transactionId: z.string().uuid('transactionId deve ser UUID').optional(),
+  /**
+   * Quando true: operador confirma ganho sem transação vinculada (venda manual).
+   * OQ-FB-01: criação de transação inline adiada para Fase 2.
+   */
+  isManual: z.boolean().default(false),
   conversionOrigin: z.string().max(100).nullable().optional(),
   conversionCampaignId: z.string().uuid().nullable().optional(),
   conversionCreativeId: z.string().uuid().nullable().optional(),
@@ -91,18 +106,119 @@ const markWonSchema = z.object({
 
 const markLostSchema = z.object({
   entryId: z.string().uuid('entryId deve ser UUID'),
-  reason: z.string().min(1, 'Motivo da perda é obrigatório').max(1000),
+  reason: z.string().min(3, 'Motivo da perda deve ter pelo menos 3 caracteres').max(1000),
 })
 
 // ---------------------------------------------------------------------------
-// createFunnelAction
+// createFunnelAction — T-12-21: Dialog "Criar funil"
+// Aceita { name, brandId, stages: string[] }, gera slug automaticamente.
+// Retorna { funnelId: string } para redirect pós-criação.
+// ---------------------------------------------------------------------------
+
+// Schema do Dialog "Criar funil" — slug auto-gerado
+const createFunnelDialogSchema = z.object({
+  name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres').max(200),
+  brandId: z.string().uuid('brandId deve ser UUID'),
+  stages: z
+    .array(z.string().min(1, 'Nome do estágio é obrigatório'))
+    .min(1, 'Mínimo 1 estágio obrigatório'),
+})
+
+/**
+ * Cria um funil com estágios definidos pelo usuário via Dialog.
+ * Slug é gerado automaticamente a partir do nome (+ sufixo numérico em caso de conflito).
+ * Guard: funnel.write
+ */
+export async function createFunnelAction(
+  rawInput: unknown,
+): Promise<ReturnType<typeof toActionResult<{ funnelId: string }>>> {
+  return toActionResult(async () => {
+    const ctx = await requireSession()
+    const input = createFunnelDialogSchema.parse(rawInput)
+
+    await requirePermission(ctx, 'funnel.write', { kind: 'global' })
+
+    // Gera slug a partir do nome (normaliza acentos e caracteres especiais)
+    const baseSlug = input.name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
+
+    const result = await db.transaction(async (tx) => {
+      // Garante unicidade de slug por marca com sufixo numérico
+      let slug = baseSlug
+      let attempt = 0
+      while (true) {
+        const existing = await tx
+          .select({ id: funnel.id })
+          .from(funnel)
+          .where(and(eq(funnel.slug, slug), eq(funnel.brandId, input.brandId)))
+          .limit(1)
+        if (existing.length === 0) break
+        attempt++
+        slug = `${baseSlug}-${attempt}`
+      }
+
+      const [newFunnel] = await tx
+        .insert(funnel)
+        .values({
+          brandId: input.brandId,
+          name: input.name,
+          slug,
+          isActive: true,
+        })
+        .returning()
+
+      if (!newFunnel) {
+        throw new ActionError('INTERNAL', 'createFunnel: INSERT retornou vazio')
+      }
+
+      await tx.insert(funnelStage).values(
+        input.stages.map((stageName, position) => ({
+          funnelId: newFunnel.id,
+          name: stageName,
+          position,
+          isTerminal: false,
+        })),
+      )
+
+      await logAudit(tx, {
+        actorUserId: ctx.user.id,
+        actionKind: 'create',
+        resourceKind: 'funnel',
+        resourceId: newFunnel.id,
+        after: {
+          id: newFunnel.id,
+          name: newFunnel.name,
+          slug: newFunnel.slug,
+          brandId: newFunnel.brandId,
+          stageCount: input.stages.length,
+        },
+        ip: ctx.ip,
+        userAgent: ctx.userAgent,
+        context: { correlationId: ctx.correlationId },
+      })
+
+      return { funnelId: newFunnel.id }
+    })
+
+    revalidatePath('/funnels')
+    return result
+  })
+}
+
+// ---------------------------------------------------------------------------
+// createFunnelFullAction — uso programático (ex: seed, automações)
+// Aceita name, slug explícito, brandId, offerId?, initialStages?
 // ---------------------------------------------------------------------------
 
 /**
- * Cria um funil com estágios iniciais.
+ * Cria um funil com controle total sobre slug e estágios.
  * Guard: funnel.create
  */
-export async function createFunnelAction(rawInput: unknown): Promise<
+export async function createFunnelFullAction(rawInput: unknown): Promise<
   ReturnType<typeof toActionResult<{ funnel: Funnel; stages: FunnelStage[] }>>
 > {
   return toActionResult(async () => {
@@ -112,7 +228,6 @@ export async function createFunnelAction(rawInput: unknown): Promise<
     await requirePermission(ctx, 'funnel.create', { kind: 'global' })
 
     const result = await db.transaction(async (tx) => {
-      // INSERT funnel
       const [newFunnel] = await tx
         .insert(funnel)
         .values({
@@ -125,10 +240,9 @@ export async function createFunnelAction(rawInput: unknown): Promise<
         .returning()
 
       if (!newFunnel) {
-        throw new ActionError('INTERNAL', 'createFunnel: INSERT retornou vazio')
+        throw new ActionError('INTERNAL', 'createFunnelFull: INSERT retornou vazio')
       }
 
-      // INSERT estágios iniciais (padrão: 3 estágios se não informados)
       const stagesToCreate = input.initialStages ?? [
         { name: 'Novo', position: 0, isTerminal: false },
         { name: 'Em andamento', position: 1, isTerminal: false },
@@ -362,9 +476,13 @@ export async function setOpportunityLabelAction(rawInput: unknown): Promise<
 // ---------------------------------------------------------------------------
 
 /**
- * Marca uma oportunidade como ganha, vinculando a transação aprovada.
+ * Marca uma oportunidade como ganha.
  * Guard: funnel.close
- * INV-FUNNEL-05: exige transactionId não-vazio.
+ *
+ * Dois caminhos:
+ * - isManual=false + transactionId UUID: delega para domínio markWon (INV-FUNNEL-05).
+ * - isManual=true: UPDATE direto sem transaction_id vinculado (OQ-FB-01: Fase 1).
+ *   A transação poderá ser vinculada posteriormente em Fase 2.
  */
 export async function markWonAction(rawInput: unknown): Promise<
   ReturnType<typeof toActionResult<void>>
@@ -375,15 +493,46 @@ export async function markWonAction(rawInput: unknown): Promise<
 
     await requirePermission(ctx, 'funnel.close', { kind: 'global' })
 
+    // Quando isManual=false exigimos transactionId (INV-FUNNEL-05)
+    if (!input.isManual && !input.transactionId) {
+      throw new ActionError('VALIDATION', 'transactionId é obrigatório quando isManual=false')
+    }
+
     await db.transaction(async (tx) => {
-      await markWon(tx, {
-        entryId: input.entryId,
-        transactionId: input.transactionId,
-        conversionOrigin: input.conversionOrigin ?? null,
-        conversionCampaignId: input.conversionCampaignId ?? null,
-        conversionCreativeId: input.conversionCreativeId ?? null,
-        actorUserId: ctx.user.id,
-      })
+      if (input.transactionId) {
+        // Caminho padrão: delega ao domínio (valida idempotência + emite timeline)
+        await markWon(tx, {
+          entryId: input.entryId,
+          transactionId: input.transactionId,
+          conversionOrigin: input.conversionOrigin ?? null,
+          conversionCampaignId: input.conversionCampaignId ?? null,
+          conversionCreativeId: input.conversionCreativeId ?? null,
+          actorUserId: ctx.user.id,
+        })
+      } else {
+        // OQ-FB-01: venda manual sem transaction_id — UPDATE direto.
+        // Fase 2 adicionará criação de transação inline + emissão de TE-OPPORTUNITY-WON.
+        // NOTA: opportunityWonSchema exige transaction_id UUID — timeline omitida aqui
+        //       até o schema ser atualizado para aceitar isManual=true (fora do ownership UI).
+        const entryRows = await tx
+          .select()
+          .from(funnelEntry)
+          .where(eq(funnelEntry.id, input.entryId))
+        const entry = entryRows[0]
+        if (!entry) {
+          throw new ActionError('NOT_FOUND', `funnel_entry ${input.entryId} não encontrada`)
+        }
+        if (entry.label === 'won' || entry.label === 'lost') {
+          throw new ActionError(
+            'VALIDATION',
+            `funnel_entry ${input.entryId} já está em estado terminal (${entry.label})`,
+          )
+        }
+        await tx
+          .update(funnelEntry)
+          .set({ label: 'won', updatedAt: sql`now()` })
+          .where(eq(funnelEntry.id, input.entryId))
+      }
 
       await logAudit(tx, {
         actorUserId: ctx.user.id,
@@ -392,7 +541,8 @@ export async function markWonAction(rawInput: unknown): Promise<
         resourceId: input.entryId,
         after: {
           label: 'won',
-          transaction_id: input.transactionId,
+          transaction_id: input.transactionId ?? null,
+          is_manual: input.isManual,
           conversion_origin: input.conversionOrigin ?? null,
         },
         ip: ctx.ip,
@@ -439,6 +589,294 @@ export async function markLostAction(rawInput: unknown): Promise<
         ip: ctx.ip,
         userAgent: ctx.userAgent,
         context: { correlationId: ctx.correlationId, rule: 'BR-FUNNEL-OPPORTUNITY' },
+      })
+    })
+
+    revalidatePath('/funnels', 'layout')
+  })
+}
+
+// ---------------------------------------------------------------------------
+// listFunnelEntriesAction  (T-12-20)
+// ---------------------------------------------------------------------------
+
+export type FunnelEntryListItem = {
+  id: string
+  contactId: string
+  contactName: string
+  currentStageId: string
+  stageName: string
+  ownerUserId: string | null
+  ownerName: string | null
+  label: string
+  score: string
+  entryDate: Date
+}
+
+const listFunnelEntriesSchema = z.object({
+  funnelId: z.string().uuid('funnelId deve ser UUID'),
+  assignee: z.string().uuid().nullable().optional(),
+  dateFrom: z.string().nullable().optional(),
+  dateTo: z.string().nullable().optional(),
+})
+
+/**
+ * Lista entries de um funil com filtros opcionais de assignee e período.
+ * Retorna dados suficientes para a list view (tabela alternativa ao kanban).
+ * Guard: funnel.manage
+ */
+export async function listFunnelEntriesAction(
+  rawInput: unknown,
+): Promise<ActionResult<FunnelEntryListItem[]>> {
+  return toActionResult(async () => {
+    const ctx = await requireSession()
+    const input = listFunnelEntriesSchema.parse(rawInput)
+    await requirePermission(ctx, 'funnel.manage', { kind: 'global' })
+
+    const conditions = [eq(funnelEntry.funnelId, input.funnelId)]
+
+    if (input.assignee) {
+      conditions.push(eq(funnelEntry.ownerUserId, input.assignee))
+    }
+    if (input.dateFrom) {
+      conditions.push(sql`${funnelEntry.entryDate} >= ${input.dateFrom}::timestamptz`)
+    }
+    if (input.dateTo) {
+      conditions.push(sql`${funnelEntry.entryDate} <= ${input.dateTo}::timestamptz`)
+    }
+
+    const rows = await db
+      .select({
+        id: funnelEntry.id,
+        contactId: funnelEntry.contactId,
+        contactName: contact.fullName,
+        currentStageId: funnelEntry.currentStageId,
+        stageName: funnelStage.name,
+        ownerUserId: funnelEntry.ownerUserId,
+        ownerName: userAccount.fullName,
+        label: funnelEntry.label,
+        score: funnelEntry.score,
+        entryDate: funnelEntry.entryDate,
+      })
+      .from(funnelEntry)
+      .innerJoin(contact, eq(contact.id, funnelEntry.contactId))
+      .innerJoin(funnelStage, eq(funnelStage.id, funnelEntry.currentStageId))
+      .leftJoin(userAccount, eq(userAccount.id, funnelEntry.ownerUserId))
+      .where(and(...conditions))
+      .orderBy(desc(funnelEntry.entryDate))
+      .limit(500)
+
+    return rows.map((r) => ({
+      id: r.id,
+      contactId: r.contactId,
+      contactName: r.contactName ?? 'Contato sem nome',
+      currentStageId: r.currentStageId,
+      stageName: r.stageName,
+      ownerUserId: r.ownerUserId,
+      ownerName: r.ownerName,
+      label: r.label,
+      score: r.score,
+      entryDate: r.entryDate,
+    })) satisfies FunnelEntryListItem[]
+  })
+}
+
+// ---------------------------------------------------------------------------
+// getEntryDetailsAction  (T-12-18)
+// ---------------------------------------------------------------------------
+
+export type EntryDetails = {
+  entry: {
+    id: string
+    funnelId: string
+    contactId: string
+    currentStageId: string
+    label: string
+    score: string
+    entryDate: Date
+    entryOrigin: string | null
+    entryCampaignId: string | null
+    entryCreativeId: string | null
+    ownerUserId: string | null
+    lostReason: string | null
+  }
+  contact: {
+    id: string
+    fullName: string
+    classification: string
+    primaryEmail: string | null
+    primaryPhone: string | null
+  }
+  owner: { id: string; fullName: string; email: string } | null
+  campaignName: string | null
+  creativeName: string | null
+}
+
+const getEntryDetailsSchema = z.object({
+  entryId: z.string().uuid(),
+})
+
+export async function getEntryDetailsAction(
+  rawInput: unknown,
+): Promise<ActionResult<EntryDetails>> {
+  return toActionResult(async () => {
+    const ctx = await requireSession()
+    const input = getEntryDetailsSchema.parse(rawInput)
+    await requirePermission(ctx, 'funnel.manage', { kind: 'global' })
+
+    const entry = await db.query.funnelEntry.findFirst({
+      where: eq(funnelEntry.id, input.entryId),
+    })
+    if (!entry) throw new ActionError('NOT_FOUND', 'Entry nao encontrado')
+
+    const contactRow = await db.query.contact.findFirst({
+      where: eq(contact.id, entry.contactId),
+    })
+    if (!contactRow) throw new ActionError('NOT_FOUND', 'Contact nao encontrado')
+
+    const emailRow = await db.query.contactEmail.findFirst({
+      where: eq(contactEmail.contactId, entry.contactId),
+      orderBy: (t) => [desc(t.createdAt)],
+    })
+    const phoneRow = await db.query.contactPhone.findFirst({
+      where: eq(contactPhone.contactId, entry.contactId),
+      orderBy: (t) => [desc(t.createdAt)],
+    })
+
+    let ownerRow: { id: string; fullName: string; email: string } | null = null
+    if (entry.ownerUserId) {
+      const ua = await db.query.userAccount.findFirst({
+        where: eq(userAccount.id, entry.ownerUserId),
+      })
+      if (ua) ownerRow = { id: ua.id, fullName: ua.fullName, email: ua.email }
+    }
+
+    let campaignName: string | null = null
+    if (entry.entryCampaignId) {
+      const camp = await db.query.campaign.findFirst({
+        where: eq(campaign.id, entry.entryCampaignId),
+      })
+      campaignName = camp?.name ?? null
+    }
+
+    let creativeName: string | null = null
+    if (entry.entryCreativeId) {
+      const creat = await db.query.creative.findFirst({
+        where: eq(creative.id, entry.entryCreativeId),
+      })
+      creativeName = creat?.name ?? null
+    }
+
+    return {
+      entry: {
+        id: entry.id,
+        funnelId: entry.funnelId,
+        contactId: entry.contactId,
+        currentStageId: entry.currentStageId,
+        label: entry.label,
+        score: entry.score,
+        entryDate: entry.entryDate,
+        entryOrigin: entry.entryOrigin,
+        entryCampaignId: entry.entryCampaignId,
+        entryCreativeId: entry.entryCreativeId,
+        ownerUserId: entry.ownerUserId,
+        lostReason: entry.lostReason,
+      },
+      contact: {
+        id: contactRow.id,
+        fullName: contactRow.fullName,
+        classification: contactRow.classification,
+        primaryEmail: emailRow?.email ?? null,
+        primaryPhone: phoneRow?.e164 ?? null,
+      },
+      owner: ownerRow,
+      campaignName,
+      creativeName,
+    } satisfies EntryDetails
+  })
+}
+
+// ---------------------------------------------------------------------------
+// getEntryTimelineAction  (T-12-18)
+// ---------------------------------------------------------------------------
+
+export type EntryTimelineEvent = {
+  id: string
+  kind: string
+  source: string
+  actorName: string | null
+  actorSystem: string | null
+  occurredAt: Date
+  payload: Record<string, unknown>
+}
+
+const getEntryTimelineSchema = z.object({
+  entryId: z.string().uuid(),
+})
+
+export async function getEntryTimelineAction(
+  rawInput: unknown,
+): Promise<ActionResult<EntryTimelineEvent[]>> {
+  return toActionResult(async () => {
+    const ctx = await requireSession()
+    const input = getEntryTimelineSchema.parse(rawInput)
+    await requirePermission(ctx, 'funnel.manage', { kind: 'global' })
+
+    const rows = await db
+      .select({
+        id: timelineEvent.id,
+        kind: timelineEvent.kind,
+        source: timelineEvent.source,
+        actorName: userAccount.fullName,
+        actorSystem: timelineEvent.actorSystem,
+        occurredAt: timelineEvent.occurredAt,
+        payload: timelineEvent.payload,
+      })
+      .from(timelineEvent)
+      .leftJoin(userAccount, eq(timelineEvent.actorUserId, userAccount.id))
+      .where(eq(timelineEvent.subjectId, input.entryId))
+      .orderBy(desc(timelineEvent.occurredAt))
+      .limit(100)
+
+    return rows as EntryTimelineEvent[]
+  })
+}
+
+// ---------------------------------------------------------------------------
+// updateEntryAction  (T-12-18)
+// ---------------------------------------------------------------------------
+
+const updateEntrySchema = z.object({
+  id: z.string().uuid(),
+  ownerUserId: z.string().uuid().nullable().optional(),
+})
+
+export async function updateEntryAction(
+  rawInput: unknown,
+): Promise<ReturnType<typeof toActionResult<void>>> {
+  return toActionResult(async () => {
+    const ctx = await requireSession()
+    const input = updateEntrySchema.parse(rawInput)
+    await requirePermission(ctx, 'funnel.manage', { kind: 'global' })
+
+    await db.transaction(async (tx) => {
+      await tx
+        .update(funnelEntry)
+        .set({
+          ...(input.ownerUserId !== undefined ? { ownerUserId: input.ownerUserId } : {}),
+          updatedAt: new Date(),
+        })
+        .where(eq(funnelEntry.id, input.id))
+
+      await logAudit(tx, {
+        actorUserId: ctx.user.id,
+        actionKind: 'update',
+        resourceKind: 'funnel_entry',
+        resourceId: input.id,
+        after: { owner_user_id: input.ownerUserId ?? null },
+        ip: ctx.ip,
+        userAgent: ctx.userAgent,
+        context: { correlationId: ctx.correlationId },
       })
     })
 

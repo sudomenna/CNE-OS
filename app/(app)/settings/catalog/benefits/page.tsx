@@ -1,11 +1,15 @@
 /**
  * MOD-CATALOG — Página de Benefícios Comerciais
- * Server Component: lista benefícios + Client Component para criar/arquivar.
- * Spec: docs/20-domain/09-catalog.md §3.3, T-6-04
+ * Server Component: lista benefícios + formulários de criar/editar/arquivar.
+ * Spec: docs/20-domain/09-catalog.md §3.3, T-6-04, T-12-26
  */
 
 import { listBenefitsAction, listBrandsForBenefitSelectAction } from './actions'
-import { BenefitsClient } from './benefits-client'
+import {
+  CatalogBenefitCreateForm,
+  CatalogBenefitEditForm,
+  CatalogBenefitArchiveDialog,
+} from '@/components/settings/catalog-benefit-form'
 
 export const metadata = {
   title: 'Benefícios — Catálogo',
@@ -29,7 +33,7 @@ export default async function BenefitsPage() {
             Gerencie benefícios reutilizáveis (grupos VIP, certificados, mentorias) por marca.
           </p>
         </div>
-        <BenefitsClient brands={brands} mode="create-only" />
+        <CatalogBenefitCreateForm brands={brands} />
       </div>
 
       {!benefitsResult.ok && (
@@ -100,14 +104,15 @@ export default async function BenefitsPage() {
                     {new Date(b.createdAt).toLocaleDateString('pt-BR')}
                   </td>
                   <td className="px-4 py-3">
-                    {b.status === 'active' && (
-                      <BenefitsClient
-                        brands={brands}
-                        mode="archive-only"
-                        benefitId={b.id}
-                        benefitName={b.name}
-                      />
-                    )}
+                    <div className="flex items-center gap-2">
+                      <CatalogBenefitEditForm benefit={b} />
+                      {b.status === 'active' && (
+                        <CatalogBenefitArchiveDialog
+                          benefitId={b.id}
+                          benefitName={b.name}
+                        />
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))

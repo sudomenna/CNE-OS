@@ -18,10 +18,14 @@ import { db } from '@/lib/db/client'
 import { requireSession } from '@/lib/auth/session'
 import { requirePermission } from '@/lib/auth/permissions'
 import { toActionResult } from '@/lib/actions/result'
+import { eq, isNull, and, desc } from 'drizzle-orm'
 import { openTicket } from '@/lib/domain/ticket/open'
 import { setTicketStatus } from '@/lib/domain/ticket/set-status'
 import { assignTicket } from '@/lib/domain/ticket/assign'
 import { addTicketNote } from '@/lib/domain/ticket/add-note'
+import { updateTicket } from '@/lib/domain/ticket/update'
+import { timelineEvent } from '@/lib/db/schema/timeline'
+import { userAccount } from '@/lib/db/schema/organization'
 
 // ---------------------------------------------------------------------------
 // Zod schemas
@@ -194,5 +198,128 @@ export async function addTicketNoteAction(rawInput: unknown) {
     revalidatePath(`/tickets/${input.ticketId}`)
 
     return { noteId: result.id }
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Zod schemas — new actions (T-12-30)
+// ---------------------------------------------------------------------------
+
+const updateTicketFieldSchema = z.object({
+  id: z.string().uuid('id deve ser UUID'),
+  field: z.enum(['title', 'description', 'category', 'priority']),
+  value: z.string(),
+})
+
+const getTicketTimelineSchema = z.string().uuid('ticketId deve ser UUID')
+
+// ---------------------------------------------------------------------------
+// New Server Actions (T-12-30)
+// ---------------------------------------------------------------------------
+
+/**
+ * updateTicketAction — atualiza campo individual do ticket (inline edit).
+ * Guard: ticket.open
+ */
+export async function updateTicketAction(rawInput: unknown) {
+  return toActionResult(async () => {
+    const ctx = await requireSession()
+    await requirePermission(ctx, 'ticket.open', { kind: 'global' })
+
+    const input = updateTicketFieldSchema.parse(rawInput)
+
+    // Build the UpdateTicketInput by field
+    const patch: import('@/lib/domain/ticket/update').UpdateTicketInput = {
+      actorUserId: ctx.user.id,
+    }
+
+    if (input.field === 'title') {
+      const trimmed = input.value.trim()
+      if (!trimmed) throw new Error('Titulo nao pode ser vazio')
+      patch.title = trimmed
+    } else if (input.field === 'description') {
+      patch.description = input.value || null
+    } else if (input.field === 'category') {
+      const validCategories = z.enum([
+        'commercial', 'support', 'financial', 'cancellation',
+        'refund', 'access', 'registration', 'other',
+      ])
+      patch.category = validCategories.parse(input.value)
+    } else if (input.field === 'priority') {
+      const validPriorities = z.enum(['low', 'medium', 'high', 'urgent'])
+      patch.priority = validPriorities.parse(input.value)
+    }
+
+    await db.transaction(async (tx) => {
+      await updateTicket(tx, input.id, patch)
+    })
+
+    revalidatePath(`/tickets/${input.id}`)
+    revalidatePath('/tickets')
+  })
+}
+
+/**
+ * getTicketTimeline — retorna eventos de timeline associados ao ticket.
+ * Guard: ticket.open (leitura)
+ *
+ * Usa subjectKind='ticket' AND subjectId=ticketId diretamente na timeline_event.
+ */
+export async function getTicketTimeline(rawTicketId: unknown) {
+  return toActionResult(async () => {
+    const ctx = await requireSession()
+    await requirePermission(ctx, 'ticket.open', { kind: 'global' })
+
+    const ticketId = getTicketTimelineSchema.parse(rawTicketId)
+
+    const events = await db
+      .select({
+        id: timelineEvent.id,
+        kind: timelineEvent.kind,
+        source: timelineEvent.source,
+        actorUserId: timelineEvent.actorUserId,
+        actorSystem: timelineEvent.actorSystem,
+        payload: timelineEvent.payload,
+        occurredAt: timelineEvent.occurredAt,
+      })
+      .from(timelineEvent)
+      .where(
+        and(
+          eq(timelineEvent.subjectKind, 'ticket'),
+          eq(timelineEvent.subjectId, ticketId),
+        ),
+      )
+      .orderBy(desc(timelineEvent.occurredAt))
+      .limit(100)
+
+    return events
+  })
+}
+
+/**
+ * listUsersAction — retorna usuários ativos atribuíveis a tickets.
+ * Guard: ticket.open
+ */
+export async function listUsersAction() {
+  return toActionResult(async () => {
+    const ctx = await requireSession()
+    await requirePermission(ctx, 'ticket.open', { kind: 'global' })
+
+    const users = await db
+      .select({
+        id: userAccount.id,
+        name: userAccount.fullName,
+        email: userAccount.email,
+      })
+      .from(userAccount)
+      .where(
+        and(
+          eq(userAccount.isActive, true),
+          isNull(userAccount.deletedAt),
+        ),
+      )
+      .orderBy(userAccount.fullName)
+
+    return users
   })
 }

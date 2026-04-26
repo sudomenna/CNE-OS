@@ -12,9 +12,10 @@
  */
 
 import { z } from 'zod'
+import { eq, count } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { db } from '@/lib/db/client'
-import { conversationInternalNote } from '@/lib/db/schema/conversation'
+import { conversation, conversationInternalNote } from '@/lib/db/schema/conversation'
 import { requireSession } from '@/lib/auth/session'
 import { requirePermission } from '@/lib/auth/permissions'
 import { toActionResult } from '@/lib/actions/result'
@@ -60,6 +61,30 @@ const addInternalNoteSchema = z.object({
 // ---------------------------------------------------------------------------
 // Server Actions
 // ---------------------------------------------------------------------------
+
+/**
+ * getUnreadInboxCount — retorna a contagem de conversas abertas (status = 'open').
+ *
+ * Usado pelo Sidebar para exibir o badge numérico no item Inbox.
+ * Retorna 0 em caso de erro para não bloquear a renderização do layout.
+ *
+ * Guard: inbox.reply (permissão de acesso ao inbox — a mais restritiva disponível na Fase 1)
+ */
+export async function getUnreadInboxCount(): Promise<number> {
+  try {
+    const ctx = await requireSession()
+    await requirePermission(ctx, 'inbox.reply', { kind: 'global' })
+
+    const [row] = await db
+      .select({ value: count() })
+      .from(conversation)
+      .where(eq(conversation.status, 'open'))
+
+    return row?.value ?? 0
+  } catch {
+    return 0
+  }
+}
 
 /**
  * sendMessage — registra mensagem outbound em uma conversa ativa.

@@ -2,24 +2,29 @@
  * /funnels/[id] — Kanban do funil
  *
  * Server Component: carrega funil + estágios + oportunidades ativas (com contato).
- * Renderiza <KanbanBoard> (Client Component) passando dados via props.
+ * Lê cookie `cne_pref_funnel_view` para estado inicial do toggle Board/Lista.
+ * Renderiza <FunnelMetrics> (métricas) + <FunnelBoardClient> (wrapper client).
  *
  * Spec: docs/20-domain/08-funnel-opportunity.md
- * Roadmap: T-5-13
+ * UX: docs/70-ux/05-screen-funnel-board.md §2, §3
+ * Roadmap: T-12-20
  */
 
 import { notFound } from 'next/navigation'
+import { cookies } from 'next/headers'
 import { eq, and, isNull, not, inArray } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import { funnel, funnelStage, funnelEntry } from '@/lib/db/schema/funnel'
 import { contact } from '@/lib/db/schema/contact'
-import { KanbanBoard } from '@/components/funnel/kanban'
+import { FunnelMetrics } from '@/components/funnel/funnel-metrics'
+import { FunnelBoardClient } from '@/components/funnel/funnel-board-client'
 import type { KanbanFunnel } from '@/components/funnel/kanban'
 
 export const dynamic = 'force-dynamic'
 
 interface FunnelDetailPageProps {
   params: Promise<{ id: string }>
+  searchParams: Promise<Record<string, string | undefined>>
 }
 
 export async function generateMetadata({ params }: FunnelDetailPageProps) {
@@ -35,10 +40,25 @@ export async function generateMetadata({ params }: FunnelDetailPageProps) {
   }
 }
 
-export default async function FunnelDetailPage({ params }: FunnelDetailPageProps) {
+export default async function FunnelDetailPage({
+  params,
+  searchParams,
+}: FunnelDetailPageProps) {
   const { id } = await params
+  const sp = await searchParams
 
-  // Carrega funil
+  // ---- Lê cookie de preferência de vista ----
+  const cookieStore = await cookies()
+  const prefCookie = cookieStore.get('cne_pref_funnel_view')
+  const initialView: 'board' | 'list' =
+    prefCookie?.value === 'list' ? 'list' : 'board'
+
+  // ---- Filtros via searchParams ----
+  const assignee = sp.assignee ?? null
+  const dateFrom = sp.dateFrom ?? null
+  const dateTo = sp.dateTo ?? null
+
+  // ---- Carrega funil ----
   const [funnelRow] = await db
     .select()
     .from(funnel)
@@ -49,14 +69,14 @@ export default async function FunnelDetailPage({ params }: FunnelDetailPageProps
     notFound()
   }
 
-  // Carrega estágios ordenados por position
+  // ---- Carrega estágios ordenados por position ----
   const stages = await db
     .select()
     .from(funnelStage)
     .where(eq(funnelStage.funnelId, id))
     .orderBy(funnelStage.position)
 
-  // Carrega oportunidades ativas (label NOT IN ('won','lost')) com contato
+  // ---- Carrega oportunidades ativas (label NOT IN ('won','lost')) com contato ----
   const entries = await db
     .select({
       id: funnelEntry.id,
@@ -107,7 +127,7 @@ export default async function FunnelDetailPage({ params }: FunnelDetailPageProps
       {/* Cabeçalho */}
       <div className="flex-shrink-0 px-6 py-4 border-b border-border bg-card">
         <nav aria-label="Breadcrumb" className="text-sm text-muted-foreground mb-1">
-          <a href="/funnels" className="hover:text-muted-foreground transition-colors">
+          <a href="/funnels" className="hover:text-foreground transition-colors">
             Funis
           </a>
           <span className="mx-2" aria-hidden="true">
@@ -118,10 +138,19 @@ export default async function FunnelDetailPage({ params }: FunnelDetailPageProps
         <h1 className="text-xl font-semibold text-foreground">{funnelRow.name}</h1>
       </div>
 
-      {/* Kanban */}
-      <div className="flex-1 overflow-x-auto p-6">
-        <KanbanBoard data={kanbanData} />
+      {/* Métricas */}
+      <div className="flex-shrink-0 px-6 py-4 border-b border-border bg-muted/30">
+        <FunnelMetrics funnelId={id} />
       </div>
+
+      {/* Filtros + Board/Lista — Client wrapper */}
+      <FunnelBoardClient
+        kanbanData={kanbanData}
+        initialView={initialView}
+        assignee={assignee}
+        dateFrom={dateFrom}
+        dateTo={dateTo}
+      />
     </div>
   )
 }

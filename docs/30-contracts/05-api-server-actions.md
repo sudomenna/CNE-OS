@@ -527,8 +527,14 @@ Nota: `issueTrackableLink` gera slug via `crypto.randomBytes(8).toString('hex')`
 | `setOpportunityLabelAction(rawInput)` | `funnel.manage` (admin, marketing, commercial) | `update / funnel_entry` | `/funnels` (layout) |
 | `markWonAction(rawInput)` | `funnel.close` (admin, commercial) | `update / funnel_entry` | `/funnels` (layout) |
 | `markLostAction(rawInput)` | `funnel.close` (admin, commercial) | `update / funnel_entry` | `/funnels` (layout) |
+| `getEntryDetailsAction(rawInput)` | `funnel.manage` | — | — |
+| `getEntryTimelineAction(rawInput)` | `funnel.manage` | — | — |
+| `updateEntryAction(rawInput)` | `funnel.manage` | `update / funnel_entry` | `/funnels` (layout) |
+| `listFunnelEntriesAction(rawInput)` | `funnel.manage` | — | — |
 
 Nota: `moveStageAction` inclui comentário `// BR-FUNNEL-OPPORTUNITY: drag-drop usa SELECT FOR UPDATE via tx` — a transação SQL garante consistência de leitura de `current_stage_id` sem dupla-atualização.
+
+Nota: `listFunnelEntriesAction` aceita filtros opcionais `assignee` (UUID), `dateFrom`, `dateTo` (string ISO-date). Retorna até 500 entries com JOIN em `funnel_stage`, `contact`, `user_account`. Usada pela list view alternativa ao kanban (T-12-20).
 
 ### MOD-FUNNEL — `app/(app)/funnels/[id]/targets/actions.ts`
 
@@ -576,6 +582,7 @@ Nota: `archiveBenefitAction` rejeita com `FORBIDDEN` se o benefício estiver ref
 | Função | Guard | Audit | Revalida |
 |---|---|---|---|
 | `createOfferAction(rawInput)` | `offer.write` (admin, commercial — 2FA) | `create / offer` | `/offers` |
+| `updateOfferAction(rawInput)` | `offer.write` (admin, commercial — 2FA) | `update / offer` | `/offers`, `/offers/[id]` |
 | `publishOfferAction(rawInput)` | `offer.write` (admin, commercial — 2FA) | `update / offer` | `/offers`, `/offers/[id]` |
 | `archiveOfferAction(rawInput)` | `offer.write` (admin, commercial — 2FA) | `update / offer` | `/offers`, `/offers/[id]` |
 | `createConditionAction(rawInput)` | `offer.write` (admin, commercial — 2FA) | `create / offer_condition` | `/offers/[offerId]` |
@@ -586,6 +593,7 @@ Nota: `archiveBenefitAction` rejeita com `FORBIDDEN` se o benefício estiver ref
 | `addPaymentOptionAction(rawInput)` | `offer.write` (admin, commercial — 2FA) | `create / offer_payment_option` | `/offers/[offerId]` |
 
 Notas:
+- `updateOfferAction` atualiza `name`, `slug`, `description`, `type`, `renewsOfferId`. Campos imutáveis (`brandId`, `issuingLegalEntityId`) não são aceitos. Rejeita se `status='archived'`. INV-OFFER-04: `type='renewal'` exige `renewsOfferId`.
 - `publishOfferAction` rejeita com `VALIDATION_FAILED` + `rule: 'INV-OFFER-01'` se não existir condição padrão (`is_default=true`) com `status='active'`.
 - `createRuleAction` chama `validateRuleParams(kind, params)` antes de persistir; rejeita com `VALIDATION_FAILED` se params não conformam ao schema canônico do kind.
 - `updateConditionPriorityAction` registra em `offer_condition_priority_history` (INV-OFFER-02) na mesma transação.
@@ -618,6 +626,38 @@ RBAC novas ações adicionadas em `lib/auth/rbac/types.ts` e `lib/auth/rbac/matr
 Nota: `reprocessWebhook` aplica `SELECT FOR UPDATE` para evitar corrida (FLOW-12 §E-04); reseta `status='received', attempts=0, lastError=null`; enfileira `digital-guru/webhook.received` no Inngest fora da transação SQL. Apenas `status IN ('failed', 'dead_letter')` pode ser reprocessado — outros retornam `CONFLICT`.
 
 Nota RBAC: `webhook.reprocess` é nova ação na matriz (admin, financial, requires2fa=true). Adicionada em `lib/auth/rbac/types.ts` e `lib/auth/rbac/matrix.ts` para satisfazer FLOW-12 §pré-condições.
+
+### MOD-CONTACT — `app/(app)/contacts/[id]/notes/actions.ts` (T-12-14)
+
+| Função | Guard | Audit | Revalida |
+|---|---|---|---|
+| `createNoteAction(rawInput)` | `contact.write` (todos os roles autenticados) | — | `/contacts/[id]` |
+| `updateNoteAction(rawInput)` | `contact.write` + ownership (só autor) | — | `/contacts/[id]` |
+| `deleteNoteAction(rawInput)` | `contact.write` + ownership (só autor) | — | `/contacts/[id]` |
+| `listNotesAction(rawInput)` | `requireSession` | — | — |
+
+Notas:
+- `updateNoteAction` e `deleteNoteAction` verificam `authorUserId === ctx.user.id` e lançam `UNAUTHORIZED` com `rule: 'BR-RBAC'` se o usuário não for o autor.
+- `listNotesAction` faz JOIN com `user_account` para retornar `authorEmail` e `authorName`.
+- Todas as notas têm `pinned=false` no create; campo existe no schema para uso futuro.
+
+### MOD-TICKET — `app/(app)/tickets/actions.ts`
+
+| Função | Guard | Audit | Revalida |
+|---|---|---|---|
+| `openTicketAction(rawInput)` | `ticket.open` (todos os roles autenticados) | — | `/tickets` |
+| `changeTicketStatusAction(rawInput)` | `ticket.open` / `ticket.cancel` (cancelamento) | — | `/tickets`, `/tickets/[id]` |
+| `assignTicketAction(rawInput)` | `ticket.open` | — | `/tickets`, `/tickets/[id]` |
+| `assignTicketToMeAction(ticketId)` | `ticket.open` | — | `/tickets`, `/tickets/[id]` |
+| `addTicketNoteAction(rawInput)` | `ticket.open` | — | `/tickets/[id]` |
+| `updateTicketAction(rawInput)` | `ticket.open` | — | `/tickets/[id]`, `/tickets` |
+| `getTicketTimeline(rawTicketId)` | `ticket.open` | — | — |
+| `listUsersAction()` | `ticket.open` | — | — |
+
+Notas (T-12-30):
+- `updateTicketAction` atualiza campo individual (`title`, `description`, `category`, `priority`) e delega a `updateTicket(tx, id, patch)` do domínio. Emite `TE-TICKET-UPDATED`.
+- `getTicketTimeline` consulta `timeline_event WHERE subject_kind='ticket' AND subject_id=ticketId`, ordenado por `occurred_at DESC`, limite 100.
+- `listUsersAction` retorna `user_account WHERE is_active=true AND deleted_at IS NULL`, ordenado por `full_name`.
 
 ### MOD-AUTOMATION — `app/(app)/automations/actions.ts`
 

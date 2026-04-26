@@ -1,24 +1,30 @@
 /**
  * MOD-CATALOG — Página de Produtos
- * Server Component: lista produtos + Client Component para criar/arquivar.
- * Spec: docs/20-domain/09-catalog.md §2, T-6-04
+ * Server Component: lista produtos + formulários de criar/editar/arquivar.
+ * Spec: docs/20-domain/09-catalog.md §2, T-6-04, T-12-26
  */
 
-import { listProductsAction, listBrandsForSelectAction } from './actions'
-import { ProductsClient } from './products-client'
+import { listProductsAction, listBrandsForSelectAction, listCategoriesForSelectAction } from './actions'
+import {
+  CatalogProductCreateForm,
+  CatalogProductEditForm,
+  CatalogProductArchiveDialog,
+} from '@/components/settings/catalog-product-form'
 
 export const metadata = {
   title: 'Produtos — Catálogo',
 }
 
 export default async function ProductsPage() {
-  const [productsResult, brandsResult] = await Promise.all([
+  const [productsResult, brandsResult, categoriesResult] = await Promise.all([
     listProductsAction(),
     listBrandsForSelectAction(),
+    listCategoriesForSelectAction(),
   ])
 
   const products = productsResult.ok ? productsResult.data : []
   const brands = brandsResult.ok ? brandsResult.data : []
+  const categories = categoriesResult.ok ? categoriesResult.data : []
 
   return (
     <div className="space-y-6">
@@ -29,7 +35,7 @@ export default async function ProductsPage() {
             Gerencie o catálogo de produtos por marca.
           </p>
         </div>
-        <ProductsClient brands={brands} mode="create-only" />
+        <CatalogProductCreateForm brands={brands} categories={categories} />
       </div>
 
       {!productsResult.ok && (
@@ -86,14 +92,18 @@ export default async function ProductsPage() {
                     {new Date(p.createdAt).toLocaleDateString('pt-BR')}
                   </td>
                   <td className="px-4 py-3">
-                    {p.status === 'active' && (
-                      <ProductsClient
-                        brands={brands}
-                        mode="archive-only"
-                        productId={p.id}
-                        productName={p.name}
+                    <div className="flex items-center gap-2">
+                      <CatalogProductEditForm
+                        product={p}
+                        categories={categories}
                       />
-                    )}
+                      {p.status === 'active' && (
+                        <CatalogProductArchiveDialog
+                          productId={p.id}
+                          productName={p.name}
+                        />
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))

@@ -358,6 +358,26 @@ export async function assignTicket(
 ): Promise<void>;
 ```
 
+### `updateTicket`
+
+```ts
+export type UpdateTicketInput = {
+  title?: string;
+  description?: string | null;
+  category?: TicketCategory;
+  priority?: TicketPriority;
+  actorUserId: string;
+};
+
+export async function updateTicket(
+  tx: DbTx,
+  ticketId: string,
+  input: UpdateTicketInput,
+): Promise<Ticket>;
+```
+- **Pós:** emite `TE-TICKET-UPDATED` com `payload.fields` listando os campos alterados.
+- **Lança:** `TicketNotFoundError` se `ticketId` não existir.
+
 ---
 
 ## MOD-CAMPAIGN

@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import Link from 'next/link'
 import type { Route } from 'next'
 import { and, eq, ilike, isNull, or, sql } from 'drizzle-orm'
@@ -7,6 +8,10 @@ import { contact } from '@/lib/db/schema/contact'
 import type { ContactRow } from '@/components/contact/contact-list'
 import { ContactList } from '@/components/contact/contact-list'
 import { ContactFilters } from '@/components/contact/contact-filters'
+import {
+  ContactListSkeleton,
+  ContactListEmptyState,
+} from '@/components/contact/contact-list-skeleton'
 
 export const metadata = {
   title: 'Contatos — CNE-OS',
@@ -20,6 +25,58 @@ interface PageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }
 
+// ---------------------------------------------------------------------------
+// Async sub-component — isolado para Suspense streaming
+// ---------------------------------------------------------------------------
+
+interface ContactListDataProps {
+  search?: string | undefined
+  classification?: ContactClassification | undefined
+  page: number
+}
+
+async function ContactListData({ search, classification, page }: ContactListDataProps) {
+  const whereConditions = [
+    isNull(contact.deletedAt),
+    isNull(contact.mergedIntoId),
+    ...(classification ? [eq(contact.classification, classification)] : []),
+    ...(search
+      ? [
+          or(
+            ilike(contact.fullName, `%${search}%`),
+            ilike(sql<string>`coalesce(${contact.cpf}, '')`, `%${search}%`),
+          ),
+        ]
+      : []),
+  ]
+
+  const contacts = await db
+    .select({
+      id: contact.id,
+      fullName: contact.fullName,
+      cpf: contact.cpf,
+      status: contact.status,
+      classification: contact.classification,
+      origin: contact.origin,
+      createdAt: contact.createdAt,
+    })
+    .from(contact)
+    .where(and(...whereConditions))
+    .orderBy(contact.createdAt)
+    .limit(PAGE_SIZE)
+    .offset((page - 1) * PAGE_SIZE)
+
+  if (contacts.length === 0) {
+    return <ContactListEmptyState />
+  }
+
+  return <ContactList contacts={contacts as ContactRow[]} />
+}
+
+// ---------------------------------------------------------------------------
+// Page
+// ---------------------------------------------------------------------------
+
 export default async function ContactsPage({ searchParams }: PageProps) {
   const params = await searchParams
   const search = typeof params['search'] === 'string' ? params['search'].trim() : undefined
@@ -29,7 +86,7 @@ export default async function ContactsPage({ searchParams }: PageProps) {
       : undefined
   const page = Math.max(1, Number(params['page'] ?? '1'))
 
-  // Build where conditions
+  // Count query runs in parallel with the main data (both inside ContactListData Suspense boundary)
   const whereConditions = [
     isNull(contact.deletedAt),
     isNull(contact.mergedIntoId),
@@ -38,40 +95,20 @@ export default async function ContactsPage({ searchParams }: PageProps) {
       ? [
           or(
             ilike(contact.fullName, `%${search}%`),
-            // CPF is nullable; cast to text so ilike works safely on non-null rows
             ilike(sql<string>`coalesce(${contact.cpf}, '')`, `%${search}%`),
           ),
         ]
       : []),
   ]
 
-  const [contacts, countResult] = await Promise.all([
-    db
-      .select({
-        id: contact.id,
-        fullName: contact.fullName,
-        cpf: contact.cpf,
-        status: contact.status,
-        classification: contact.classification,
-        origin: contact.origin,
-        createdAt: contact.createdAt,
-      })
-      .from(contact)
-      .where(and(...whereConditions))
-      .orderBy(contact.createdAt)
-      .limit(PAGE_SIZE)
-      .offset((page - 1) * PAGE_SIZE),
-
-    db
-      .select({ count: sql<number>`cast(count(*) as integer)` })
-      .from(contact)
-      .where(and(...whereConditions)),
-  ])
+  const countResult = await db
+    .select({ count: sql<number>`cast(count(*) as integer)` })
+    .from(contact)
+    .where(and(...whereConditions))
 
   const total = countResult[0]?.count ?? 0
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
-  // Build pagination URLs preserving existing filters
   const buildPageUrl = (p: number) => {
     const qs = new URLSearchParams()
     if (search) qs.set('search', search)
@@ -90,22 +127,21 @@ export default async function ContactsPage({ searchParams }: PageProps) {
             {total} {total === 1 ? 'contato encontrado' : 'contatos encontrados'}
           </p>
         </div>
-        <button
-          type="button"
-          disabled
-          aria-disabled="true"
-          className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground opacity-40 cursor-not-allowed"
-          title="Disponivel em breve"
+        <Link
+          href={'/contacts/new' as Route}
+          className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors"
         >
           Novo Contato
-        </button>
+        </Link>
       </div>
 
       {/* Filters */}
       <ContactFilters />
 
-      {/* Table */}
-      <ContactList contacts={contacts as ContactRow[]} />
+      {/* Table with Suspense streaming */}
+      <Suspense fallback={<ContactListSkeleton rows={PAGE_SIZE > 10 ? 10 : PAGE_SIZE} />}>
+        <ContactListData search={search} classification={classification} page={page} />
+      </Suspense>
 
       {/* Pagination */}
       {totalPages > 1 && (

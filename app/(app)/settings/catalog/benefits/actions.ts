@@ -47,6 +47,19 @@ const archiveBenefitSchema = z.object({
   benefitId: z.string().uuid('benefitId deve ser UUID'),
 })
 
+const updateBenefitSchema = z.object({
+  benefitId: z.string().uuid('benefitId deve ser UUID'),
+  name: z.string().min(2, 'Nome deve ter ao menos 2 caracteres').max(200, 'Nome muito longo'),
+  description: z.string().max(2000).nullable().optional(),
+  autoTag: z
+    .string()
+    .regex(/^[a-z0-9][a-z0-9-]*$/, 'auto_tag deve ser kebab-case')
+    .nullable()
+    .optional(),
+  defaultDurationMonths: z.number().int().positive().nullable().optional(),
+  deliveryStatusRequired: z.boolean().optional().default(false),
+})
+
 // ---------------------------------------------------------------------------
 // createBenefitAction
 // ---------------------------------------------------------------------------
@@ -160,6 +173,73 @@ export async function archiveBenefitAction(rawInput: unknown) {
         resourceId: benefitId,
         before: { status: before.status },
         after: { status: 'archived' },
+        ip: ctx.ip,
+        userAgent: ctx.userAgent,
+        context: { correlationId: ctx.correlationId },
+      })
+
+      return updated!
+    })
+
+    revalidatePath('/settings/catalog/benefits')
+    return result
+  })
+}
+
+// ---------------------------------------------------------------------------
+// updateBenefitAction
+// ---------------------------------------------------------------------------
+
+/**
+ * updateBenefitAction — atualiza benefício comercial (nome, descrição, autoTag, vigência, entrega).
+ * Guard: catalog.write (admin, marketing)
+ * slug é imutável após criação (preserva referências de entitlement existentes).
+ * INV-CATALOG-06: auto_tag kebab-case validado via Zod.
+ */
+export async function updateBenefitAction(rawInput: unknown) {
+  return toActionResult(async () => {
+    const ctx = await requireSession()
+    await requirePermission(ctx, 'catalog.write', { kind: 'catalog' })
+
+    const input = updateBenefitSchema.parse(rawInput)
+
+    const result = await db.transaction(async (tx) => {
+      const [before] = await tx
+        .select({
+          name: commercialBenefit.name,
+          description: commercialBenefit.description,
+          autoTag: commercialBenefit.autoTag,
+          defaultDurationMonths: commercialBenefit.defaultDurationMonths,
+          deliveryStatusRequired: commercialBenefit.deliveryStatusRequired,
+        })
+        .from(commercialBenefit)
+        .where(eq(commercialBenefit.id, input.benefitId))
+        .limit(1)
+
+      if (!before) {
+        throw new ActionError('NOT_FOUND', 'Benefício não encontrado.')
+      }
+
+      const [updated] = await tx
+        .update(commercialBenefit)
+        .set({
+          name: input.name,
+          description: input.description ?? null,
+          autoTag: input.autoTag ?? null,
+          defaultDurationMonths: input.defaultDurationMonths ?? null,
+          deliveryStatusRequired: input.deliveryStatusRequired ?? false,
+          updatedAt: new Date(),
+        })
+        .where(eq(commercialBenefit.id, input.benefitId))
+        .returning()
+
+      await logAudit(tx, {
+        actorUserId: ctx.user.id,
+        actionKind: 'update',
+        resourceKind: 'commercial_benefit',
+        resourceId: input.benefitId,
+        before: { name: before.name, autoTag: before.autoTag },
+        after: { name: input.name, autoTag: input.autoTag ?? null },
         ip: ctx.ip,
         userAgent: ctx.userAgent,
         context: { correlationId: ctx.correlationId },

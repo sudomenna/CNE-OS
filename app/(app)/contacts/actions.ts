@@ -11,9 +11,11 @@ import {
   contactTag,
   contactNote,
   contactStatusHistory,
+  contactCustomField,
 } from '@/lib/db/schema/contact'
 import { resolveContactIdentity } from '@/lib/domain/contact/resolve-identity'
 import type { ContactIssueDraft } from '@/lib/domain/contact/resolve-identity'
+import { normalizeCpf, normalizePhone, normalizeEmail } from '@/lib/domain/contact/normalize'
 import { requireSession } from '@/lib/auth/session'
 import { requirePermission } from '@/lib/auth/permissions'
 import { logAudit } from '@/lib/audit/log'
@@ -373,6 +375,122 @@ export async function changeStatus(contactId: string, toStatus: string, reason?:
     })
 
     revalidatePath(`/contacts/${input.contactId}`)
+  })
+}
+
+// ---------------------------------------------------------------------------
+// createContactAction — T-12-17: formulário /contacts/new
+// ---------------------------------------------------------------------------
+
+const createContactSchema = z.object({
+  name: z.string().min(2, 'Nome deve ter ao menos 2 caracteres'),
+  cpf: z.string().optional(),
+  phone: z.string().optional(),
+  email: z.union([z.string().email('Email inválido'), z.literal('')]).optional(),
+  classification: z
+    .enum(['lead', 'customer', 'student', 'paid_lead'])
+    .default('lead'),
+  tags: z.array(z.string()).default([]),
+  brandId: z.string().uuid('brandId deve ser UUID'),
+  notes: z.string().optional(),
+})
+
+export type CreateContactInput = z.infer<typeof createContactSchema>
+
+/**
+ * createContactAction — cria novo contato a partir do formulário /contacts/new.
+ * Guard: contact.write
+ */
+export async function createContactAction(
+  rawInput: unknown,
+): Promise<import('@/lib/actions/result').ActionResult<{ contactId: string }>> {
+  return toActionResult(async () => {
+    const ctx = await requireSession()
+    await requirePermission(ctx, 'contact.write', { kind: 'global' })
+
+    const input = createContactSchema.parse(rawInput)
+
+    // Normalise CPF and phone before persisting (INV-CONTACT-08)
+    const cpfNormalized = input.cpf?.trim()
+      ? normalizeCpf(input.cpf.trim())
+      : null
+
+    const phoneE164 = input.phone?.trim()
+      ? normalizePhone(input.phone.trim())
+      : null
+
+    const emailNormalized =
+      input.email && input.email.trim() !== ''
+        ? normalizeEmail(input.email.trim())
+        : null
+
+    const result = await db.transaction(async (tx) => {
+      const [created] = await tx
+        .insert(contact)
+        .values({
+          fullName: input.name,
+          cpf: cpfNormalized,
+          origin: 'manual',
+          classification: input.classification,
+          notesSummary: input.notes ?? null,
+        })
+        .returning()
+
+      const contactId = created!.id
+
+      if (phoneE164) {
+        await tx.insert(contactPhone).values({
+          contactId,
+          e164: phoneE164,
+          status: 'primary',
+        })
+      }
+
+      if (emailNormalized) {
+        await tx.insert(contactEmail).values({
+          contactId,
+          email: emailNormalized,
+          status: 'primary',
+        })
+      }
+
+      if (input.tags.length > 0) {
+        await tx.insert(contactTag).values(
+          input.tags.map((tag) => ({
+            contactId,
+            tag: tag.toLowerCase().trim().replace(/\s+/g, '-'),
+            source: 'manual' as const,
+            appliedBy: ctx.user.id,
+          })),
+        ).onConflictDoNothing()
+      }
+
+      // Store brand association via contact_custom_field (key: 'brand_id')
+      await tx.insert(contactCustomField).values({
+        contactId,
+        brandId: input.brandId,
+        key: 'brand_id',
+        value: input.brandId,
+      }).onConflictDoNothing()
+
+      await emitTimelineEvent(
+        {
+          contactId,
+          kind: 'contact_created',
+          source: 'MOD-CONTACT',
+          actorUserId: ctx.user.id,
+          payload: {
+            origin: 'manual',
+          },
+        },
+        tx,
+      )
+
+      return { contactId }
+    })
+
+    revalidatePath('/contacts')
+    return result
   })
 }
 

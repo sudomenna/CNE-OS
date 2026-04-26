@@ -34,6 +34,12 @@ export type Action =
   | 'catalog.write'
   | 'automation.write'
   | 'automation.reprocess'
+  | 'profile.write'
+  | 'audit.read'
+  // BR-RBAC: analytics.read — acesso aos dashboards de analytics
+  | 'analytics.read'
+  // BR-RBAC: transaction.manage — reemitir/cancelar NF-e (admin e financeiro com 2FA)
+  | 'transaction.manage'
 
 export type Resource =
   | { kind: 'global' }
