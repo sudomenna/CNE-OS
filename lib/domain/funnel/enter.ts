@@ -17,6 +17,7 @@ import {
 import type { FunnelEntry } from '@/lib/db/schema/funnel'
 import { emitTimelineEvent } from '@/lib/timeline/emit'
 import { FunnelHasNoStagesError } from './errors'
+import { resolveAttributionForContact } from './attribution'
 
 // ---------------------------------------------------------------------------
 // Input / Output types
@@ -130,6 +131,23 @@ export async function enterFunnel(
     resolvedStageId = firstStage.id
   }
 
+  // FLOW-14 §3: auto-discovery de atribuição de entrada por last-click.
+  // Se entryCampaignId não foi fornecido explicitamente, busca último
+  // campaign_link_clicked do contato na janela de 30 dias.
+  let resolvedEntryCampaignId = entryCampaignId ?? null
+  let resolvedEntryCreativeId = entryCreativeId ?? null
+  let resolvedEntryOrigin = entryOrigin ?? null
+
+  if (!resolvedEntryCampaignId) {
+    const autoAttribution = await resolveAttributionForContact(tx, contactId, 30)
+    if (autoAttribution) {
+      // BR-FUNNEL-OPPORTUNITY §2: preenche entry_* com last-click na janela (FLOW-14).
+      resolvedEntryCampaignId = autoAttribution.campaign_id
+      resolvedEntryCreativeId = autoAttribution.creative_id
+      resolvedEntryOrigin = 'campaign'
+    }
+  }
+
   // INSERT funnel_entry com label='open' (padrão).
   const insertedRows = await tx
     .insert(funnelEntry)
@@ -139,9 +157,9 @@ export async function enterFunnel(
       currentStageId: resolvedStageId,
       ownerUserId: ownerUserId ?? null,
       label: 'open',
-      entryOrigin: entryOrigin ?? null,
-      entryCampaignId: entryCampaignId ?? null,
-      entryCreativeId: entryCreativeId ?? null,
+      entryOrigin: resolvedEntryOrigin,
+      entryCampaignId: resolvedEntryCampaignId,
+      entryCreativeId: resolvedEntryCreativeId,
     })
     .returning()
 
@@ -175,9 +193,9 @@ export async function enterFunnel(
         funnel_id: funnelId,
         funnel_entry_id: newEntry.id,
         initial_stage_id: resolvedStageId,
-        entry_origin: entryOrigin ?? null,
-        entry_campaign_id: entryCampaignId ?? null,
-        entry_creative_id: entryCreativeId ?? null,
+        entry_origin: resolvedEntryOrigin,
+        entry_campaign_id: resolvedEntryCampaignId,
+        entry_creative_id: resolvedEntryCreativeId,
       },
     },
     tx,

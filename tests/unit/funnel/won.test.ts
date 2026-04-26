@@ -75,13 +75,35 @@ const { FunnelEntryNotFoundError, FunnelEntryTerminalError } = await import(
 // Helpers de tx mock
 // ---------------------------------------------------------------------------
 
-/** tx mock para cenário bem-sucedido. */
+/**
+ * tx mock para cenário bem-sucedido.
+ * Sequência: select 1 (funnel_entry) → [entry], select 2 (timeline attribution) → [] (sem clique).
+ * A 2ª chamada de select acontece apenas quando conversionCampaignId não é fornecido.
+ */
 function buildTxHappyPath(entry: ReturnType<typeof makeEntry>) {
+  let callIdx = 0
+
   return {
-    select: vi.fn().mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue([entry]),
-      }),
+    select: vi.fn().mockImplementation(() => {
+      callIdx++
+      const idx = callIdx
+
+      return {
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockImplementation(() => {
+            if (idx === 1) {
+              // busca funnel_entry → entry
+              return Promise.resolve([entry])
+            }
+            // idx 2: timeline attribution → sem clique (retorna via orderBy/limit)
+            return {
+              orderBy: vi.fn().mockReturnValue({
+                limit: vi.fn().mockResolvedValue([]),
+              }),
+            }
+          }),
+        }),
+      }
     }),
     update: vi.fn().mockReturnValue({
       set: vi.fn().mockReturnValue({
@@ -302,13 +324,13 @@ describe('BR-FUNNEL-OPPORTUNITY — markWon', () => {
     )
   })
 
-  // ── Caso 7: conversion_* opcionais são null quando não informados ──────────
+  // ── Caso 7: conversion_* opcionais e sem clique → direct origin ──────────
 
-  describe('CT-FUNNEL-WON-NO-CONVERSION — conversão sem atributos opcionais', () => {
+  describe('CT-FUNNEL-WON-NO-CONVERSION — conversão sem atributos e sem clique → direct', () => {
     it(
-      'given markWon sem conversionCampaignId / conversionCreativeId ' +
+      'given markWon sem conversionCampaignId e sem clique na janela ' +
         'when markWon ' +
-        'then conversion_campaign_id e conversion_creative_id são null no evento',
+        'then conversion_origin=direct, conversion_campaign_id e conversion_creative_id são null',
       async () => {
         const entry = makeEntry('negotiating')
         const tx = buildTxHappyPath(entry)
@@ -318,12 +340,139 @@ describe('BR-FUNNEL-OPPORTUNITY — markWon', () => {
           transactionId: TRANSACTION_ID,
         })
 
+        // FLOW-14 §4: sem clique na janela → conversion_origin='direct'
         expect(emitTimelineEventMock).toHaveBeenCalledWith(
           expect.objectContaining({
             payload: expect.objectContaining({
-              conversion_origin: null,
+              conversion_origin: 'direct',
               conversion_campaign_id: null,
               conversion_creative_id: null,
+            }),
+          }),
+          tx,
+        )
+      },
+    )
+  })
+
+  // ── Caso 8: FLOW-14 auto-discovery de conversão com clique recente ──────────
+
+  describe('FLOW-14 — auto-discovery de conversion attribution por last-click', () => {
+    it(
+      'given markWon sem conversionCampaignId e clique recente em campaign_link_clicked ' +
+        'when markWon ' +
+        'then conversion_campaign_id e conversion_creative_id preenchidos automaticamente',
+      async () => {
+        const entry = makeEntry('open')
+        let callIdx = 0
+
+        const tx = {
+          select: vi.fn().mockImplementation(() => {
+            callIdx++
+            const idx = callIdx
+
+            return {
+              from: vi.fn().mockReturnValue({
+                where: vi.fn().mockImplementation(() => {
+                  if (idx === 1) {
+                    // busca funnel_entry → entry
+                    return Promise.resolve([entry])
+                  }
+                  // idx 2: timeline attribution → clique encontrado
+                  return {
+                    orderBy: vi.fn().mockReturnValue({
+                      limit: vi.fn().mockResolvedValue([
+                        {
+                          id: '00000000-0000-0000-0000-000000000050',
+                          payload: {
+                            campaign_id: CAMPAIGN_ID,
+                            creative_id: CREATIVE_ID,
+                            trackable_link_id: '00000000-0000-0000-0000-000000000032',
+                          },
+                        },
+                      ]),
+                    }),
+                  }
+                }),
+              }),
+            }
+          }),
+          update: vi.fn().mockReturnValue({
+            set: vi.fn().mockReturnValue({
+              where: vi.fn().mockResolvedValue([]),
+            }),
+          }),
+          insert: vi.fn().mockReturnValue({
+            values: vi.fn().mockResolvedValue([]),
+          }),
+        }
+
+        await markWon(tx as unknown as Parameters<typeof markWon>[0], {
+          entryId: ENTRY_ID,
+          transactionId: TRANSACTION_ID,
+        })
+
+        // FLOW-14 §4: clique encontrado → conversion_origin='campaign'
+        expect(emitTimelineEventMock).toHaveBeenCalledWith(
+          expect.objectContaining({
+            payload: expect.objectContaining({
+              conversion_origin: 'campaign',
+              conversion_campaign_id: CAMPAIGN_ID,
+              conversion_creative_id: CREATIVE_ID,
+            }),
+          }),
+          tx,
+        )
+
+        // UPDATE deve ter sido chamado com os campos corretos
+        expect(tx.update).toHaveBeenCalledTimes(1)
+      },
+    )
+  })
+
+  // ── Caso 9: conversionCampaignId explícito bypassa auto-discovery ──────────
+
+  describe('FLOW-14 — conversionCampaignId explícito bypassa auto-discovery', () => {
+    it(
+      'given conversionCampaignId fornecido explicitamente ' +
+        'when markWon ' +
+        'then não chama auto-discovery e usa valor fornecido',
+      async () => {
+        const entry = makeEntry('open')
+        // tx com apenas 1 select (funnel_entry load) — sem attribution call
+        const tx = {
+          select: vi.fn().mockReturnValue({
+            from: vi.fn().mockReturnValue({
+              where: vi.fn().mockResolvedValue([entry]),
+            }),
+          }),
+          update: vi.fn().mockReturnValue({
+            set: vi.fn().mockReturnValue({
+              where: vi.fn().mockResolvedValue([]),
+            }),
+          }),
+          insert: vi.fn().mockReturnValue({
+            values: vi.fn().mockResolvedValue([]),
+          }),
+        }
+
+        await markWon(tx as unknown as Parameters<typeof markWon>[0], {
+          entryId: ENTRY_ID,
+          transactionId: TRANSACTION_ID,
+          conversionCampaignId: CAMPAIGN_ID,
+          conversionCreativeId: CREATIVE_ID,
+          conversionOrigin: 'campaign',
+        })
+
+        // select chamado apenas 1 vez (funnel_entry load, sem attribution)
+        expect(tx.select).toHaveBeenCalledTimes(1)
+
+        expect(emitTimelineEventMock).toHaveBeenCalledWith(
+          expect.objectContaining({
+            payload: expect.objectContaining({
+              conversion_origin: 'campaign',
+              conversion_campaign_id: CAMPAIGN_ID,
+              conversion_creative_id: CREATIVE_ID,
             }),
           }),
           tx,

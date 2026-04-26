@@ -18,6 +18,9 @@ const CONTACT_ID = '00000000-0000-0000-0000-000000000001'
 const FUNNEL_ID = '00000000-0000-0000-0000-000000000002'
 const STAGE_ID = '00000000-0000-0000-0000-000000000003'
 const ENTRY_ID = '00000000-0000-0000-0000-000000000010'
+const CAMPAIGN_ID = '00000000-0000-0000-0000-000000000030'
+const CREATIVE_ID = '00000000-0000-0000-0000-000000000031'
+const LINK_ID = '00000000-0000-0000-0000-000000000032'
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -76,10 +79,15 @@ const { FunnelHasNoStagesError } = await import('../../../lib/domain/funnel/erro
 
 /**
  * tx mock para cenário onde NÃO há entrada ativa, mas há estágio disponível.
- * Simula a sequência: select (empty) → select stages (firstStage) → insert entry → insert history.
+ * Simula a sequência:
+ *   select 1 (funnel_entry) → [] (sem entrada ativa)
+ *   select 2 (funnel_stage) → [firstStage]
+ *   select 3 (timeline_event) → [] (sem clique — sem auto-attribution)
+ *   insert entry → [activeEntry]
+ *   insert history → []
  */
 function buildTxNoActiveEntry() {
-  // Precisamos diferenciar as chamadas: 1ª select → [] (sem entrada ativa), 2ª → [firstStage]
+  // Precisamos diferenciar as chamadas por índice de invocação do select.
   let callIdx = 0
 
   const tx = {
@@ -94,10 +102,17 @@ function buildTxNoActiveEntry() {
               // busca entrada ativa → nenhuma
               return Promise.resolve([])
             }
-            // busca estágios
+            // idx 2 (funnel_stage) e idx 3 (timeline_event attribution) — ambos retornam via orderBy/limit
             return {
               orderBy: vi.fn().mockReturnValue({
-                limit: vi.fn().mockResolvedValue([firstStage]),
+                limit: vi.fn().mockImplementation(() => {
+                  if (idx === 2) {
+                    // busca estágios → primeiro estágio
+                    return Promise.resolve([firstStage])
+                  }
+                  // idx 3: timeline attribution → sem clique
+                  return Promise.resolve([])
+                }),
               }),
             }
           }),
@@ -131,6 +146,8 @@ function buildTxWithActiveEntry() {
 
 /**
  * tx mock para cenário onde funil não tem estágios.
+ * Sequência: select 1 (funnel_entry) → [] (sem ativa), select 2 (funnel_stage) → [] (sem estágios).
+ * Nota: não chega ao select 3 (attribution) pois lança FunnelHasNoStagesError antes.
  */
 function buildTxNoStages() {
   let callIdx = 0
@@ -163,6 +180,9 @@ function buildTxNoStages() {
 
 /**
  * tx mock para cenário com initialStageId fornecido explicitamente.
+ * Sequência: select 1 (funnel_entry) → [] (sem ativa),
+ *            select 2 (timeline attribution) → [] (sem clique).
+ * Não há select de funnel_stage pois initialStageId é fornecido.
  */
 function buildTxWithInitialStageId() {
   let callIdx = 0
@@ -170,9 +190,22 @@ function buildTxWithInitialStageId() {
   const tx = {
     select: vi.fn().mockImplementation(() => {
       callIdx++
+      const idx = callIdx
+
       return {
         from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([]), // sem entrada ativa
+          where: vi.fn().mockImplementation(() => {
+            if (idx === 1) {
+              // busca entrada ativa → nenhuma
+              return Promise.resolve([])
+            }
+            // idx 2: timeline attribution → sem clique
+            return {
+              orderBy: vi.fn().mockReturnValue({
+                limit: vi.fn().mockResolvedValue([]),
+              }),
+            }
+          }),
         }),
       }
     }),
@@ -368,6 +401,175 @@ describe('BR-FUNNEL-OPPORTUNITY — enterFunnel', () => {
           }),
           tx,
         )
+      },
+    )
+  })
+
+  // ── Caso 6: FLOW-14 auto-discovery com clique recente → entry_campaign preenchido
+
+  describe('FLOW-14 — auto-discovery de entry attribution por last-click', () => {
+    it(
+      'given nenhum entryCampaignId e clique recente em campaign_link_clicked ' +
+        'when enterFunnel ' +
+        'then entry_campaign_id e entry_creative_id preenchidos automaticamente',
+      async () => {
+        let callIdx = 0
+
+        // tx mock com clique recente na timeline
+        const tx = {
+          select: vi.fn().mockImplementation(() => {
+            callIdx++
+            const idx = callIdx
+
+            return {
+              from: vi.fn().mockReturnValue({
+                where: vi.fn().mockImplementation(() => {
+                  if (idx === 1) {
+                    // busca entrada ativa → nenhuma
+                    return Promise.resolve([])
+                  }
+                  return {
+                    orderBy: vi.fn().mockReturnValue({
+                      limit: vi.fn().mockImplementation(() => {
+                        if (idx === 2) {
+                          // funnel_stage → first stage
+                          return Promise.resolve([firstStage])
+                        }
+                        // idx 3: timeline attribution → clique encontrado
+                        return Promise.resolve([
+                          {
+                            id: '00000000-0000-0000-0000-000000000050',
+                            payload: {
+                              campaign_id: CAMPAIGN_ID,
+                              creative_id: CREATIVE_ID,
+                              trackable_link_id: LINK_ID,
+                            },
+                          },
+                        ])
+                      }),
+                    }),
+                  }
+                }),
+              }),
+            }
+          }),
+          insert: vi.fn().mockReturnValue({
+            values: vi.fn().mockReturnValue({
+              returning: vi.fn().mockResolvedValue([activeEntry]),
+            }),
+          }),
+        }
+
+        const result = await enterFunnel(
+          tx as unknown as Parameters<typeof enterFunnel>[0],
+          {
+            contactId: CONTACT_ID,
+            funnelId: FUNNEL_ID,
+            actorSystem: 'MOD-FUNNEL',
+          },
+        )
+
+        expect(result.created).toBe(true)
+
+        // Verifica que o INSERT de funnel_entry recebeu os campos de atribuição automáticos.
+        // insert é chamado com funnelEntry table; o .values é encadeado
+        const firstInsertResult = tx.insert.mock.results[0]
+        if (!firstInsertResult) throw new Error('No insert call')
+        const valuesCall = firstInsertResult.value.values.mock.calls[0][0] as Record<string, unknown>
+        expect(valuesCall['entryCampaignId']).toBe(CAMPAIGN_ID)
+        expect(valuesCall['entryCreativeId']).toBe(CREATIVE_ID)
+        expect(valuesCall['entryOrigin']).toBe('campaign')
+
+        // Evento deve refletir os valores de atribuição
+        expect(emitTimelineEventMock).toHaveBeenCalledWith(
+          expect.objectContaining({
+            payload: expect.objectContaining({
+              entry_campaign_id: CAMPAIGN_ID,
+              entry_creative_id: CREATIVE_ID,
+              entry_origin: 'campaign',
+            }),
+          }),
+          tx,
+        )
+      },
+    )
+  })
+
+  // ── Caso 7: FLOW-14 entryCampaignId explícito → não faz auto-discovery ────
+
+  describe('FLOW-14 — entryCampaignId explícito bypassa auto-discovery', () => {
+    it(
+      'given entryCampaignId fornecido explicitamente ' +
+        'when enterFunnel ' +
+        'then não chama resolveAttributionForContact (entry_campaign_id mantido)',
+      async () => {
+        let callIdx = 0
+
+        // tx mock que retornaria clique — mas não deve ser chamado para attribution
+        const tx = {
+          select: vi.fn().mockImplementation(() => {
+            callIdx++
+            const idx = callIdx
+
+            return {
+              from: vi.fn().mockReturnValue({
+                where: vi.fn().mockImplementation(() => {
+                  if (idx === 1) {
+                    return Promise.resolve([]) // sem entrada ativa
+                  }
+                  return {
+                    orderBy: vi.fn().mockReturnValue({
+                      limit: vi.fn().mockImplementation(() => {
+                        if (idx === 2) {
+                          return Promise.resolve([firstStage])
+                        }
+                        // Se chegar aqui, retorna clique (mas não deveria)
+                        return Promise.resolve([
+                          {
+                            id: '00000000-0000-0000-0000-000000000050',
+                            payload: {
+                              campaign_id: '00000000-0000-0000-0000-000000000099',
+                              trackable_link_id: LINK_ID,
+                            },
+                          },
+                        ])
+                      }),
+                    }),
+                  }
+                }),
+              }),
+            }
+          }),
+          insert: vi.fn().mockReturnValue({
+            values: vi.fn().mockReturnValue({
+              returning: vi.fn().mockResolvedValue([activeEntry]),
+            }),
+          }),
+        }
+
+        await enterFunnel(
+          tx as unknown as Parameters<typeof enterFunnel>[0],
+          {
+            contactId: CONTACT_ID,
+            funnelId: FUNNEL_ID,
+            entryCampaignId: CAMPAIGN_ID,
+            entryCreativeId: CREATIVE_ID,
+            entryOrigin: 'campaign',
+            actorSystem: 'MOD-FUNNEL',
+          },
+        )
+
+        // select deve ter sido chamado apenas 2 vezes: ativa check + stages
+        // (sem chamada de attribution)
+        expect(tx.select).toHaveBeenCalledTimes(2)
+
+        // INSERT deve usar o CAMPAIGN_ID explícito
+        const firstInsertResult = tx.insert.mock.results[0]
+        if (!firstInsertResult) throw new Error('No insert call')
+        const valuesCall = firstInsertResult.value.values.mock.calls[0][0] as Record<string, unknown>
+        expect(valuesCall['entryCampaignId']).toBe(CAMPAIGN_ID)
+        expect(valuesCall['entryCreativeId']).toBe(CREATIVE_ID)
+        expect(valuesCall['entryOrigin']).toBe('campaign')
       },
     )
   })

@@ -17,6 +17,7 @@ import {
   FunnelEntryNotFoundError,
   FunnelEntryTerminalError,
 } from './errors'
+import { resolveAttributionForContact } from './attribution'
 
 // ---------------------------------------------------------------------------
 // Errors
@@ -115,15 +116,35 @@ export async function markWon(tx: DbTx, input: MarkWonInput): Promise<void> {
     throw new FunnelEntryTerminalError(entryId, entry.label)
   }
 
+  // FLOW-14 §4: auto-discovery de atribuição de conversão por last-click.
+  // Se conversionCampaignId não foi fornecido explicitamente, busca último
+  // campaign_link_clicked do contato na janela de 30 dias.
+  let resolvedConversionCampaignId = conversionCampaignId ?? null
+  let resolvedConversionCreativeId = conversionCreativeId ?? null
+  let resolvedConversionOrigin = conversionOrigin ?? null
+
+  if (!resolvedConversionCampaignId) {
+    const autoAttribution = await resolveAttributionForContact(tx, entry.contactId, 30)
+    if (autoAttribution) {
+      // BR-FUNNEL-OPPORTUNITY §2: last-click global dentro da janela (FLOW-14 §4).
+      resolvedConversionCampaignId = autoAttribution.campaign_id
+      resolvedConversionCreativeId = autoAttribution.creative_id
+      resolvedConversionOrigin = 'campaign'
+    } else {
+      // FLOW-14 §4: sem clique na janela → conversão direta.
+      resolvedConversionOrigin = resolvedConversionOrigin ?? 'direct'
+    }
+  }
+
   // UPDATE funnel_entry: label='won' + campos de conversão (INV-FUNNEL-06).
   await tx
     .update(funnelEntry)
     .set({
       label: 'won',
       transactionId,
-      conversionOrigin: conversionOrigin ?? null,
-      conversionCampaignId: conversionCampaignId ?? null,
-      conversionCreativeId: conversionCreativeId ?? null,
+      conversionOrigin: resolvedConversionOrigin,
+      conversionCampaignId: resolvedConversionCampaignId,
+      conversionCreativeId: resolvedConversionCreativeId,
       updatedAt: sql`now()`,
     })
     .where(eq(funnelEntry.id, entryId))
@@ -146,9 +167,9 @@ export async function markWon(tx: DbTx, input: MarkWonInput): Promise<void> {
         funnel_id: entry.funnelId,
         funnel_entry_id: entryId,
         transaction_id: transactionId,
-        conversion_origin: conversionOrigin ?? null,
-        conversion_campaign_id: conversionCampaignId ?? null,
-        conversion_creative_id: conversionCreativeId ?? null,
+        conversion_origin: resolvedConversionOrigin,
+        conversion_campaign_id: resolvedConversionCampaignId,
+        conversion_creative_id: resolvedConversionCreativeId,
       },
     },
     tx,

@@ -12,10 +12,11 @@
  *         erro de regra de negócio. Funções puras não têm I/O.
  * ADR-11: funções que mutam estado recebem tx como primeiro argumento.
  */
-import { and, eq, sql } from 'drizzle-orm'
+import { and, eq, gt, sql } from 'drizzle-orm'
 import type { DbTx } from '@/lib/db/client'
 import { trackableLink } from '@/lib/db/schema/campaign'
 import { funnelEntry } from '@/lib/db/schema/funnel'
+import { timelineEvent } from '@/lib/db/schema/timeline'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -113,6 +114,76 @@ export async function resolveAttribution(
     campaign_id: link.campaignId,
     creative_id: link.creativeId ?? null,
     trackable_link_id: link.id,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// resolveAttributionForContact
+// ---------------------------------------------------------------------------
+
+/**
+ * Descobre atribuição automática de campanha para um contato via last-click.
+ *
+ * Algoritmo (FLOW-14 passos 3 e 4 — auto-discovery):
+ * 1. Busca o último evento `campaign_link_clicked` do contato dentro da janela
+ *    de `windowDays` dias em timeline_event.
+ * 2. Se não encontrar → retorna null (sem atribuição).
+ * 3. Extrai campaign_id, creative_id, trackable_link_id do payload JSONB.
+ * 4. Retorna AttributionResult com esses valores.
+ *
+ * BR-FUNNEL-OPPORTUNITY §2: last-click dentro da janela determina atribuição.
+ * FLOW-14 §3/§4: janela padrão 30 dias (OQ-FLOW-14-01: global fase 1).
+ */
+export async function resolveAttributionForContact(
+  tx: DbTx,
+  contactId: string,
+  windowDays: number = 30,
+): Promise<AttributionResult> {
+  // FLOW-14: busca último campaign_link_clicked na janela de atribuição.
+  // payload JSONB contém: { campaign_id?, creative_id?, trackable_link_id, utm? }
+  // conforme campaignLinkClickedPayloadSchema.
+  const windowStart = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000)
+
+  const rows = await tx
+    .select({
+      id: timelineEvent.id,
+      payload: timelineEvent.payload,
+    })
+    .from(timelineEvent)
+    .where(
+      and(
+        eq(timelineEvent.contactId, contactId),
+        eq(timelineEvent.kind, 'campaign_link_clicked'),
+        gt(timelineEvent.occurredAt, windowStart),
+      ),
+    )
+    .orderBy(sql`${timelineEvent.occurredAt} DESC`)
+    .limit(1)
+
+  const row = rows[0]
+  if (!row) {
+    // FLOW-14 E-04: sem clique na janela → sem atribuição automática.
+    return null
+  }
+
+  // Extrair campos do payload JSONB. O payload é unknown em Drizzle (jsonb).
+  const payload = row.payload as Record<string, unknown>
+  const trackableLinkId =
+    typeof payload['trackable_link_id'] === 'string' ? payload['trackable_link_id'] : null
+  const campaignId =
+    typeof payload['campaign_id'] === 'string' ? payload['campaign_id'] : null
+  const creativeId =
+    typeof payload['creative_id'] === 'string' ? payload['creative_id'] : null
+
+  if (!campaignId || !trackableLinkId) {
+    // Payload incompleto — não atribui (campanha arquivada ou link sem campanha).
+    return null
+  }
+
+  return {
+    campaign_id: campaignId,
+    creative_id: creativeId,
+    trackable_link_id: trackableLinkId,
   }
 }
 

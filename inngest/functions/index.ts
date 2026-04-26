@@ -9,5 +9,6 @@ import { subscriptionAdvance } from './subscription-advance'
 import { dunningRetry } from './dunning-retry'
 import { analyticsRefreshHourly } from './analytics-refresh'
 import { automationRun } from './automation-run'
+import { campaignLinkClicked } from './campaign-link-clicked'
 
-export const functions = [helloWorld, instagramInbound, whatsappInbound, emailPoll, digitalGuruProcess, notazzSend, installmentSweep, subscriptionAdvance, dunningRetry, analyticsRefreshHourly, automationRun]
+export const functions = [helloWorld, instagramInbound, whatsappInbound, emailPoll, digitalGuruProcess, notazzSend, installmentSweep, subscriptionAdvance, dunningRetry, analyticsRefreshHourly, automationRun, campaignLinkClicked]

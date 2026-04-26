@@ -243,3 +243,56 @@ export const contentLibraryItem = pgTable(
 
 export type ContentLibraryItem = InferSelectModel<typeof contentLibraryItem>
 export type NewContentLibraryItem = InferInsertModel<typeof contentLibraryItem>
+
+// ---------------------------------------------------------------------------
+// trackable_link_click_anonymous
+// Registra cliques de visitantes não-identificados para resolução retroativa
+// (FLOW-14 passo 2 / E-03). Purge automático em 90 dias via pg_cron.
+//
+// Append-only por natureza: não faz sentido UPDATE (o clique já ocorreu).
+// Sem updated_at / deleted_at — tabela leve, sem trigger de updated_at.
+// ON DELETE CASCADE para trackable_link: se o link for removido, os cliques
+// anônimos perdem utilidade e devem ser apagados junto.
+// ---------------------------------------------------------------------------
+
+export const trackableLinkClickAnonymous = pgTable(
+  'trackable_link_click_anonymous',
+  {
+    // FLOW-14: UUID v4 default (gen_random_uuid) — cliques anônimos não precisam
+    // de ordenação por UUID; volume alto tornaria UUID v7 menos relevante aqui.
+    id: uuid('id').primaryKey().defaultRandom(),
+
+    // FLOW-14 passo 2: FK para o link clicado — CASCADE semântico: link removido
+    // implica cliques anônimos sem propósito.
+    trackableLinkId: uuid('trackable_link_id')
+      .notNull()
+      .references(() => trackableLink.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+
+    // Identificador de sessão anônima (cookie de primeira visita, ex.: cne_sid).
+    // Usado para correlacionar o clique com identificação posterior (E-03).
+    sessionId: text('session_id').notNull(),
+
+    // Snapshot imutável das UTMs no momento do clique.
+    // docs/30-contracts/02-db-schema-conventions.md §7
+    utmSnapshot: jsonb('utm_snapshot').notNull(),
+
+    // Metadados de rede — nullable (edge functions podem não ter acesso a ambos).
+    ip: text('ip'),
+    userAgent: text('user_agent'),
+
+    // FLOW-14 E-03: createdAt usado como occurred_at ao emitir TE-CAMPAIGN-CLICK retroativo.
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    // Garante que a mesma sessão não registre dois cliques no mesmo link
+    // (idempotência do redirector em double-submit / retry).
+    uniqueIndex('uq_anon_click_session_link').on(t.sessionId, t.trackableLinkId),
+    // Lookup por sessão + tempo — usado pelo job de resolução retroativa (E-03).
+    index('idx_anon_click_session').on(t.sessionId, t.createdAt),
+    // Lookup por link — usado para métricas de CTR anônimo.
+    index('idx_anon_click_link').on(t.trackableLinkId),
+  ],
+)
+
+export type TrackableLinkClickAnonymous = InferSelectModel<typeof trackableLinkClickAnonymous>
+export type NewTrackableLinkClickAnonymous = InferInsertModel<typeof trackableLinkClickAnonymous>

@@ -27,6 +27,12 @@ export const campaignLinkClickedSchema = z.object({
   // utm snapshot — estrutura livre (jsonb), capturada do trackable_link.utm
   utm_snapshot: z.record(z.string(), z.unknown()),
 
+  // FLOW-14: identificação do contato (pode ser null para cliques anônimos)
+  contact_id: z.string().uuid().nullable().optional(),
+
+  // FLOW-14: session_id — gerado no redirector se ausente (cookie cne_sid)
+  session_id: z.string().uuid().optional(),
+
   // context de transporte — opcionais
   ip: z.string().optional(),
   user_agent: z.string().optional(),
