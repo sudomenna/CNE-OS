@@ -45,6 +45,18 @@ Motivo: <por que divergiu>
 Ação: <atualizar doc em <quando> | deliberadamente mantido>
 ```
 
+#### 2026-04-26 · @cne-domain-author · [SYNC-PENDING] · MOD-CHANNEL · T-15-03
+Doc afetada: `docs/30-contracts/07-module-interfaces.md` (§MOD-CHANNEL — seção ainda não existe)
+Divergência: `lib/domain/channel/index.ts` expõe `createChannelAccount`, `updateChannelAccount`, `listChannelsByBrand`, `getChannelCredentials` + tipos + erros. `lib/db/crypto.ts` expõe `encryptCredentials`, `decryptCredentials`, `CredentialEnvelope`, `CryptoConfigError`. Nenhum dos dois documentados em `07-module-interfaces.md`.
+Motivo: T-15-03 cria o domínio; doc-sync serial é T-15-06.
+Ação: documentar §MOD-CHANNEL + `lib/db/crypto.ts` em `07-module-interfaces.md` em T-15-06.
+
+#### 2026-04-26 · @cne-domain-author · [SYNC-PENDING] · MOD-RBAC · T-15-01
+Doc afetada: `docs/30-contracts/07-module-interfaces.md` (§MOD-RBAC — seção ainda não existe)
+Divergência: `lib/domain/rbac/index.ts` expõe `grantPermission`, `revokePermission`, `listRoleMatrix` + tipos `RoleMatrix`, `RoleMatrixRole`, `RoleMatrixPermission`, `RoleMatrixAssignment` + erros `RbacDomainError`, `RoleNotFound`, `PermissionNotFound`, `CannotModifyAdminRole`. Não há domain doc `docs/20-domain/rbac.md` nem seção §MOD-RBAC em `07-module-interfaces.md`.
+Motivo: T-15-01 cria o domínio; doc-sync serial é T-15-06.
+Ação: documentar §MOD-RBAC em `07-module-interfaces.md` em T-15-06.
+
 #### 2026-04-25 · @cne-domain-author · [SYNC-PENDING] · MOD-AUTOMATION · T-11-08
 Doc afetada: `lib/timeline/schemas/index.ts` (KIND_REGISTRY — fora do ownership de MOD-AUTOMATION)
 Divergência: T-11-08 adicionou dois kinds ao KIND_REGISTRY de MOD-TIMELINE:
