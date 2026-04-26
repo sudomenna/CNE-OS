@@ -10,8 +10,8 @@ import { db } from '@/lib/db/client'
 import { webhookLog } from '@/lib/db/schema/webhook-log'
 import { eq, and, desc } from 'drizzle-orm'
 import { IntegrationCard } from '@/components/settings/integration-card'
-import { INTEGRATION_PROVIDERS } from './actions'
-import type { ProviderKey } from './actions'
+import { INTEGRATION_PROVIDERS } from './constants'
+import type { ProviderKey } from './constants'
 
 export const metadata = {
   title: 'Integrações — Configurações',

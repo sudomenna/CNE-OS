@@ -22,7 +22,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { testIntegrationAction } from '@/app/(app)/settings/integrations/actions'
-import type { ProviderKey } from '@/app/(app)/settings/integrations/actions'
+import type { ProviderKey } from '@/app/(app)/settings/integrations/constants'
 
 // ---------------------------------------------------------------------------
 // Props
