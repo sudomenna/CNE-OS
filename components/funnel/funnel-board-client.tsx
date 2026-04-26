@@ -41,6 +41,8 @@ export type FunnelBoardClientProps = {
   assignee?: string | null
   dateFrom?: string | null
   dateTo?: string | null
+  /** userId para namespace do localStorage de preferência de colunas (ADR-19, T-16-08) */
+  userId: string
 }
 
 // ---------------------------------------------------------------------------
@@ -65,6 +67,7 @@ export function FunnelBoardClient({
   assignee: initialAssignee,
   dateFrom: initialDateFrom,
   dateTo: initialDateTo,
+  userId,
 }: FunnelBoardClientProps) {
   const router = useRouter()
   const pathname = usePathname()
@@ -261,6 +264,7 @@ export function FunnelBoardClient({
             assignee={assignee || null}
             dateFrom={dateFrom || null}
             dateTo={dateTo || null}
+            userId={userId}
           />
         </div>
       )}

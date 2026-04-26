@@ -2,6 +2,7 @@
  * /campaigns/[id] — Detalhe da campanha: lista criativos e links rastreáveis.
  * Server Component — lê DB via Drizzle.
  * T-5-06: detalhe com criativos e links + preview UTM antes de publicar.
+ * T-16-09: extração da tabela de criativos para CreativeList (client component com ColumnsCustomizer).
  * Spec: docs/20-domain/07-campaign-creative.md
  */
 
@@ -14,7 +15,9 @@ import { db } from '@/lib/db/client'
 import { campaign, creative, trackableLink } from '@/lib/db/schema/campaign'
 import { brand } from '@/lib/db/schema/organization'
 import { funnel } from '@/lib/db/schema/funnel'
+import { requireSession } from '@/lib/auth/session'
 import { CreativeForm } from '@/components/campaign/creative-form'
+import { CreativeList } from '@/components/campaign/creative-list'
 import { TrackableLinkForm } from '@/components/campaign/trackable-link-form'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -31,6 +34,10 @@ interface PageProps {
 
 export default async function CampaignDetailPage({ params }: PageProps) {
   const { id } = await params
+
+  // Obter userId para namespacing das preferências de colunas (ADR-19)
+  const session = await requireSession().catch(() => null)
+  const userId = session?.user.id ?? 'anonymous'
 
   // Fetch campaign with brand + funnel
   const [campaignRow] = await db
@@ -174,50 +181,7 @@ export default async function CampaignDetailPage({ params }: PageProps) {
             </div>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-lg border border-border bg-card">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted/50">
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Nome
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground hidden md:table-cell">
-                    Slug
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Canal
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground hidden sm:table-cell">
-                    Criado em
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {creatives.map((cr) => (
-                  <tr key={cr.id} className="hover:bg-muted/50 transition-colors">
-                    <td className="px-4 py-3 font-medium text-foreground">{cr.name}</td>
-                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground hidden md:table-cell">
-                      {cr.slug}
-                    </td>
-                    <td className="px-4 py-3">
-                      {cr.channel ? (
-                        <Badge variant="secondary" className="text-xs">
-                          {cr.channel}
-                        </Badge>
-                      ) : (
-                        <span className="text-muted-foreground/40 text-xs">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground/60 hidden sm:table-cell">
-                      <time dateTime={cr.createdAt.toISOString()}>
-                        {new Date(cr.createdAt).toLocaleDateString('pt-BR')}
-                      </time>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <CreativeList creatives={creatives} userId={userId} />
         )}
       </section>
 

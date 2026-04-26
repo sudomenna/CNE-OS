@@ -2,6 +2,7 @@
  * /billing/subscriptions — Lista de assinaturas.
  * Server Component.
  * T-9-14: docs/20-domain/13-subscription-billing.md §3.1, §6.1
+ * T-16-10: tabela extraída para SubscriptionList (client component) com ColumnsCustomizer.
  *
  * Filtros: status
  * Paginação: page/pageSize
@@ -11,8 +12,9 @@
 import Link from 'next/link'
 import type { Route } from 'next'
 import { Badge } from '@/components/ui/badge'
-import { SubscriptionCard } from '@/components/billing/subscription-card'
+import { SubscriptionList } from '@/components/billing/subscription-list'
 import { listSubscriptionsAction } from './queries'
+import { requireSession } from '@/lib/auth/session'
 
 export const metadata = {
   title: 'Assinaturas — CNE-OS',
@@ -52,6 +54,10 @@ export default async function SubscriptionsPage({ searchParams }: PageProps) {
   const selectedStatus = VALID_STATUSES.includes(statusParam as SubscriptionStatus)
     ? (statusParam as SubscriptionStatus)
     : undefined
+
+  // Obter userId para namespacing das preferências de colunas (ADR-19)
+  const session = await requireSession().catch(() => null)
+  const userId = session?.user.id ?? 'anonymous'
 
   const result = await listSubscriptionsAction({
     status: selectedStatus,
@@ -140,58 +146,7 @@ export default async function SubscriptionsPage({ searchParams }: PageProps) {
           )}
         </div>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-border bg-card">
-          <div className="overflow-x-auto">
-            <table
-              className="w-full text-sm"
-              role="table"
-              aria-label="Lista de assinaturas"
-            >
-              <thead>
-                <tr className="border-b border-border bg-muted/50">
-                  <th
-                    scope="col"
-                    className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide"
-                  >
-                    Contato
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide"
-                  >
-                    Oferta
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide"
-                  >
-                    Status
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide"
-                  >
-                    Periodo Atual
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide"
-                  >
-                    Proximo Billing
-                  </th>
-                  <th scope="col" className="px-4 py-3">
-                    <span className="sr-only">Acoes</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {items.map((sub) => (
-                  <SubscriptionCard key={sub.id} subscription={sub} />
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <SubscriptionList items={items} userId={userId} />
       )}
 
       {/* Paginacao */}

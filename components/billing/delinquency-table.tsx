@@ -1,14 +1,21 @@
+'use client'
+
 /**
  * DelinquencyTable — tabela do dashboard de inadimplência.
- *
- * Server Component: renderiza lista de assinaturas inadimplentes com dados
- * agregados de parcelas vencidas.
+ * Client Component: necessário para useColumnVisibility + ColumnsCustomizer (T-16-10).
  *
  * T-9-15: docs/20-domain/13-subscription-billing.md §5
+ * T-16-10: docs/80-roadmap/13-sprint-16-table-columns-customizer.md
  */
 
 import Link from 'next/link'
 import type { Route } from 'next'
+import { useColumnVisibility } from '@/lib/hooks/use-column-visibility'
+import { ColumnsCustomizer } from '@/components/ui/columns-customizer'
+import {
+  BILLING_DELINQUENCY_TABLE_ID,
+  DELINQUENCY_COLUMNS,
+} from './delinquency-columns'
 
 export type DelinquencyRow = {
   subscriptionId: string
@@ -24,6 +31,7 @@ export type DelinquencyRow = {
 
 interface DelinquencyTableProps {
   rows: DelinquencyRow[]
+  userId: string
 }
 
 const BUCKET_BADGE: Record<DelinquencyRow['bucket'], string> = {
@@ -51,7 +59,13 @@ function formatDate(date: Date): string {
   return new Intl.DateTimeFormat('pt-BR').format(date)
 }
 
-export function DelinquencyTable({ rows }: DelinquencyTableProps) {
+export function DelinquencyTable({ rows, userId }: DelinquencyTableProps) {
+  const { visibleColumnIds, isVisible, toggle, reset } = useColumnVisibility({
+    tableId: BILLING_DELINQUENCY_TABLE_ID,
+    userId,
+    columns: DELINQUENCY_COLUMNS,
+  })
+
   if (rows.length === 0) {
     return (
       <div
@@ -65,107 +79,155 @@ export function DelinquencyTable({ rows }: DelinquencyTableProps) {
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-border bg-card">
-      <table className="min-w-full divide-y divide-slate-200" aria-label="Lista de inadimplencia">
-        <thead className="bg-muted/50">
-          <tr>
-            <th
-              scope="col"
-              className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground"
-            >
-              Contato
-            </th>
-            <th
-              scope="col"
-              className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground"
-            >
-              Oferta
-            </th>
-            <th
-              scope="col"
-              className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground"
-            >
-              Marca
-            </th>
-            <th
-              scope="col"
-              className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-muted-foreground"
-            >
-              Total vencido
-            </th>
-            <th
-              scope="col"
-              className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground"
-            >
-              1ª parcela vencida
-            </th>
-            <th
-              scope="col"
-              className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground"
-            >
-              Atraso
-            </th>
-            <th
-              scope="col"
-              className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground"
-            >
-              <span className="sr-only">Ações</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-border bg-card">
-          {rows.map((row) => (
-            <tr key={row.subscriptionId} className="hover:bg-muted/50 transition-colors">
-              {/* Contato */}
-              <td className="px-4 py-3">
-                <Link
-                  href={`/contacts/${row.contactId}` as Route}
-                  className="text-sm font-medium text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+    <div className="space-y-2">
+      {/* Toolbar com customizador de colunas */}
+      <div className="flex items-center justify-end">
+        <ColumnsCustomizer
+          tableId={BILLING_DELINQUENCY_TABLE_ID}
+          userId={userId}
+          columns={DELINQUENCY_COLUMNS}
+          visibleColumnIds={visibleColumnIds}
+          onToggle={toggle}
+          onReset={reset}
+        />
+      </div>
+
+      <div className="overflow-x-auto rounded-lg border border-border bg-card">
+        <table
+          className="min-w-full divide-y divide-slate-200"
+          aria-label="Lista de inadimplencia"
+        >
+          <thead className="bg-muted/50">
+            <tr>
+              {/* contact — alwaysVisible */}
+              <th
+                scope="col"
+                className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground"
+              >
+                Contato
+              </th>
+              {isVisible('offer') && (
+                <th
+                  scope="col"
+                  className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground"
                 >
-                  {row.contactName}
-                </Link>
-              </td>
-
-              {/* Oferta */}
-              <td className="px-4 py-3 text-sm text-muted-foreground">{row.offerName}</td>
-
-              {/* Marca */}
-              <td className="px-4 py-3 text-sm text-muted-foreground">{row.brandName}</td>
-
-              {/* Total vencido */}
-              <td className="px-4 py-3 text-right text-sm font-medium text-foreground">
-                {formatCurrency(row.totalOverdue)}
-              </td>
-
-              {/* Primeira parcela vencida */}
-              <td className="px-4 py-3 text-sm text-muted-foreground">
-                <time dateTime={row.oldestDueAt.toISOString()}>{formatDate(row.oldestDueAt)}</time>
-              </td>
-
-              {/* Bucket de atraso */}
-              <td className="px-4 py-3">
-                <span
-                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${BUCKET_BADGE[row.bucket]}`}
-                  aria-label={`Atraso de ${BUCKET_LABEL[row.bucket]}`}
+                  Oferta
+                </th>
+              )}
+              {isVisible('brand') && (
+                <th
+                  scope="col"
+                  className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground"
                 >
-                  {BUCKET_LABEL[row.bucket]}
-                </span>
-              </td>
-
-              {/* Ações */}
-              <td className="px-4 py-3">
-                <Link
-                  href={`/billing/${row.subscriptionId}` as Route}
-                  className="text-sm font-medium text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
-                  aria-label={`Ver assinatura de ${row.contactName}`}
+                  Marca
+                </th>
+              )}
+              {isVisible('totalOverdue') && (
+                <th
+                  scope="col"
+                  className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-muted-foreground"
                 >
-                  Ver assinatura
-                </Link>
-              </td>
+                  Total vencido
+                </th>
+              )}
+              {isVisible('oldestDueAt') && (
+                <th
+                  scope="col"
+                  className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                >
+                  1ª parcela vencida
+                </th>
+              )}
+              {isVisible('bucket') && (
+                <th
+                  scope="col"
+                  className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                >
+                  Atraso
+                </th>
+              )}
+              {isVisible('ageDays') && (
+                <th
+                  scope="col"
+                  className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                >
+                  Dias em atraso
+                </th>
+              )}
+              {/* actions — alwaysVisible */}
+              <th
+                scope="col"
+                className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground"
+              >
+                <span className="sr-only">Ações</span>
+              </th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-border bg-card">
+            {rows.map((row) => (
+              <tr key={row.subscriptionId} className="hover:bg-muted/50 transition-colors">
+                {/* contact — alwaysVisible */}
+                <td className="px-4 py-3">
+                  <Link
+                    href={`/contacts/${row.contactId}` as Route}
+                    className="text-sm font-medium text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+                  >
+                    {row.contactName}
+                  </Link>
+                </td>
+
+                {isVisible('offer') && (
+                  <td className="px-4 py-3 text-sm text-muted-foreground">{row.offerName}</td>
+                )}
+
+                {isVisible('brand') && (
+                  <td className="px-4 py-3 text-sm text-muted-foreground">{row.brandName}</td>
+                )}
+
+                {isVisible('totalOverdue') && (
+                  <td className="px-4 py-3 text-right text-sm font-medium text-foreground">
+                    {formatCurrency(row.totalOverdue)}
+                  </td>
+                )}
+
+                {isVisible('oldestDueAt') && (
+                  <td className="px-4 py-3 text-sm text-muted-foreground">
+                    <time dateTime={row.oldestDueAt.toISOString()}>{formatDate(row.oldestDueAt)}</time>
+                  </td>
+                )}
+
+                {isVisible('bucket') && (
+                  <td className="px-4 py-3">
+                    <span
+                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${BUCKET_BADGE[row.bucket]}`}
+                      aria-label={`Atraso de ${BUCKET_LABEL[row.bucket]}`}
+                    >
+                      {BUCKET_LABEL[row.bucket]}
+                    </span>
+                  </td>
+                )}
+
+                {isVisible('ageDays') && (
+                  <td className="px-4 py-3 text-right text-sm tabular-nums text-muted-foreground">
+                    {row.ageDays}
+                  </td>
+                )}
+
+                {/* actions — alwaysVisible */}
+                <td className="px-4 py-3">
+                  <Link
+                    href={`/billing/${row.subscriptionId}` as Route}
+                    className="text-sm font-medium text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+                    aria-label={`Ver assinatura de ${row.contactName}`}
+                  >
+                    Ver assinatura
+                  </Link>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }

@@ -58,6 +58,7 @@ export default async function DelinquencyPage({ searchParams }: PageProps) {
   // 1. RBAC — billing.view: admin, financial, commercial
   const ctx = await requireSession()
   await requirePermission(ctx, 'billing.view', { kind: 'global' })
+  const userId = ctx.user.id
 
   const params = await searchParams
   const filterBrandId = typeof params['brand_id'] === 'string' ? params['brand_id'] : undefined
@@ -243,7 +244,7 @@ export default async function DelinquencyPage({ searchParams }: PageProps) {
       <DelinquencyFilters brands={brandOptions} />
 
       {/* Tabela */}
-      <DelinquencyTable rows={delinquencyRows} />
+      <DelinquencyTable rows={delinquencyRows} userId={userId} />
     </div>
   )
 }

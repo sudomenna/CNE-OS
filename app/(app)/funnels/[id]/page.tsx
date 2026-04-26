@@ -19,6 +19,7 @@ import { contact } from '@/lib/db/schema/contact'
 import { FunnelMetrics } from '@/components/funnel/funnel-metrics'
 import { FunnelBoardClient } from '@/components/funnel/funnel-board-client'
 import type { KanbanFunnel } from '@/components/funnel/kanban'
+import { requireSession } from '@/lib/auth/session'
 
 export const dynamic = 'force-dynamic'
 
@@ -46,6 +47,10 @@ export default async function FunnelDetailPage({
 }: FunnelDetailPageProps) {
   const { id } = await params
   const sp = await searchParams
+
+  // ---- Sessão: userId para namespace localStorage de colunas (T-16-08) ----
+  const ctx = await requireSession()
+  const userId = ctx.user.id
 
   // ---- Lê cookie de preferência de vista ----
   const cookieStore = await cookies()
@@ -150,6 +155,7 @@ export default async function FunnelDetailPage({
         assignee={assignee}
         dateFrom={dateFrom}
         dateTo={dateTo}
+        userId={userId}
       />
     </div>
   )

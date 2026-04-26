@@ -252,6 +252,7 @@ export default async function SubscriptionDetailPage({
         <InstallmentTable
           installments={sub.installments}
           canRetry={canManage}
+          userId={ctx.user.id}
         />
       </section>
     </div>
