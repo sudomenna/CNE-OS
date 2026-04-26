@@ -53,9 +53,26 @@ const reprocessWebhookSchema = z.object({
   id: z.string().uuid(),
 })
 
+const ignoreWebhookSchema = z.object({
+  id: z.string().uuid(),
+  note: z.string().min(1, 'Nota é obrigatória').max(1000),
+})
+
+const addOperatorNoteSchema = z.object({
+  id: z.string().uuid(),
+  note: z.string().min(1, 'Nota é obrigatória').max(1000),
+})
+
 // ---------------------------------------------------------------------------
 // Tipos de retorno
 // ---------------------------------------------------------------------------
+
+/** Entrada append-only de nota de operador em webhook_log.operator_notes */
+export type OperatorNote = {
+  addedAt: string  // ISO 8601
+  addedBy: string  // user uuid
+  text: string
+}
 
 export type WebhookLogListItem = Pick<
   WebhookLog,
@@ -251,9 +268,175 @@ export async function reprocessWebhook(
       },
     })
 
+    // TODO: emitir TE-WEBHOOK-REPROCESSED quando kind estiver registrado no KIND_REGISTRY
+    // (kind 'webhook_reprocessed' não existe no registro — FLOW-12 §5.3)
+
     revalidatePath('/settings/webhooks')
     revalidatePath(`/settings/webhooks/${id}`)
 
     return { webhookLogId: result.id }
+  })
+}
+
+// ---------------------------------------------------------------------------
+// ignoreWebhookAction — marca webhook como processado sem executar (FLOW-12 §7)
+// Guard: webhook.reprocess (admin|financial + 2FA) — mesma permissão de reprocess
+// ---------------------------------------------------------------------------
+
+export async function ignoreWebhookAction(
+  id: string,
+  note: string,
+): Promise<ActionResult<void>> {
+  return toActionResult(async () => {
+    const ctx = await requireSession()
+
+    // BR-RBAC: ignore também pode suprimir venda — exige admin|financial + 2FA
+    await requirePermission(ctx, 'webhook.reprocess', { kind: 'global' })
+
+    // Validar input
+    ignoreWebhookSchema.parse({ id, note })
+
+    await db.transaction(async (tx) => {
+      // FLOW-12 §E-04: lock para evitar corrida entre operadores simultâneos
+      const rows = await tx
+        .select({
+          id: webhookLog.id,
+          status: webhookLog.status,
+          provider: webhookLog.provider,
+          externalEventId: webhookLog.externalEventId,
+          operatorNotes: webhookLog.operatorNotes,
+        })
+        .from(webhookLog)
+        .where(eq(webhookLog.id, id))
+        .for('update')
+        .limit(1)
+
+      const entry = rows[0]
+      if (!entry) {
+        throw new ActionError('NOT_FOUND', `webhook_log ${id} não encontrado`)
+      }
+
+      // FLOW-12 §E-01: apenas failed ou dead_letter podem ser ignorados
+      if (entry.status !== 'failed' && entry.status !== 'dead_letter') {
+        throw new ActionError(
+          'VALIDATION',
+          `Não é possível ignorar webhook com status '${entry.status}'. Apenas 'failed' ou 'dead_letter' são permitidos.`,
+          { rule: 'FLOW-12' },
+        )
+      }
+
+      // Append nota ao array operator_notes (imutável — FLOW-12 §3)
+      const newNote: OperatorNote = {
+        addedAt: new Date().toISOString(),
+        addedBy: ctx.user.id,
+        text: note,
+      }
+      const existingNotes = (entry.operatorNotes as OperatorNote[] | null) ?? []
+      const updatedNotes: OperatorNote[] = [...existingNotes, newNote]
+
+      // FLOW-12 §7: UPDATE status para 'processed' e append nota
+      await tx
+        .update(webhookLog)
+        .set({
+          status: 'processed',
+          processedAt: new Date(),
+          operatorNotes: updatedNotes,
+        })
+        .where(eq(webhookLog.id, id))
+
+      // BR-AUDIT §3: registrar ação crítica dentro da mesma transação
+      await logAudit(tx, {
+        actorUserId: ctx.user.id,
+        actionKind: 'other',
+        resourceKind: 'webhook_log',
+        resourceId: id,
+        before: { status: entry.status },
+        after: { status: 'processed', reason: 'ignored_by_operator' },
+        ip: ctx.ip,
+        userAgent: ctx.userAgent,
+        context: {
+          correlationId: ctx.correlationId,
+          provider: entry.provider,
+          externalEventId: entry.externalEventId,
+          flow: 'FLOW-12',
+          action: 'ignore',
+        },
+      })
+
+      // TODO: emitir TE-INTEGRATION-EVENT com payload.reason='ignored_by_operator'
+      // quando kind 'integration_event' estiver registrado no KIND_REGISTRY
+      // FLOW-12 §7 — sem contactId vinculável neste passo (OQ-FLOW-12-03)
+    })
+
+    revalidatePath('/settings/webhooks')
+    revalidatePath(`/settings/webhooks/${id}`)
+  })
+}
+
+// ---------------------------------------------------------------------------
+// addOperatorNoteAction — append nota sem mudar status (FLOW-12 §3)
+// Guard: webhook.reprocess
+// ---------------------------------------------------------------------------
+
+export async function addOperatorNoteAction(
+  id: string,
+  note: string,
+): Promise<ActionResult<void>> {
+  return toActionResult(async () => {
+    const ctx = await requireSession()
+
+    // BR-RBAC: operação sensível — exige admin|financial + 2FA
+    await requirePermission(ctx, 'webhook.reprocess', { kind: 'global' })
+
+    // Validar input
+    addOperatorNoteSchema.parse({ id, note })
+
+    await db.transaction(async (tx) => {
+      const rows = await tx
+        .select({
+          id: webhookLog.id,
+          operatorNotes: webhookLog.operatorNotes,
+        })
+        .from(webhookLog)
+        .where(eq(webhookLog.id, id))
+        .for('update')
+        .limit(1)
+
+      const entry = rows[0]
+      if (!entry) {
+        throw new ActionError('NOT_FOUND', `webhook_log ${id} não encontrado`)
+      }
+
+      const newNote: OperatorNote = {
+        addedAt: new Date().toISOString(),
+        addedBy: ctx.user.id,
+        text: note,
+      }
+      const existingNotes = (entry.operatorNotes as OperatorNote[] | null) ?? []
+      const updatedNotes: OperatorNote[] = [...existingNotes, newNote]
+
+      await tx
+        .update(webhookLog)
+        .set({ operatorNotes: updatedNotes })
+        .where(eq(webhookLog.id, id))
+
+      // BR-AUDIT §3: adicionar nota é ação auditável (BR-AUDIT)
+      await logAudit(tx, {
+        actorUserId: ctx.user.id,
+        actionKind: 'other',
+        resourceKind: 'webhook_log',
+        resourceId: id,
+        after: { note_added: true },
+        ip: ctx.ip,
+        userAgent: ctx.userAgent,
+        context: {
+          correlationId: ctx.correlationId,
+          flow: 'FLOW-12',
+          action: 'add_operator_note',
+        },
+      })
+    })
+
+    revalidatePath(`/settings/webhooks/${id}`)
   })
 }

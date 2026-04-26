@@ -85,6 +85,11 @@ export const webhookLog = pgTable(
     receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),
     processedAt: timestamp('processed_at', { withTimezone: true }),
     deadLetteredAt: timestamp('dead_lettered_at', { withTimezone: true }),
+
+    // FLOW-12: Append-only operator notes array.
+    // Each item: { addedAt: string (ISO), addedBy: string (uuid), text: string }
+    // Notes are immutable after insertion — no UPDATE on individual items.
+    operatorNotes: jsonb('operator_notes').notNull().default(sql`'[]'::jsonb`),
   },
   (t) => ({
     // BR-INTEGRATION-IDEMPOTENCY: prevent duplicate webhook processing

@@ -11,9 +11,12 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 import { getWebhookLog } from '../actions'
+import type { OperatorNote } from '../actions'
 import { requireSession } from '@/lib/auth/session'
 import { can } from '@/lib/auth/permissions'
 import { ReprocessButton } from '@/components/webhooks/reprocess-button'
+import { IgnoreButton } from '@/components/webhooks/ignore-button'
+import { AddOperatorNoteForm } from '@/components/webhooks/add-operator-note-form'
 
 // ---------------------------------------------------------------------------
 // Labels e estilos
@@ -115,6 +118,11 @@ export default async function WebhookDetailPage({ params }: PageProps) {
     payloadFormatted = String(entry.payload)
   }
 
+  // FLOW-12 §3: operator_notes é jsonb array append-only
+  const operatorNotes: OperatorNote[] = Array.isArray(entry.operatorNotes)
+    ? (entry.operatorNotes as OperatorNote[])
+    : []
+
   return (
     <div className="space-y-6 max-w-4xl">
       {/* Navegação de volta */}
@@ -131,12 +139,19 @@ export default async function WebhookDetailPage({ params }: PageProps) {
           <h1 className="text-2xl font-bold text-foreground">Detalhe do Webhook</h1>
           <p className="text-sm text-muted-foreground mt-1 font-mono break-all">{entry.id}</p>
         </div>
-        {/* BR-RBAC: botão visível apenas para admin|financial + 2FA e status failed|dead_letter */}
-        <ReprocessButton
-          webhookLogId={entry.id}
-          status={entry.status}
-          canReprocess={canReprocess}
-        />
+        {/* BR-RBAC: botões visíveis apenas para admin|financial + 2FA e status failed|dead_letter */}
+        <div className="flex items-center gap-2">
+          <IgnoreButton
+            webhookLogId={entry.id}
+            status={entry.status}
+            canReprocess={canReprocess}
+          />
+          <ReprocessButton
+            webhookLogId={entry.id}
+            status={entry.status}
+            canReprocess={canReprocess}
+          />
+        </div>
       </div>
 
       {/* Alerta para DLQ */}
@@ -221,6 +236,48 @@ export default async function WebhookDetailPage({ params }: PageProps) {
             {payloadFormatted}
           </pre>
         </div>
+      </section>
+
+      {/* Notas do operador — FLOW-12 §3 */}
+      <section aria-labelledby="operator-notes-heading">
+        <h2 id="operator-notes-heading" className="text-base font-semibold text-foreground mb-3">
+          Notas do operador
+        </h2>
+
+        {/* Lista de notas existentes */}
+        {operatorNotes.length === 0 ? (
+          <p className="text-sm text-muted-foreground mb-4 italic">
+            Nenhuma nota registrada.
+          </p>
+        ) : (
+          <ol
+            aria-label="Histórico de notas do operador"
+            className="mb-4 space-y-3"
+          >
+            {operatorNotes.map((note, idx) => (
+              <li
+                key={idx}
+                className="rounded-lg border border-border bg-card px-4 py-3 text-sm"
+              >
+                <div className="flex items-center gap-2 mb-1 text-xs text-muted-foreground">
+                  <time dateTime={note.addedAt}>
+                    {formatDate(new Date(note.addedAt))}
+                  </time>
+                  <span aria-hidden="true">&bull;</span>
+                  <span className="font-mono">{note.addedBy}</span>
+                </div>
+                <p className="text-foreground whitespace-pre-wrap break-words">{note.text}</p>
+              </li>
+            ))}
+          </ol>
+        )}
+
+        {/* Formulário para adicionar nova nota — visível se tem permissão */}
+        {canReprocess && (
+          <div className="rounded-lg border border-border bg-card p-4">
+            <AddOperatorNoteForm webhookLogId={entry.id} />
+          </div>
+        )}
       </section>
     </div>
   )
