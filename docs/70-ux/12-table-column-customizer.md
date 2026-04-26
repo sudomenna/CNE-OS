@@ -148,29 +148,32 @@ diferentes contextos.
 
 ### 3.1. Inventário oficial (Sprint 16)
 
-| `tableId` | Localização | Onda | T-ID |
-|---|---|---|---|
-| `contacts:list` | `/contacts` | B | T-16-04 |
-| `offers:list` | `/offers` | B | T-16-05 |
-| `transactions:list` | `/transactions` | B | T-16-06 |
-| `automations:list` | `/automations` | B | T-16-07 |
-| `funnels:list` | `/funnels` | C | T-16-08 |
-| `campaigns:list` | `/campaigns` + `/campaigns/[id]` | C | T-16-09 |
-| `billing:subscriptions` | `/billing/subscriptions` | C | T-16-10 |
-| `billing:delinquency` | `/billing/delinquency` | C | T-16-10 |
-| `billing:installments` | `/billing` (tab) | C | T-16-10 |
-| `settings:users` | `/settings/users` | D | T-16-11 |
-| `settings:brands` | `/settings/brands` | D | T-16-11 |
-| `settings:legal-entities` | `/settings/legal-entities` | D | T-16-11 |
-| `settings:webhooks` | `/settings/webhooks` | D | T-16-12 |
-| `settings:audit` | `/settings/audit` | D | T-16-12 |
-| `settings:products` | `/settings/catalog/products` | D | T-16-13 |
-| `settings:categories` | `/settings/catalog/categories` | D | T-16-13 |
-| `settings:benefits` | `/settings/catalog/benefits` | D | T-16-13 |
-| `settings:funnels` | `/settings/funnels` | D | T-16-13 |
-| `contact:opportunities` | `/contacts/[id]` tab Oportunidades | E | T-16-14 |
-| `contact:tickets` | `/contacts/[id]` tab Tickets | E | T-16-14 |
-| `transaction:installments` | `/transactions/[id]` tab Parcelas | E | T-16-14 |
+**Total: 22 tableIds implementados e sincronizados (T-16-04 a T-16-14)**
+
+| `tableId` | Localização | Arquivo | Onda | T-ID |
+|---|---|---|---|---|
+| `contacts:list` | `/contacts` | `components/contact/contact-columns.ts` | B | T-16-04 |
+| `offers:list` | `/offers` | `components/offer/offer-columns.ts` | B | T-16-05 |
+| `transactions:list` | `/transactions` | `components/transaction/transaction-columns.ts` | B | T-16-06 |
+| `automations:list` | `/automations` | `components/automation/automation-columns.ts` | B | T-16-07 |
+| `funnels:list` | `/funnels` | `components/funnel/funnel-columns.ts` | C | T-16-08 |
+| `campaigns:list` | `/campaigns` + `/campaigns/[id]` | `components/campaign/campaign-columns.ts` | C | T-16-09 |
+| `campaigns:creatives` | `/campaigns/[id]` tab Criativos | `components/campaign/creative-columns.ts` | C | T-16-09 |
+| `billing:subscriptions` | `/billing/subscriptions` | `components/billing/subscription-columns.ts` | C | T-16-10 |
+| `billing:delinquency` | `/billing/delinquency` | `components/billing/delinquency-columns.ts` | C | T-16-10 |
+| `billing:installments` | `/billing` (tab) | `components/billing/installment-columns.ts` | C | T-16-10 |
+| `settings:users` | `/settings/users` | `components/settings/users-columns.ts` | D | T-16-11 |
+| `settings:brands` | `/settings/brands` | `components/settings/brands-columns.ts` | D | T-16-11 |
+| `settings:legal-entities` | `/settings/legal-entities` | `components/settings/legal-entities-columns.ts` | D | T-16-11 |
+| `settings:webhooks` | `/settings/webhooks` | `components/settings/webhooks-columns.ts` | D | T-16-12 |
+| `settings:audit` | `/settings/audit` | `components/settings/audit-columns.ts` | D | T-16-12 |
+| `settings:products` | `/settings/catalog/products` | `components/settings/products-columns.ts` | D | T-16-13 |
+| `settings:categories` | `/settings/catalog/categories` | `components/settings/categories-columns.ts` | D | T-16-13 |
+| `settings:benefits` | `/settings/catalog/benefits` | `components/settings/benefits-columns.ts` | D | T-16-13 |
+| `settings:funnels` | `/settings/funnels` | `components/settings/settings-funnels-columns.ts` | D | T-16-13 |
+| `contact:opportunities` | `/contacts/[id]` tab Oportunidades | `components/contact/contact-opportunities-columns.ts` | E | T-16-14 |
+| `contact:tickets` | `/contacts/[id]` tab Tickets | `components/contact/contact-tickets-columns.ts` | E | T-16-14 |
+| `transaction:installments` | `/transactions/[id]` tab Parcelas | `components/transaction/transaction-installments-columns.ts` | E | T-16-14 |
 
 **Convenção:**
 - Plurais para listagens principais (`contacts:list`, `offers:list`).
