@@ -18,7 +18,7 @@
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import type { Route } from 'next'
-import { Copy, Check, MoreHorizontal, Edit, Merge, ShieldOff, LifeBuoy, MessageSquare, X, Plus } from 'lucide-react'
+import { Copy, Check, MoreHorizontal, Edit, Merge, ShieldOff, LifeBuoy, MessageSquare, X, Plus, MessageCircle, MapPin } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import {
   DropdownMenu,
@@ -36,16 +36,28 @@ import { addTagAction, removeTagAction, blacklistContactAction } from '@/app/(ap
 // Types
 // ---------------------------------------------------------------------------
 
+export interface PhoneInfo {
+  e164: string
+  isWhatsapp: boolean
+}
+
+export interface AddressInfo {
+  city: string | null
+  state: string | null
+  zip: string | null
+}
+
 export interface ContactHeaderProps {
   contactId: string
   name: string
-  classification: 'lead' | 'customer' | 'student' | 'paid_lead'
+  classification: 'lead' | 'customer' | 'student' | 'mentorado'
   cpf: string | null
   emails: string[]
-  phones: string[]
+  phones: PhoneInfo[]
   tags: string[]
   brandNames: string[]
   currentUserRole: string
+  address?: AddressInfo
 }
 
 // ---------------------------------------------------------------------------
@@ -56,14 +68,14 @@ const CLASSIFICATION_LABELS: Record<ContactHeaderProps['classification'], string
   lead: 'Lead',
   customer: 'Cliente',
   student: 'Aluno',
-  paid_lead: 'Lead Pago',
+  mentorado: 'Mentorado',
 }
 
 const CLASSIFICATION_CLASS: Record<ContactHeaderProps['classification'], string> = {
   lead: 'border-transparent bg-muted text-muted-foreground',
   customer: 'border-transparent bg-sky-100 text-sky-700',
   student: 'border-transparent bg-emerald-100 text-emerald-700',
-  paid_lead: 'border-transparent bg-amber-100 text-amber-700',
+  mentorado: 'border-transparent bg-violet-100 text-violet-700',
 }
 
 // ---------------------------------------------------------------------------
@@ -360,6 +372,23 @@ function ContactActionsMenu({ contactId, currentUserRole }: ContactActionsMenuPr
 // ContactHeader — componente principal
 // ---------------------------------------------------------------------------
 
+function formatBrZip(zip: string): string {
+  const digits = zip.replace(/\D/g, '')
+  if (digits.length === 8) return `${digits.slice(0, 5)}-${digits.slice(5)}`
+  return zip
+}
+
+function formatAddressLine(address: AddressInfo): string | null {
+  const parts: string[] = []
+  if (address.city) parts.push(address.city)
+  if (address.state) parts.push(address.state)
+  const line = parts.join(' / ')
+  if (address.zip) {
+    return line ? `${line} · CEP ${formatBrZip(address.zip)}` : `CEP ${formatBrZip(address.zip)}`
+  }
+  return line || null
+}
+
 export function ContactHeader({
   contactId,
   name,
@@ -370,6 +399,7 @@ export function ContactHeader({
   tags,
   brandNames,
   currentUserRole,
+  address,
 }: ContactHeaderProps) {
   const initials = getInitials(name)
   const classLabel = CLASSIFICATION_LABELS[classification]
@@ -377,6 +407,7 @@ export function ContactHeader({
 
   const primaryPhone = phones[0] ?? null
   const primaryEmail = emails[0] ?? null
+  const addressLine = address ? formatAddressLine(address) : null
 
   return (
     <header
@@ -447,13 +478,22 @@ export function ContactHeader({
           </dd>
         </div>
 
-        {/* Telefone primário */}
+        {/* Telefone primário com indicador WhatsApp */}
         {primaryPhone && (
           <div className="flex items-center gap-0.5">
             <dt className="font-medium shrink-0">Telefone:</dt>
-            <dd>
-              {primaryPhone}
-              <CopyButton value={primaryPhone} label="Copiar telefone" />
+            <dd className="inline-flex items-center gap-1">
+              {primaryPhone.e164}
+              {primaryPhone.isWhatsapp && (
+                <span
+                  className="inline-flex items-center gap-0.5 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700"
+                  aria-label="Telefone confirmado no WhatsApp"
+                >
+                  <MessageCircle className="h-2.5 w-2.5" aria-hidden="true" />
+                  WhatsApp
+                </span>
+              )}
+              <CopyButton value={primaryPhone.e164} label="Copiar telefone" />
             </dd>
           </div>
         )}
@@ -465,6 +505,17 @@ export function ContactHeader({
             <dd>
               {primaryEmail}
               <CopyButton value={primaryEmail} label="Copiar e-mail" />
+            </dd>
+          </div>
+        )}
+
+        {/* Endereço (cidade / estado · CEP) — opcional */}
+        {addressLine && (
+          <div className="flex items-center gap-1">
+            <dt className="sr-only">Endereço:</dt>
+            <dd className="inline-flex items-center gap-1">
+              <MapPin className="h-3.5 w-3.5 text-muted-foreground/70" aria-hidden="true" />
+              {addressLine}
             </dd>
           </div>
         )}

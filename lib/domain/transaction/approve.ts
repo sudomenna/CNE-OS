@@ -345,7 +345,7 @@ export async function approveTransaction(
   // -------------------------------------------------------------------------
   // Passo 11: reclassifyContact — reclassificar contato
   // MOD-CONTACT interface pública: classifyContact (pura) + persist
-  // BR-CONTACT-CLASSIFICATION: eleva lead → customer/student/paid_lead conforme transações
+  // BR-CONTACT-CLASSIFICATION: hierarquia mentorado > student > customer > lead
   // -------------------------------------------------------------------------
   await reclassifyFn(tx, contactId)
 

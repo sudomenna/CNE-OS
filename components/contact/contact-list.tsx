@@ -1,31 +1,31 @@
 import Link from 'next/link'
 import type { Route } from 'next'
+import { MessageCircle } from 'lucide-react'
 
-type ContactClassification = 'lead' | 'customer' | 'student' | 'paid_lead'
+type ContactClassification = 'lead' | 'customer' | 'student' | 'mentorado'
 type ContactStatus = 'active' | 'inactive' | 'invalid' | 'blocked'
 
 export interface ContactRow {
   id: string
   fullName: string
-  cpf: string | null
   status: ContactStatus
   classification: ContactClassification
-  origin: string | null
-  createdAt: Date
+  email: string | null
+  phone: { e164: string; isWhatsapp: boolean } | null
 }
 
 const CLASSIFICATION_LABELS: Record<ContactClassification, string> = {
   lead: 'Lead',
   customer: 'Cliente',
   student: 'Aluno',
-  paid_lead: 'Lead Pago',
+  mentorado: 'Mentorado',
 }
 
 const CLASSIFICATION_BADGE: Record<ContactClassification, string> = {
   lead: 'bg-muted text-muted-foreground',
   customer: 'bg-sky-50 text-sky-700',
   student: 'bg-emerald-50 text-emerald-700',
-  paid_lead: 'bg-amber-50 text-amber-700',
+  mentorado: 'bg-violet-50 text-violet-700',
 }
 
 const STATUS_LABELS: Record<ContactStatus, string> = {
@@ -49,19 +49,19 @@ export function ContactList({ contacts }: ContactListProps) {
               Nome
             </th>
             <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">
-              CPF
+              E-mail
             </th>
             <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">
-              Classificacao
+              Telefone
+            </th>
+            <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">
+              Classificação
             </th>
             <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">
               Status
             </th>
             <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">
-              Criado em
-            </th>
-            <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground sr-only">
-              Acoes
+              <span className="sr-only">Ações</span>
             </th>
           </tr>
         </thead>
@@ -79,8 +79,26 @@ export function ContactList({ contacts }: ContactListProps) {
                 className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors"
               >
                 <td className="px-4 py-3 font-medium text-foreground">{c.fullName}</td>
-                <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                  {c.cpf ? formatCpf(c.cpf) : <span className="text-muted-foreground/40">—</span>}
+                <td className="px-4 py-3 text-muted-foreground">
+                  {c.email ?? <span className="text-muted-foreground/40">—</span>}
+                </td>
+                <td className="px-4 py-3">
+                  {c.phone ? (
+                    <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                      {c.phone.e164}
+                      {c.phone.isWhatsapp && (
+                        <span
+                          className="inline-flex items-center gap-0.5 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700"
+                          aria-label="Telefone confirmado no WhatsApp"
+                        >
+                          <MessageCircle className="h-2.5 w-2.5" aria-hidden="true" />
+                          WhatsApp
+                        </span>
+                      )}
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground/40">—</span>
+                  )}
                 </td>
                 <td className="px-4 py-3">
                   <span
@@ -90,9 +108,6 @@ export function ContactList({ contacts }: ContactListProps) {
                   </span>
                 </td>
                 <td className="px-4 py-3 text-muted-foreground">{STATUS_LABELS[c.status]}</td>
-                <td className="px-4 py-3 text-muted-foreground">
-                  {new Date(c.createdAt).toLocaleDateString('pt-BR')}
-                </td>
                 <td className="px-4 py-3">
                   <Link
                     href={`/contacts/${c.id}` as Route}
@@ -109,9 +124,4 @@ export function ContactList({ contacts }: ContactListProps) {
       </table>
     </div>
   )
-}
-
-function formatCpf(cpf: string): string {
-  if (cpf.length !== 11) return cpf
-  return `${cpf.slice(0, 3)}.${cpf.slice(3, 6)}.${cpf.slice(6, 9)}-${cpf.slice(9)}`
 }

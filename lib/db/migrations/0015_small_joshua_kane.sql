@@ -1,0 +1,2 @@
+-- no-op: already applied via Supabase migration 20260427000002_contact_classification_mentorado.sql
+-- BR-CONTACT-CLASSIFICATION: enum recriado (paid_lead removido, mentorado adicionado)

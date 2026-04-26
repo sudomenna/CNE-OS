@@ -15,6 +15,8 @@ import {
 } from '@/lib/db/schema/contact'
 import { resolveContactIdentity } from '@/lib/domain/contact/resolve-identity'
 import type { ContactIssueDraft } from '@/lib/domain/contact/resolve-identity'
+import { reclassifyAllContacts } from '@/lib/domain/contact/reclassify'
+import { upsertPrimaryAddress, InvalidZipError, InvalidStateError } from '@/lib/domain/contact/address'
 import { normalizeCpf, normalizePhone, normalizeEmail } from '@/lib/domain/contact/normalize'
 import { requireSession } from '@/lib/auth/session'
 import { requirePermission } from '@/lib/auth/permissions'
@@ -388,7 +390,7 @@ const createContactSchema = z.object({
   phone: z.string().optional(),
   email: z.union([z.string().email('Email inválido'), z.literal('')]).optional(),
   classification: z
-    .enum(['lead', 'customer', 'student', 'paid_lead'])
+    .enum(['lead', 'customer', 'student', 'mentorado'])
     .default('lead'),
   tags: z.array(z.string()).default([]),
   brandId: z.string().uuid('brandId deve ser UUID'),
@@ -515,5 +517,351 @@ export async function addNote(contactId: string, body: string, pinned?: boolean)
     })
 
     revalidatePath(`/contacts/${input.contactId}`)
+  })
+}
+
+/**
+ * reclassifyAllContactsAction — reclassifica TODOS os contatos vivos com base nas
+ * transações vigentes (BR-CONTACT-CLASSIFICATION). Usado pelo botão "Atualizar
+ * Classificações" da listagem.
+ * Guard: contact.write (operação idempotente, não destrutiva — não exige 2FA).
+ */
+export async function reclassifyAllContactsAction(): Promise<
+  ReturnType<typeof toActionResult<{ total: number; changed: number }>>
+> {
+  return toActionResult(async () => {
+    const ctx = await requireSession()
+    await requirePermission(ctx, 'contact.write', { kind: 'global' })
+
+    const result = await db.transaction(async (tx) => {
+      const summary = await reclassifyAllContacts(tx, 'manual_reclassify_all', ctx.user.id)
+
+      // BR-AUDIT §3: audit emitido na MESMA transação do efeito
+      await logAudit(tx, {
+        actorUserId: ctx.user.id,
+        actionKind: 'update',
+        resourceKind: 'contact',
+        context: {
+          operation: 'reclassify_all',
+          total: summary.total,
+          changed: summary.changed,
+        },
+      })
+
+      return summary
+    })
+
+    revalidatePath('/contacts')
+
+    return { total: result.total, changed: result.changed }
+  })
+}
+
+// ---------------------------------------------------------------------------
+// updateContact — edição completa de contato (basicos + phone + email + tags + endereço)
+// ---------------------------------------------------------------------------
+
+const updateContactSchema = z.object({
+  contactId: z.string().uuid('contactId deve ser UUID'),
+  fullName: z.string().min(1, 'Nome é obrigatório'),
+  cpf: z
+    .string()
+    .optional()
+    .transform((v) => (v && v.trim() !== '' ? normalizeCpf(v) : null)),
+  classification: z.enum(['lead', 'customer', 'student', 'mentorado']),
+  status: z.enum(['active', 'inactive', 'invalid', 'blocked']),
+  origin: z.string().nullable().optional(),
+  notesSummary: z.string().nullable().optional(),
+  birthDate: z.string().nullable().optional(),
+  primaryPhone: z
+    .object({
+      e164: z.string().min(1),
+      isWhatsapp: z.boolean(),
+    })
+    .nullable()
+    .optional(),
+  primaryEmail: z.string().email().nullable().optional().or(z.literal('').transform(() => null)),
+  tags: z.array(z.string().min(1)).default([]),
+  address: z
+    .object({
+      street: z.string().nullable().optional(),
+      number: z.string().nullable().optional(),
+      complement: z.string().nullable().optional(),
+      district: z.string().nullable().optional(),
+      city: z.string().nullable().optional(),
+      state: z.string().nullable().optional(),
+      zip: z.string().nullable().optional(),
+      country: z.string().default('BR'),
+    })
+    .nullable()
+    .optional(),
+})
+
+export type UpdateContactInput = z.infer<typeof updateContactSchema>
+
+/**
+ * updateContact — edita contato + relacionamentos (phone primário, email primário, tags, address primário).
+ * Guard: contact.write
+ *
+ * Comportamento:
+ *  - Atualiza colunas do `contact` (com TE-CONTACT-UPDATED para campos críticos)
+ *  - Phone primário: cria/atualiza/remove conforme input (whatsappCheckedAt setado se isWhatsapp)
+ *  - Email primário: cria/atualiza/remove conforme input
+ *  - Tags: diff (remove ausentes, insert novos com source='manual')
+ *  - Address: upsertPrimaryAddress (kind='home')
+ *  - Audit log único agregando todas as mudanças
+ */
+export async function updateContact(rawInput: unknown) {
+  return toActionResult(async () => {
+    const ctx = await requireSession()
+    await requirePermission(ctx, 'contact.write', { kind: 'global' })
+
+    const input = updateContactSchema.parse(rawInput)
+
+    try {
+      await db.transaction(async (tx) => {
+        // -------------------------------------------------------------------
+        // 1. Carrega estado atual
+        // -------------------------------------------------------------------
+        const [current] = await tx
+          .select({
+            id: contact.id,
+            fullName: contact.fullName,
+            cpf: contact.cpf,
+            classification: contact.classification,
+            status: contact.status,
+            origin: contact.origin,
+            notesSummary: contact.notesSummary,
+            birthDate: contact.birthDate,
+          })
+          .from(contact)
+          .where(eq(contact.id, input.contactId))
+          .limit(1)
+
+        if (!current) {
+          throw new ActionError('NOT_FOUND', 'Contato não encontrado.')
+        }
+
+        const phoneRows = await tx
+          .select()
+          .from(contactPhone)
+          .where(eq(contactPhone.contactId, input.contactId))
+        const currentPrimaryPhone =
+          phoneRows.find((p) => p.status === 'primary') ?? null
+
+        const emailRows = await tx
+          .select()
+          .from(contactEmail)
+          .where(eq(contactEmail.contactId, input.contactId))
+        const currentPrimaryEmail =
+          emailRows.find((e) => e.status === 'primary') ?? null
+
+        const currentTags = await tx
+          .select({ tag: contactTag.tag })
+          .from(contactTag)
+          .where(eq(contactTag.contactId, input.contactId))
+
+        // -------------------------------------------------------------------
+        // 2. UPDATE contact (campos básicos)
+        // -------------------------------------------------------------------
+        const newOrigin = input.origin?.trim() || null
+        const newNotes = input.notesSummary?.trim() || null
+        const newBirth = input.birthDate?.trim() || null
+
+        await tx
+          .update(contact)
+          .set({
+            fullName: input.fullName,
+            cpf: input.cpf,
+            classification: input.classification,
+            status: input.status,
+            origin: newOrigin,
+            notesSummary: newNotes,
+            birthDate: newBirth,
+            updatedAt: new Date(),
+          })
+          .where(eq(contact.id, input.contactId))
+
+        // Se status mudou: history entry (com classificação mantida)
+        if (current.status !== input.status || current.classification !== input.classification) {
+          await tx.insert(contactStatusHistory).values({
+            contactId: input.contactId,
+            fromStatus: current.status,
+            toStatus: input.status,
+            fromClassification: current.classification,
+            toClassification: input.classification,
+            changedBy: ctx.user.id,
+            reason: 'manual_edit',
+          })
+        }
+
+        // -------------------------------------------------------------------
+        // 3. Phone primário — replicar estado desejado
+        // -------------------------------------------------------------------
+        const desiredPhone = input.primaryPhone
+        if (desiredPhone) {
+          const normalizedE164 = normalizePhone(desiredPhone.e164) ?? desiredPhone.e164
+          const whatsappAt = desiredPhone.isWhatsapp ? new Date() : null
+
+          if (currentPrimaryPhone) {
+            await tx
+              .update(contactPhone)
+              .set({
+                e164: normalizedE164,
+                whatsappCheckedAt: whatsappAt,
+                updatedAt: new Date(),
+              })
+              .where(eq(contactPhone.id, currentPrimaryPhone.id))
+          } else {
+            await tx.insert(contactPhone).values({
+              contactId: input.contactId,
+              e164: normalizedE164,
+              status: 'primary',
+              whatsappCheckedAt: whatsappAt,
+            })
+          }
+        } else if (currentPrimaryPhone) {
+          // input null → remover primary (cleanup)
+          await tx
+            .delete(contactPhone)
+            .where(eq(contactPhone.id, currentPrimaryPhone.id))
+        }
+
+        // -------------------------------------------------------------------
+        // 4. Email primário
+        // -------------------------------------------------------------------
+        const desiredEmail =
+          input.primaryEmail && input.primaryEmail.trim() !== ''
+            ? normalizeEmail(input.primaryEmail) ?? input.primaryEmail
+            : null
+
+        if (desiredEmail) {
+          if (currentPrimaryEmail) {
+            await tx
+              .update(contactEmail)
+              .set({ email: desiredEmail, updatedAt: new Date() })
+              .where(eq(contactEmail.id, currentPrimaryEmail.id))
+          } else {
+            await tx.insert(contactEmail).values({
+              contactId: input.contactId,
+              email: desiredEmail,
+              status: 'primary',
+            })
+          }
+        } else if (currentPrimaryEmail) {
+          await tx
+            .delete(contactEmail)
+            .where(eq(contactEmail.id, currentPrimaryEmail.id))
+        }
+
+        // -------------------------------------------------------------------
+        // 5. Tags (diff)
+        // -------------------------------------------------------------------
+        const currentTagSet = new Set(currentTags.map((t) => t.tag))
+        const desiredTagSet = new Set(
+          input.tags.map((t) => t.toLowerCase().trim().replace(/\s+/g, '-')).filter(Boolean),
+        )
+
+        for (const tag of currentTagSet) {
+          if (!desiredTagSet.has(tag)) {
+            await tx
+              .delete(contactTag)
+              .where(
+                and(eq(contactTag.contactId, input.contactId), eq(contactTag.tag, tag)),
+              )
+          }
+        }
+        for (const tag of desiredTagSet) {
+          if (!currentTagSet.has(tag)) {
+            await tx.insert(contactTag).values({
+              contactId: input.contactId,
+              tag,
+              source: 'manual',
+              appliedBy: ctx.user.id,
+            })
+          }
+        }
+
+        // -------------------------------------------------------------------
+        // 6. Endereço primário
+        // -------------------------------------------------------------------
+        if (input.address) {
+          await upsertPrimaryAddress(tx, input.contactId, input.address)
+        }
+
+        // -------------------------------------------------------------------
+        // 7. Audit (agregado)
+        // -------------------------------------------------------------------
+        await logAudit(tx, {
+          actorUserId: ctx.user.id,
+          actionKind: 'update',
+          resourceKind: 'contact',
+          resourceId: input.contactId,
+          before: {
+            fullName: current.fullName,
+            cpf: current.cpf,
+            classification: current.classification,
+            status: current.status,
+            origin: current.origin,
+          },
+          after: {
+            fullName: input.fullName,
+            cpf: input.cpf,
+            classification: input.classification,
+            status: input.status,
+            origin: newOrigin,
+          },
+          context: { operation: 'manual_edit' },
+        })
+
+        // -------------------------------------------------------------------
+        // 8. TE-CONTACT-UPDATED — emite por campo crítico alterado
+        // -------------------------------------------------------------------
+        const oldPrimaryPhoneE164 = currentPrimaryPhone?.e164 ?? null
+        const newPrimaryPhoneE164 = desiredPhone
+          ? normalizePhone(desiredPhone.e164) ?? desiredPhone.e164
+          : null
+        const oldPrimaryEmailValue = currentPrimaryEmail?.email ?? null
+
+        const criticalDiffs: Array<{ field: string; from: unknown; to: unknown }> = []
+        if (current.fullName !== input.fullName)
+          criticalDiffs.push({ field: 'full_name', from: current.fullName, to: input.fullName })
+        if (current.cpf !== input.cpf)
+          criticalDiffs.push({ field: 'cpf', from: current.cpf, to: input.cpf })
+        if (oldPrimaryPhoneE164 !== newPrimaryPhoneE164)
+          criticalDiffs.push({
+            field: 'primary_phone',
+            from: oldPrimaryPhoneE164,
+            to: newPrimaryPhoneE164,
+          })
+        if (oldPrimaryEmailValue !== desiredEmail)
+          criticalDiffs.push({
+            field: 'primary_email',
+            from: oldPrimaryEmailValue,
+            to: desiredEmail,
+          })
+
+        for (const d of criticalDiffs) {
+          await emitTimelineEvent(
+            {
+              contactId: input.contactId,
+              kind: 'contact_updated',
+              source: 'MOD-CONTACT',
+              actorUserId: ctx.user.id,
+              payload: { field: d.field, from: d.from, to: d.to },
+            },
+            tx,
+          )
+        }
+      })
+    } catch (err) {
+      if (err instanceof InvalidZipError || err instanceof InvalidStateError) {
+        throw new ActionError('VALIDATION', err.message)
+      }
+      throw err
+    }
+
+    revalidatePath(`/contacts/${input.contactId}`)
+    revalidatePath('/contacts')
   })
 }

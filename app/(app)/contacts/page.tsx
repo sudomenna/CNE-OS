@@ -1,13 +1,14 @@
 import { Suspense } from 'react'
 import Link from 'next/link'
 import type { Route } from 'next'
-import { and, eq, ilike, isNull, or, sql } from 'drizzle-orm'
+import { and, eq, ilike, inArray, isNull, or, sql } from 'drizzle-orm'
 
 import { db } from '@/lib/db/client'
-import { contact } from '@/lib/db/schema/contact'
+import { contact, contactEmail, contactPhone } from '@/lib/db/schema/contact'
 import type { ContactRow } from '@/components/contact/contact-list'
 import { ContactList } from '@/components/contact/contact-list'
 import { ContactFilters } from '@/components/contact/contact-filters'
+import { ReclassifyAllButton } from '@/components/contact/reclassify-all-button'
 import {
   ContactListSkeleton,
   ContactListEmptyState,
@@ -19,7 +20,7 @@ export const metadata = {
 
 const PAGE_SIZE = 50
 
-type ContactClassification = 'lead' | 'customer' | 'student' | 'paid_lead'
+type ContactClassification = 'lead' | 'customer' | 'student' | 'mentorado'
 
 interface PageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>
@@ -50,15 +51,12 @@ async function ContactListData({ search, classification, page }: ContactListData
       : []),
   ]
 
-  const contacts = await db
+  const baseRows = await db
     .select({
       id: contact.id,
       fullName: contact.fullName,
-      cpf: contact.cpf,
       status: contact.status,
       classification: contact.classification,
-      origin: contact.origin,
-      createdAt: contact.createdAt,
     })
     .from(contact)
     .where(and(...whereConditions))
@@ -66,11 +64,69 @@ async function ContactListData({ search, classification, page }: ContactListData
     .limit(PAGE_SIZE)
     .offset((page - 1) * PAGE_SIZE)
 
-  if (contacts.length === 0) {
+  if (baseRows.length === 0) {
     return <ContactListEmptyState />
   }
 
-  return <ContactList contacts={contacts as ContactRow[]} />
+  // Batch enrich: email primário + phone primário (com indicador WhatsApp)
+  const ids = baseRows.map((r) => r.id)
+  const [emailRows, phoneRows] = await Promise.all([
+    db
+      .select({
+        contactId: contactEmail.contactId,
+        email: contactEmail.email,
+        status: contactEmail.status,
+        createdAt: contactEmail.createdAt,
+      })
+      .from(contactEmail)
+      .where(inArray(contactEmail.contactId, ids)),
+    db
+      .select({
+        contactId: contactPhone.contactId,
+        e164: contactPhone.e164,
+        status: contactPhone.status,
+        whatsappCheckedAt: contactPhone.whatsappCheckedAt,
+        createdAt: contactPhone.createdAt,
+      })
+      .from(contactPhone)
+      .where(inArray(contactPhone.contactId, ids)),
+  ])
+
+  // Pega o "primary" se existir; caso contrário, o mais antigo
+  const emailByContact = new Map<string, { email: string }>()
+  for (const r of emailRows) {
+    const cur = emailByContact.get(r.contactId)
+    const isBetter =
+      !cur ||
+      (r.status === 'primary' && cur.email !== r.email)
+    if (!cur || isBetter) emailByContact.set(r.contactId, { email: r.email })
+  }
+
+  const phoneByContact = new Map<
+    string,
+    { e164: string; isWhatsapp: boolean }
+  >()
+  for (const r of phoneRows) {
+    const cur = phoneByContact.get(r.contactId)
+    const isBetter = !cur || r.status === 'primary'
+    if (!cur || isBetter) {
+      phoneByContact.set(r.contactId, {
+        e164: r.e164,
+        isWhatsapp: r.whatsappCheckedAt !== null,
+      })
+    }
+  }
+
+  const contacts: ContactRow[] = baseRows.map((r) => ({
+    id: r.id,
+    fullName: r.fullName,
+    status: r.status,
+    classification: r.classification,
+    email: emailByContact.get(r.id)?.email ?? null,
+    phone: phoneByContact.get(r.id) ?? null,
+  }))
+
+  return <ContactList contacts={contacts} />
 }
 
 // ---------------------------------------------------------------------------
@@ -127,12 +183,15 @@ export default async function ContactsPage({ searchParams }: PageProps) {
             {total} {total === 1 ? 'contato encontrado' : 'contatos encontrados'}
           </p>
         </div>
-        <Link
-          href={'/contacts/new' as Route}
-          className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors"
-        >
-          Novo Contato
-        </Link>
+        <div className="flex items-center gap-2">
+          <ReclassifyAllButton />
+          <Link
+            href={'/contacts/new' as Route}
+            className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors"
+          >
+            Novo Contato
+          </Link>
+        </div>
       </div>
 
       {/* Filters */}

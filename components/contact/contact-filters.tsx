@@ -8,7 +8,7 @@ const CLASSIFICATION_OPTIONS = [
   { value: 'lead', label: 'Lead' },
   { value: 'customer', label: 'Cliente' },
   { value: 'student', label: 'Aluno' },
-  { value: 'paid_lead', label: 'Lead Pago' },
+  { value: 'mentorado', label: 'Mentorado' },
 ] as const
 
 export function ContactFilters() {

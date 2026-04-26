@@ -70,7 +70,7 @@ describe('contact schema', () => {
     expect(values).toContain('lead')
     expect(values).toContain('customer')
     expect(values).toContain('student')
-    expect(values).toContain('paid_lead')
+    expect(values).toContain('mentorado')
     expect(values).toHaveLength(4)
   })
 

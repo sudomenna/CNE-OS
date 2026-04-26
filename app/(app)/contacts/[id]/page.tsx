@@ -12,6 +12,7 @@ import {
 } from '@/lib/db/schema/contact'
 import { brand } from '@/lib/db/schema/organization'
 import { requireSession } from '@/lib/auth/session'
+import { getPrimaryAddress } from '@/lib/domain/contact/address'
 import { listTimelineEvents } from '@/lib/timeline/read'
 import { ContactHeader } from '@/components/contact/contact-header'
 import { ContactTabs } from '@/components/contact/contact-tabs'
@@ -123,10 +124,23 @@ export default async function ContactDetailPage({ params, searchParams }: PagePr
   // -------------------------------------------------------------------------
   const primaryPhone = phones.find((p) => p.status === 'primary') ?? phones[0]
   const primaryEmail = emails.find((e) => e.status === 'primary') ?? emails[0]
-  const phoneList = primaryPhone ? [primaryPhone.e164] : []
+  const phoneList = primaryPhone
+    ? [{ e164: primaryPhone.e164, isWhatsapp: primaryPhone.whatsappCheckedAt !== null }]
+    : []
   const emailList = primaryEmail ? [primaryEmail.email] : []
   const tagList = tags.map((t) => t.tag)
   const brandNames = brandLinks.map((b) => b.brandName)
+
+  // Endereço primário (kind='home') — modelo estruturado em contact_address
+  // BR-IDENTITY (estendida): substitui workaround anterior que vivia em contact_custom_field
+  const primaryAddress = await getPrimaryAddress(id, 'home')
+  const address = primaryAddress
+    ? {
+        city: primaryAddress.city,
+        state: primaryAddress.state,
+        zip: primaryAddress.zip,
+      }
+    : { city: null, state: null, zip: null }
 
   // -------------------------------------------------------------------------
   // 5. Render
@@ -154,6 +168,7 @@ export default async function ContactDetailPage({ params, searchParams }: PagePr
         tags={tagList}
         brandNames={brandNames}
         currentUserRole={currentUserRole}
+        address={address}
       />
 
       {/* 8 Tabs */}

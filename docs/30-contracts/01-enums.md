@@ -23,9 +23,9 @@ Todos os enums do sistema. Declarados em Postgres via `CREATE TYPE ... AS ENUM (
 `primary`, `alternative`, `invalid`, `unsubscribed`
 
 ### `contact_classification`
-`lead`, `customer`, `student`, `paid_lead`
+`lead`, `customer`, `student`, `mentorado`
 
-Referenciado em [`BR-CONTACT-CLASSIFICATION`](../50-business-rules/BR-CONTACT-CLASSIFICATION.md).
+Hierarquia (alta → baixa): `mentorado > student > customer > lead`. Definida em [`BR-CONTACT-CLASSIFICATION`](../50-business-rules/BR-CONTACT-CLASSIFICATION.md). O valor anterior `paid_lead` foi removido em 2026-04-26 (migration `20260427000002`) e colapsado em `customer`.
 
 ### `contact_issue_kind`
 `email_duplicate`, `phone_conflict`, `document_mismatch`, `source_divergence`, `other`

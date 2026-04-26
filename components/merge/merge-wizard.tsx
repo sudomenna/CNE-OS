@@ -22,7 +22,7 @@ const CLASSIFICATION_LABELS: Record<string, string> = {
   lead: 'Lead',
   customer: 'Cliente',
   student: 'Aluno',
-  paid_lead: 'Lead Pago',
+  mentorado: 'Mentorado',
 }
 
 const STATUS_LABELS: Record<string, string> = {

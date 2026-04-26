@@ -7,9 +7,7 @@
  *   2. Comparar com a atual
  *   3. Se diferente → INSERT em contact_status_history + emitir TE
  *
- * Nota: sem banco real nesta fase (Sprint 1); DB é mockado onde necessário.
- * Mocks de DB estão explicitamente rotulados para facilitar substituição por
- * testcontainer no Sprint 2+.
+ * Hierarquia BR-CONTACT-CLASSIFICATION: mentorado > student > customer > lead
  *
  * BR-CONTACT-CLASSIFICATION
  * docs/50-business-rules/BR-CONTACT-CLASSIFICATION.md
@@ -38,10 +36,6 @@ type ReclassificationResult = {
   to: ContactClassification
 }
 
-/**
- * Orquestra classifyContact e retorna { changed, from, to }.
- * Espelha o que a Server Action fará antes de gravar no DB.
- */
 function applyReclassification(input: ReclassificationInput): ReclassificationResult {
   const { current, transactions } = input
   const newClassification = classifyContact(
@@ -59,11 +53,6 @@ function applyReclassification(input: ReclassificationInput): ReclassificationRe
   }
 }
 
-/**
- * Monta o payload canônico de TE-CONTACT-CLASSIFICATION-CHANGED.
- * A Server Action usará este payload ao chamar emitTimelineEvent.
- * docs/30-contracts/03-timeline-event-catalog.md
- */
 function buildClassificationChangedPayload(
   from: ContactClassification,
   to: ContactClassification,
@@ -72,11 +61,6 @@ function buildClassificationChangedPayload(
   return { from, to, reason }
 }
 
-// ---------------------------------------------------------------------------
-// Stubs de INSERT em contact_status_history e de emitTimelineEvent.
-// Em Sprint 2+ serão substituídos por chamadas reais ao testcontainer.
-// ---------------------------------------------------------------------------
-
 const mockInsertStatusHistory = vi.fn()
 const mockEmitTimelineEvent = vi.fn()
 
@@ -84,41 +68,32 @@ beforeEach(() => {
   vi.clearAllMocks()
 })
 
-// ---------------------------------------------------------------------------
-// Testes BR-CONTACT-CLASSIFICATION — integração reclassificação + histórico
-// ---------------------------------------------------------------------------
-
 describe('BR-CONTACT-CLASSIFICATION — integração reclassificação + histórico', () => {
   // -------------------------------------------------------------------------
-  // Test 1 — compra aprovada muda lead para customer
-  // BR-CONTACT-CLASSIFICATION §3: mentoring não é course → customer
+  // CT-CLASSIFY-INT-01: lead com mentoring → mentorado
   // -------------------------------------------------------------------------
   describe('CT-CLASSIFY-INT-01: lead com compra de mentoring aprovada', () => {
-    it('given lead e transação de mentoring aprovada, when classifyContact, then resultado é customer', () => {
+    it('given lead e mentoring aprovado, when classifyContact, then resultado é mentorado', () => {
       const result = applyReclassification({
         current: 'lead',
         transactions: [{ status: 'approved', productKinds: ['mentoring'] }],
       })
-
-      expect(result.to).toBe('customer')
+      expect(result.to).toBe('mentorado')
     })
 
-    it('given lead e transação de mentoring aprovada, when applyReclassification, then changed=true', () => {
+    it('given lead e mentoring aprovado, when applyReclassification, then changed=true', () => {
       const result = applyReclassification({
         current: 'lead',
         transactions: [{ status: 'approved', productKinds: ['mentoring'] }],
       })
-
       expect(result.changed).toBe(true)
     })
 
-    it('given lead e transação de mentoring aprovada, when changed=true, then INSERT em contact_status_history com from=lead e to=customer', () => {
+    it('given lead e mentoring aprovado, when changed=true, then INSERT em contact_status_history com from=lead e to=mentorado', () => {
       const result = applyReclassification({
         current: 'lead',
         transactions: [{ status: 'approved', productKinds: ['mentoring'] }],
       })
-
-      // Simula o que a Server Action faria ao detectar mudança
       if (result.changed) {
         mockInsertStatusHistory({
           fromClassification: result.from,
@@ -126,24 +101,22 @@ describe('BR-CONTACT-CLASSIFICATION — integração reclassificação + histór
           reason: 'first_approved_sale',
         })
       }
-
       expect(mockInsertStatusHistory).toHaveBeenCalledOnce()
       expect(mockInsertStatusHistory).toHaveBeenCalledWith({
         fromClassification: 'lead',
-        toClassification: 'customer',
+        toClassification: 'mentorado',
         reason: 'first_approved_sale',
       })
     })
   })
 
   // -------------------------------------------------------------------------
-  // Test 2 — reclassificação grava entrada em contact_status_history
-  // Verifica que o payload de INSERT contém os campos corretos
+  // CT-CLASSIFY-INT-02: customer com ebook + course → student
   // -------------------------------------------------------------------------
   describe('CT-CLASSIFY-INT-02: reclassificação grava contact_status_history', () => {
-    it('given paid_lead com ebook e nova compra de course aprovada, when changed=true, then INSERT com from e to corretos', () => {
+    it('given customer com ebook e nova compra de course, when changed=true, then INSERT com from=customer e to=student', () => {
       const result = applyReclassification({
-        current: 'paid_lead',
+        current: 'customer',
         transactions: [
           { status: 'approved', productKinds: ['ebook'] },
           { status: 'approved', productKinds: ['course'] },
@@ -151,116 +124,102 @@ describe('BR-CONTACT-CLASSIFICATION — integração reclassificação + histór
       })
 
       expect(result.changed).toBe(true)
-      expect(result.from).toBe('paid_lead')
+      expect(result.from).toBe('customer')
       expect(result.to).toBe('student')
 
-      // Simula INSERT no DB (stub)
       if (result.changed) {
         mockInsertStatusHistory({
           fromClassification: result.from,
           toClassification: result.to,
           reason: 'course_purchase',
-          changedBy: null, // automação, não usuário
+          changedBy: null,
         })
       }
 
       expect(mockInsertStatusHistory).toHaveBeenCalledWith(
         expect.objectContaining({
-          fromClassification: 'paid_lead',
+          fromClassification: 'customer',
           toClassification: 'student',
           changedBy: null,
         }),
       )
     })
 
-    it('given classificação inalterada (student já com course), when applyReclassification, then changed=false e INSERT NÃO é chamado', () => {
+    it('given student já com course (sem mudança), when applyReclassification, then changed=false e INSERT NÃO é chamado', () => {
       const result = applyReclassification({
         current: 'student',
         transactions: [{ status: 'approved', productKinds: ['course'] }],
       })
 
       expect(result.changed).toBe(false)
-      expect(result.from).toBe('student')
-      expect(result.to).toBe('student')
-
-      // Server Action só insere se changed=true
       if (result.changed) {
         mockInsertStatusHistory({ fromClassification: result.from, toClassification: result.to })
       }
-
       expect(mockInsertStatusHistory).not.toHaveBeenCalled()
     })
   })
 
   // -------------------------------------------------------------------------
-  // Test 3 — reembolso reverte classificação
-  // BR-CONTACT-CLASSIFICATION: course refunded → não conta → customer
+  // CT-CLASSIFY-INT-03: reembolso reverte
   // -------------------------------------------------------------------------
   describe('CT-CLASSIFY-INT-03: reembolso reverte classificação', () => {
-    it('given student com course refunded e mentoring aprovado, when classifyContact, then resultado é customer', () => {
-      // student com 1 course (refunded) e 1 mentoring (approved)
+    it('given mentorado com mentoring refunded e course aprovado, when applyReclassification, then to=student', () => {
       const result = applyReclassification({
-        current: 'student',
+        current: 'mentorado',
         transactions: [
-          { status: 'refunded', productKinds: ['course'] },
-          { status: 'approved', productKinds: ['mentoring'] },
+          { status: 'refunded', productKinds: ['mentoring'] },
+          { status: 'approved', productKinds: ['course'] },
         ],
       })
-
-      expect(result.to).toBe('customer')
-    })
-
-    it('given student com course refunded e mentoring aprovado, when applyReclassification, then changed=true (student→customer)', () => {
-      const result = applyReclassification({
-        current: 'student',
-        transactions: [
-          { status: 'refunded', productKinds: ['course'] },
-          { status: 'approved', productKinds: ['mentoring'] },
-        ],
-      })
-
+      expect(result.to).toBe('student')
       expect(result.changed).toBe(true)
-      expect(result.from).toBe('student')
-      expect(result.to).toBe('customer')
     })
 
-    it('given customer com única mentoring refunded, when applyReclassification, then resultado é lead', () => {
+    it('given student com course refunded e ebook aprovado, when applyReclassification, then to=customer', () => {
+      const result = applyReclassification({
+        current: 'student',
+        transactions: [
+          { status: 'refunded', productKinds: ['course'] },
+          { status: 'approved', productKinds: ['ebook'] },
+        ],
+      })
+      expect(result.to).toBe('customer')
+      expect(result.changed).toBe(true)
+    })
+
+    it('given customer com única ebook refunded, when applyReclassification, then to=lead', () => {
       const result = applyReclassification({
         current: 'customer',
-        transactions: [{ status: 'refunded', productKinds: ['mentoring'] }],
+        transactions: [{ status: 'refunded', productKinds: ['ebook'] }],
       })
-
       expect(result.to).toBe('lead')
       expect(result.changed).toBe(true)
     })
 
-    it('given paid_lead com único ebook refunded, when applyReclassification, then resultado é lead', () => {
+    it('given mentorado com única mentoring refunded, when applyReclassification, then to=lead', () => {
       const result = applyReclassification({
-        current: 'paid_lead',
-        transactions: [{ status: 'refunded', productKinds: ['ebook'] }],
+        current: 'mentorado',
+        transactions: [{ status: 'refunded', productKinds: ['mentoring'] }],
       })
-
       expect(result.to).toBe('lead')
       expect(result.changed).toBe(true)
     })
   })
 
   // -------------------------------------------------------------------------
-  // Test 4 — reclassificação emite TE-CONTACT-CLASSIFICATION-CHANGED
-  // docs/30-contracts/03-timeline-event-catalog.md
+  // CT-CLASSIFY-INT-04: emite TE-CONTACT-CLASSIFICATION-CHANGED
   // -------------------------------------------------------------------------
   describe('CT-CLASSIFY-INT-04: emissão de TE-CONTACT-CLASSIFICATION-CHANGED', () => {
-    it('given lead e mentoring aprovado, when changed=true, then emitTimelineEvent chamado com kind=contact_classification_changed e payload { from, to, reason }', () => {
+    it('given lead e mentoring aprovado, when changed=true, then emit com payload {from:lead,to:mentorado}', () => {
       const result = applyReclassification({
         current: 'lead',
         transactions: [{ status: 'approved', productKinds: ['mentoring'] }],
       })
 
-      // Simula o que a Server Action faria: emitir o TE com payload canônico
       if (result.changed) {
         const payload = buildClassificationChangedPayload(result.from, result.to, 'first_approved_sale')
         mockEmitTimelineEvent({
-          kind: 'contact_classification_changed', // TE-CONTACT-CLASSIFICATION-CHANGED → snake_case
+          kind: 'contact_classification_changed',
           source: 'MOD-CONTACT',
           payload,
         })
@@ -272,37 +231,35 @@ describe('BR-CONTACT-CLASSIFICATION — integração reclassificação + histór
         source: 'MOD-CONTACT',
         payload: {
           from: 'lead',
-          to: 'customer',
+          to: 'mentorado',
           reason: 'first_approved_sale',
         },
       })
     })
 
-    it('given student já com course (sem mudança), when changed=false, then emitTimelineEvent NÃO é chamado', () => {
+    it('given student já com course (sem mudança), when changed=false, then emit NÃO é chamado', () => {
       const result = applyReclassification({
         current: 'student',
         transactions: [{ status: 'approved', productKinds: ['course'] }],
       })
 
-      // Server Action só emite se changed=true
       if (result.changed) {
         mockEmitTimelineEvent({ kind: 'contact_classification_changed', source: 'MOD-CONTACT' })
       }
-
       expect(mockEmitTimelineEvent).not.toHaveBeenCalled()
     })
 
-    it('given student com course refunded, when changed=true, then payload tem from=student e to=customer', () => {
+    it('given mentorado com course aprovado e mentoring refunded, when changed=true, then payload from=mentorado to=student', () => {
       const result = applyReclassification({
-        current: 'student',
+        current: 'mentorado',
         transactions: [
-          { status: 'refunded', productKinds: ['course'] },
-          { status: 'approved', productKinds: ['mentoring'] },
+          { status: 'refunded', productKinds: ['mentoring'] },
+          { status: 'approved', productKinds: ['course'] },
         ],
       })
 
       if (result.changed) {
-        const payload = buildClassificationChangedPayload(result.from, result.to, 'course_refund')
+        const payload = buildClassificationChangedPayload(result.from, result.to, 'mentoring_refund')
         mockEmitTimelineEvent({
           kind: 'contact_classification_changed',
           source: 'MOD-CONTACT',
@@ -312,14 +269,14 @@ describe('BR-CONTACT-CLASSIFICATION — integração reclassificação + histór
 
       expect(mockEmitTimelineEvent).toHaveBeenCalledWith(
         expect.objectContaining({
-          payload: expect.objectContaining({ from: 'student', to: 'customer', reason: 'course_refund' }),
+          payload: expect.objectContaining({ from: 'mentorado', to: 'student', reason: 'mentoring_refund' }),
         }),
       )
     })
 
-    it('given paid_lead com ebook e compra de course aprovada, when changed=true, then payload tem from=paid_lead e to=student', () => {
+    it('given customer com nova compra de course, when changed=true, then payload from=customer to=student', () => {
       const result = applyReclassification({
-        current: 'paid_lead',
+        current: 'customer',
         transactions: [
           { status: 'approved', productKinds: ['ebook'] },
           { status: 'approved', productKinds: ['course'] },
@@ -337,54 +294,49 @@ describe('BR-CONTACT-CLASSIFICATION — integração reclassificação + histór
 
       expect(mockEmitTimelineEvent).toHaveBeenCalledWith(
         expect.objectContaining({
-          payload: expect.objectContaining({ from: 'paid_lead', to: 'student' }),
+          payload: expect.objectContaining({ from: 'customer', to: 'student' }),
         }),
       )
     })
   })
 
   // -------------------------------------------------------------------------
-  // Casos de borda da hierarquia completa (cobertura de todos os ramos)
+  // CT-CLASSIFY-INT-05: hierarquia mentorado > student > customer > lead
   // -------------------------------------------------------------------------
-  describe('CT-CLASSIFY-INT-05: hierarquia completa lead → paid_lead → customer → student', () => {
-    it('given lead quando ebook aprovado, when applyReclassification, then to=paid_lead e changed=true', () => {
+  describe('CT-CLASSIFY-INT-05: hierarquia completa', () => {
+    it('given lead com ebook aprovado, when applyReclassification, then to=customer', () => {
       const result = applyReclassification({
         current: 'lead',
         transactions: [{ status: 'approved', productKinds: ['ebook'] }],
       })
-
-      expect(result.to).toBe('paid_lead')
+      expect(result.to).toBe('customer')
       expect(result.changed).toBe(true)
     })
 
-    it('given lead quando ebook e mentoring aprovados, when applyReclassification, then to=customer (não paid_lead)', () => {
-      // BR-CONTACT-CLASSIFICATION: paid_lead apenas se EXCLUSIVAMENTE ebook/bonus/other
+    it('given lead com course e mentoring aprovados, when applyReclassification, then to=mentorado (mentorado > student)', () => {
       const result = applyReclassification({
         current: 'lead',
         transactions: [
-          { status: 'approved', productKinds: ['ebook'] },
+          { status: 'approved', productKinds: ['course'] },
           { status: 'approved', productKinds: ['mentoring'] },
         ],
       })
-
-      expect(result.to).toBe('customer')
+      expect(result.to).toBe('mentorado')
     })
 
-    it('given lead quando training_in_person aprovado, when applyReclassification, then to=student', () => {
+    it('given lead com training_in_person aprovado, when applyReclassification, then to=student', () => {
       const result = applyReclassification({
         current: 'lead',
         transactions: [{ status: 'approved', productKinds: ['training_in_person'] }],
       })
-
       expect(result.to).toBe('student')
     })
 
-    it('given lead quando somente transações recusadas, when applyReclassification, then to=lead e changed=false', () => {
+    it('given lead com transações recusadas, when applyReclassification, then to=lead e changed=false', () => {
       const result = applyReclassification({
         current: 'lead',
         transactions: [{ status: 'refused', productKinds: ['course'] }],
       })
-
       expect(result.to).toBe('lead')
       expect(result.changed).toBe(false)
     })

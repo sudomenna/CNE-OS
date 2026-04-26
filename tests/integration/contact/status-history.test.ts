@@ -199,7 +199,7 @@ describe('contact_status_history — fluxo de changeContactStatus', () => {
   // Reativação de contato com transações → reclassificar
   // -------------------------------------------------------------------------
   describe('CT-STATUS-HIST-02: classifyContact chamado na reativação com transações', () => {
-    it('given contato inactive com transação de mentoring aprovada, when reativado (toStatus=active), then classifyContact recalcula e toClassification=customer', async () => {
+    it('given contato inactive com transação de mentoring aprovada, when reativado (toStatus=active), then classifyContact recalcula e toClassification=mentorado', async () => {
       const transactions: TransactionForClassification[] = [
         { transactionId: 'tx-stub-1', status: 'approved', productKinds: ['mentoring'] },
       ]
@@ -213,8 +213,8 @@ describe('contact_status_history — fluxo de changeContactStatus', () => {
         transactions,
       })
 
-      // Deve ter calculado reclassificação
-      expect(payload.toClassification).toBe('customer')
+      // BR-CONTACT-CLASSIFICATION: mentoring → mentorado (topo da hierarquia)
+      expect(payload.toClassification).toBe('mentorado')
       expect(payload.fromClassification).toBe('lead')
     })
 

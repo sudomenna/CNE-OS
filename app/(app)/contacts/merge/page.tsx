@@ -25,7 +25,7 @@ export type ContactForMerge = {
   fullName: string
   cpf: string | null
   status: 'active' | 'inactive' | 'invalid' | 'blocked'
-  classification: 'lead' | 'customer' | 'student' | 'paid_lead'
+  classification: 'lead' | 'customer' | 'student' | 'mentorado'
   phones: Array<{ e164: string; status: string }>
   emails: Array<{ email: string; status: string }>
 }

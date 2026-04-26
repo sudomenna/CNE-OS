@@ -59,11 +59,12 @@ export const contactEmailStatusEnum = pgEnum('contact_email_status', [
   'unsubscribed',
 ])
 
+// BR-CONTACT-CLASSIFICATION: hierarquia mentorado > student > customer > lead
 export const contactClassificationEnum = pgEnum('contact_classification', [
   'lead',
   'customer',
   'student',
-  'paid_lead',
+  'mentorado',
 ])
 
 export const contactIssueKindEnum = pgEnum('contact_issue_kind', [
@@ -339,3 +340,60 @@ export const contactStatusHistory = pgTable(
 
 export type ContactStatusHistory = InferSelectModel<typeof contactStatusHistory>
 export type NewContactStatusHistory = InferInsertModel<typeof contactStatusHistory>
+
+// ---------------------------------------------------------------------------
+// contact_address (T-pending — endereço estruturado pós migração de custom_field)
+// docs/50-business-rules/BR-IDENTITY.md (futuro: BR-CONTACT-ADDRESS quando criada)
+// ---------------------------------------------------------------------------
+
+export const contactAddressKindEnum = pgEnum('contact_address_kind', [
+  'home',
+  'billing',
+  'shipping',
+])
+
+export const contactAddress = pgTable(
+  'contact_address',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    contactId: uuid('contact_id')
+      .notNull()
+      .references(() => contact.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    kind: contactAddressKindEnum('kind').notNull().default('home'),
+    isPrimary: boolean('is_primary').notNull().default(false),
+    street: text('street'),
+    number: text('number'),
+    complement: text('complement'),
+    district: text('district'),
+    city: text('city'),
+    // BR: UF (2 letras maiúsculas). Para país != BR pode ser flexível — check abaixo só vale BR.
+    state: varchar('state', { length: 32 }),
+    // BR: CEP 8 dígitos (sem hífen). Outros países: free-form.
+    zip: varchar('zip', { length: 16 }),
+    // ISO 3166-1 alpha-2. Default 'BR'.
+    country: varchar('country', { length: 2 }).notNull().default('BR'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    // Apenas um endereço primary por (contato, kind)
+    uqContactAddressPrimary: uniqueIndex('uq_contact_address_primary')
+      .on(t.contactId, t.kind)
+      .where(sql`${t.isPrimary} = true`),
+    idxContactAddressContact: index('idx_contact_address_contact').on(t.contactId),
+    idxContactAddressCity: index('idx_contact_address_city').on(t.city),
+    // BR: CEP 8 dígitos numéricos quando country = 'BR' e zip não nulo
+    ckContactAddressZipBr: check(
+      'ck_contact_address_zip_br',
+      sql`${t.country} <> 'BR' OR ${t.zip} IS NULL OR ${t.zip} ~ '^[0-9]{8}$'`,
+    ),
+    // BR: state como 2 letras maiúsculas quando country = 'BR' e state não nulo
+    ckContactAddressStateBr: check(
+      'ck_contact_address_state_br',
+      sql`${t.country} <> 'BR' OR ${t.state} IS NULL OR ${t.state} ~ '^[A-Z]{2}$'`,
+    ),
+  }),
+)
+
+export type ContactAddress = InferSelectModel<typeof contactAddress>
+export type NewContactAddress = InferInsertModel<typeof contactAddress>

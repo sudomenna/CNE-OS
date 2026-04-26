@@ -72,7 +72,7 @@ const CLASSIFICATION_MAP: Record<string, string> = {
   lead: 'Lead',
   customer: 'Cliente',
   student: 'Aluno',
-  paid_lead: 'Lead Pago',
+  mentorado: 'Mentorado',
 }
 
 function formatDateTime(date: Date | string): string {

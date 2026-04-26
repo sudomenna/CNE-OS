@@ -1,4 +1,5 @@
 // BR-CONTACT-CLASSIFICATION: classificação determinística baseada em transações aprovadas
+// Hierarquia (alta → baixa): mentorado > student > customer > lead
 
 export type ProductKind =
   | 'course'
@@ -9,7 +10,7 @@ export type ProductKind =
   | 'bonus'
   | 'other';
 
-export type ContactClassification = 'lead' | 'customer' | 'student' | 'paid_lead';
+export type ContactClassification = 'lead' | 'customer' | 'student' | 'mentorado';
 
 export type TransactionForClassification = {
   transactionId: string;
@@ -17,11 +18,11 @@ export type TransactionForClassification = {
   productKinds: ProductKind[];
 };
 
-// BR-CONTACT-CLASSIFICATION §3: kinds que promovem a student (hierarquia máxima)
+// BR-CONTACT-CLASSIFICATION §3: kinds que promovem a student
 const COURSE_KINDS: ProductKind[] = ['course', 'training_online', 'training_in_person'];
 
-// BR-CONTACT-CLASSIFICATION §3: kinds que, se exclusivos, resultam em paid_lead
-const PAID_LEAD_ONLY_KINDS: ProductKind[] = ['ebook', 'bonus', 'other'];
+// BR-CONTACT-CLASSIFICATION §3: kind exclusivo de mentorado (topo da hierarquia)
+const MENTORED_KIND: ProductKind = 'mentoring';
 
 /**
  * Pura, determinística, sem I/O.
@@ -41,14 +42,12 @@ export function classifyContact(
   // BR-CONTACT-CLASSIFICATION §2: conjunto de kinds das transações aprovadas
   const kinds = new Set(approved.flatMap((t) => t.productKinds));
 
-  // BR-CONTACT-CLASSIFICATION §3: hierarquia — student prevalece sobre todo o resto
+  // BR-CONTACT-CLASSIFICATION §3: hierarquia — mentorado prevalece sobre tudo
+  if (kinds.has(MENTORED_KIND)) return 'mentorado';
+
+  // BR-CONTACT-CLASSIFICATION §3: student vence customer
   if (COURSE_KINDS.some((k) => kinds.has(k))) return 'student';
 
-  // BR-CONTACT-CLASSIFICATION §3: paid_lead somente se EXCLUSIVAMENTE ebook/bonus/other
-  const isExclusivelyPaidLead = [...kinds].every((k) =>
-    (PAID_LEAD_ONLY_KINDS as string[]).includes(k),
-  );
-  if (isExclusivelyPaidLead) return 'paid_lead';
-
+  // BR-CONTACT-CLASSIFICATION §3: qualquer outra venda aprovada → customer
   return 'customer';
 }

@@ -1,0 +1,2 @@
+-- no-op: already applied via Supabase migration 20260427000003_contact_address.sql
+-- contact_address table + enum contact_address_kind + RLS + backfill from custom_fields

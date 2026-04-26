@@ -32,7 +32,7 @@ import { createContactAction } from '@/app/(app)/contacts/actions'
 
 // ---------------------------------------------------------------------------
 // Schema de validação — alinhado com contactClassificationEnum do schema Drizzle
-// (lead | customer | student | paid_lead)
+// (lead | customer | student | mentorado) — BR-CONTACT-CLASSIFICATION
 //
 // Usamos z.infer<> diretamente (sem .default()) para que input e output coincidam.
 // Os defaults são fornecidos via defaultValues no useForm.
@@ -43,7 +43,7 @@ const contactFormSchema = z.object({
   cpf: z.string().optional(),
   phone: z.string().optional(),
   email: z.union([z.string().email('Email inválido'), z.literal('')]).optional(),
-  classification: z.enum(['lead', 'customer', 'student', 'paid_lead']),
+  classification: z.enum(['lead', 'customer', 'student', 'mentorado']),
   tags: z.array(z.string()),
   brandId: z.string().uuid('Selecione uma marca válida'),
   notes: z.string().optional(),
@@ -84,7 +84,7 @@ const CLASSIFICATION_LABELS: Record<string, string> = {
   lead: 'Lead',
   customer: 'Cliente',
   student: 'Aluno',
-  paid_lead: 'Lead Pago',
+  mentorado: 'Mentorado',
 }
 
 // ---------------------------------------------------------------------------

@@ -41,7 +41,7 @@ Consome: `MOD-CONTACT.getContact`, `MOD-TIMELINE.listTimelineEvents`, `MOD-INBOX
 
 - Avatar (iniciais se sem foto). Badge de canal do último contato no canto inferior do avatar.
 - Nome completo (h1, `text-2xl`, semibold).
-- Badge de `contact.classification` (cor por valor: `lead` neutro, `customer`/`student` success, `paid_lead` accent, `blocked` danger).
+- Badge de `contact.classification` (cor por valor: `lead` neutro, `customer` success, `student` success, `mentorado` accent, `blocked` danger).
 - Chips de marcas às quais o contato está vinculado (via `contact_brand_link`).
 - Linha de identificação: CPF mascarado, telefone(s) primário, email(s) primário. Cada um com botão-ícone de copiar.
 - Tags aplicáveis (via `contact_tag`). Botão `+` para aplicar; `x` no hover para remover (confirmação).

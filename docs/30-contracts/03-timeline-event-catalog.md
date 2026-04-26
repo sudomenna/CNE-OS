@@ -43,7 +43,7 @@ Formato: `TE-<KIND>` — `kind` na tabela vira `snake_case` do KIND (ex.: `TE-SA
 |---|---|---|---|
 | `TE-CONTACT-CREATED` | MOD-CONTACT | novo contato persistido | `{ origin: 'checkout'|'message'|'import'|'manual'|'integration', source_ref?: string }` |
 | `TE-CONTACT-UPDATED` | MOD-CONTACT | alteração em campo crítico (nome, CPF, telefone principal, e-mail principal) | `{ field: string, from: any, to: any }` |
-| `TE-CONTACT-CLASSIFICATION-CHANGED` | MOD-CONTACT | lead→customer, →student, →paid_lead | `{ from: classification, to: classification, reason: string }` |
+| `TE-CONTACT-CLASSIFICATION-CHANGED` | MOD-CONTACT | mudança de classificação na hierarquia mentorado > student > customer > lead | `{ from: classification, to: classification, reason: string }` |
 | `TE-CONTACT-TAG-ADDED` | MOD-CONTACT | tag aplicada | `{ tag: string, source: 'manual'|'benefit'|'automation' }` |
 | `TE-CONTACT-TAG-REMOVED` | MOD-CONTACT | tag removida | `{ tag: string }` |
 | `TE-CONTACT-ISSUE-OPENED` | MOD-CONTACT | pendência aberta | `{ issue_id: uuid, kind: contact_issue_kind, detail: string }` |

@@ -20,24 +20,22 @@ function refunded(
   return { transactionId: id, status: 'refunded', productKinds: kinds };
 }
 
-describe('BR-CONTACT-CLASSIFICATION', () => {
-  it('given lead when mentoring approved then returns customer', () => {
-    // lead-to-customer-first-approved
+describe('BR-CONTACT-CLASSIFICATION (hierarquia mentorado > student > customer > lead)', () => {
+  it('given lead when mentoring approved then returns mentorado', () => {
     const current: ContactClassification = 'lead';
     const txs: TransactionForClassification[] = [approved('tx-1', 'mentoring')];
+    expect(classifyContact(current, txs)).toBe('mentorado');
+  });
+
+  it('given lead when ebook approved then returns customer', () => {
+    // paid_lead removido — qualquer compra aprovada vira customer salvo regras superiores
+    const current: ContactClassification = 'lead';
+    const txs: TransactionForClassification[] = [approved('tx-1', 'ebook')];
     expect(classifyContact(current, txs)).toBe('customer');
   });
 
-  it('given lead when ebook approved then returns paid_lead', () => {
-    // lead-to-paid_lead-com-ebook
-    const current: ContactClassification = 'lead';
-    const txs: TransactionForClassification[] = [approved('tx-1', 'ebook')];
-    expect(classifyContact(current, txs)).toBe('paid_lead');
-  });
-
-  it('given paid_lead with ebook when course approved then returns student', () => {
-    // paid_lead-to-student-em-compra-de-curso
-    const current: ContactClassification = 'paid_lead';
+  it('given customer with ebook when course approved then returns student', () => {
+    const current: ContactClassification = 'customer';
     const txs: TransactionForClassification[] = [
       approved('tx-1', 'ebook'),
       approved('tx-2', 'course'),
@@ -45,72 +43,79 @@ describe('BR-CONTACT-CLASSIFICATION', () => {
     expect(classifyContact(current, txs)).toBe('student');
   });
 
-  it('given customer with mentoring when training_in_person approved then returns student', () => {
-    // customer-to-student-em-training
+  it('given customer with course when mentoring approved then returns mentorado (mentorado > student)', () => {
+    // hierarquia: mentorado prevalece mesmo com curso
     const current: ContactClassification = 'customer';
     const txs: TransactionForClassification[] = [
-      approved('tx-1', 'mentoring'),
-      approved('tx-2', 'training_in_person'),
+      approved('tx-1', 'course'),
+      approved('tx-2', 'mentoring'),
+    ];
+    expect(classifyContact(current, txs)).toBe('mentorado');
+  });
+
+  it('given mentorado with refunded mentoring and approved course then returns student', () => {
+    // mentoria reembolsada → cai para student (curso ainda ativo)
+    const current: ContactClassification = 'mentorado';
+    const txs: TransactionForClassification[] = [
+      refunded('tx-1', 'mentoring'),
+      approved('tx-2', 'course'),
     ];
     expect(classifyContact(current, txs)).toBe('student');
   });
 
-  it('given student with refunded course and approved mentoring then returns customer', () => {
-    // student-refund-reverte-para-customer
+  it('given student with refunded course and approved ebook then returns customer', () => {
     const current: ContactClassification = 'student';
     const txs: TransactionForClassification[] = [
       refunded('tx-1', 'course'),
-      approved('tx-2', 'mentoring'),
+      approved('tx-2', 'ebook'),
     ];
     expect(classifyContact(current, txs)).toBe('customer');
   });
 
-  it('given customer with only refunded mentoring then returns lead', () => {
-    // customer-refund-sem-outras-vendas-volta-para-lead
+  it('given customer with only refunded ebook then returns lead', () => {
     const current: ContactClassification = 'customer';
-    const txs: TransactionForClassification[] = [refunded('tx-1', 'mentoring')];
-    expect(classifyContact(current, txs)).toBe('lead');
-  });
-
-  it('given paid_lead with only refunded ebook then returns lead', () => {
-    // paid_lead-refund-volta-para-lead
-    const current: ContactClassification = 'paid_lead';
     const txs: TransactionForClassification[] = [refunded('tx-1', 'ebook')];
     expect(classifyContact(current, txs)).toBe('lead');
   });
 
-  it('given student with approved course then returns student unchanged', () => {
+  it('given mentorado with only refunded mentoring then returns lead', () => {
+    const current: ContactClassification = 'mentorado';
+    const txs: TransactionForClassification[] = [refunded('tx-1', 'mentoring')];
+    expect(classifyContact(current, txs)).toBe('lead');
+  });
+
+  it('given student with multiple approved courses then returns student unchanged', () => {
     // noop-se-ja-correto
     const current: ContactClassification = 'student';
-    const txs: TransactionForClassification[] = [approved('tx-1', 'course')];
+    const txs: TransactionForClassification[] = [
+      approved('tx-1', 'course'),
+      approved('tx-2', 'course'),
+    ];
     expect(classifyContact(current, txs)).toBe('student');
   });
 
-  it('given lead when only bonus approved then returns paid_lead', () => {
-    // bonus-alone-is-paid_lead
+  it('given lead when only bonus approved then returns customer', () => {
     const current: ContactClassification = 'lead';
     const txs: TransactionForClassification[] = [approved('tx-1', 'bonus')];
-    expect(classifyContact(current, txs)).toBe('paid_lead');
+    expect(classifyContact(current, txs)).toBe('customer');
   });
 
-  it('given lead when only other approved then returns paid_lead', () => {
-    // other-alone-is-paid_lead
+  it('given lead when only other approved then returns customer', () => {
     const current: ContactClassification = 'lead';
     const txs: TransactionForClassification[] = [approved('tx-1', 'other')];
-    expect(classifyContact(current, txs)).toBe('paid_lead');
+    expect(classifyContact(current, txs)).toBe('customer');
   });
 
-  it('given lead when ebook and mentoring approved then returns customer', () => {
-    // mixed-ebook-mentoring-is-customer: não é exclusivamente paid_lead kinds
+  it('given lead when ebook and mentoring approved then returns mentorado', () => {
     const current: ContactClassification = 'lead';
     const txs: TransactionForClassification[] = [
       approved('tx-1', 'ebook'),
       approved('tx-2', 'mentoring'),
     ];
-    expect(classifyContact(current, txs)).toBe('customer');
+    expect(classifyContact(current, txs)).toBe('mentorado');
   });
 
-  // Casos adicionais para cobrir todos os ramos de status ignorados
+  // Status ignorados — sempre lead
   it('given contact when all transactions are refused then returns lead', () => {
     const current: ContactClassification = 'customer';
     const txs: TransactionForClassification[] = [
@@ -154,13 +159,19 @@ describe('BR-CONTACT-CLASSIFICATION', () => {
     expect(classifyContact(current, txs)).toBe('student');
   });
 
-  it('given lead when ebook and bonus and other approved then returns paid_lead', () => {
-    // exclusivamente paid_lead kinds combinados
+  it('given lead when training_in_person approved then returns student', () => {
+    const current: ContactClassification = 'lead';
+    const txs: TransactionForClassification[] = [approved('tx-1', 'training_in_person')];
+    expect(classifyContact(current, txs)).toBe('student');
+  });
+
+  it('given lead when ebook and bonus and other approved then returns customer', () => {
+    // sem paid_lead — vira customer
     const current: ContactClassification = 'lead';
     const txs: TransactionForClassification[] = [
       approved('tx-1', 'ebook', 'bonus'),
       approved('tx-2', 'other'),
     ];
-    expect(classifyContact(current, txs)).toBe('paid_lead');
+    expect(classifyContact(current, txs)).toBe('customer');
   });
 });
