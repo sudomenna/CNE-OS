@@ -120,6 +120,41 @@ Perguntas pendentes que precisam de decisão do produto/negócio antes de serem 
 - Status: respondida
 - Resposta: Resolvido — T-8-01 foi concluída (commit db31bbf, `lib/db/schema/transaction.ts` existe). T-8-04 executada com sucesso: `lib/db/schema/entitlement.ts` criado, migration `0009_flippant_felicia_hardy.sql` gerada, `pnpm typecheck` limpo. (2026-04-24, T-8-04)
 
+### OQ-RBAC-MANAGE-01 — Action 'rbac.manage' ausente na matriz canônica
+- Origem: `app/(app)/settings/permissions/actions.ts` (T-15-02)
+- Contexto: implementando guards RBAC para `grantPermissionAction`, `revokePermissionAction` e `getRoleMatrixAction`. Nenhuma `Action` específica para gerenciamento da matriz existe em `lib/auth/rbac/types.ts` nem em `docs/50-business-rules/BR-RBAC.md`.
+- Pergunta: deve-se adicionar `'rbac.manage'` à matriz canônica (types.ts + matrix.ts + BR-RBAC.md) para guardar as actions de permissions? Qual o conjunto de roles autorizados (provavelmente apenas `admin`, sem 2FA)?
+- Impacto se decidir errado: o fallback atual (role check direto `ctx.user.role === 'admin'`) funciona corretamente mas contorna o padrão declarativo do `can()`, deixando a permissão de gerenciar RBAC fora da tabela de decisão.
+- Status: aberta
+
+### OQ-E2E-PERM-01 — Fixture de role não-admin para E2E settings-permissions
+- Origem: `tests/e2e/settings-permissions.spec.ts` (T-15-07, CT-PERM-05, CT-PERM-06)
+- Contexto: CT-PERM-05 e CT-PERM-06 exercitam checkboxes habilitados (non-admin roles). Se o banco de testes tiver apenas o role admin, não há checkboxes habilitados e os casos são marcados como fixme.
+- Pergunta: qual o mecanismo de seed para garantir role support/financial + permissions cadastradas no banco de testes E2E? Deve ser parte do `global-setup.ts` do Playwright ou um script separado?
+- Impacto se decidir errado: CT-PERM-05/06 ficam permanentemente como fixme sem executar a lógica de toggle.
+- Status: aberta
+
+### OQ-E2E-PERM-02 — Usuário não-admin para E2E settings-permissions (CT-PERM-07)
+- Origem: `tests/e2e/settings-permissions.spec.ts` (T-15-07, CT-PERM-07)
+- Contexto: CT-PERM-07 verifica que non-admin vê alerta read-only. Requer E2E_NONADMIN_EMAIL e E2E_NONADMIN_PASSWORD configurados como variáveis de ambiente, apontando para usuário com role != admin no banco de testes.
+- Pergunta: existe usuário de suporte/comercial na seed E2E? Qual email/senha usar como padrão?
+- Impacto se decidir errado: CT-PERM-07 fica como fixme sem executar cobertura de RBAC non-admin.
+- Status: aberta
+
+### OQ-E2E-INT-01 — Usuário não-admin para E2E settings-integrations (CT-INT-10)
+- Origem: `tests/e2e/settings-integrations.spec.ts` (T-15-07, CT-INT-10)
+- Contexto: CT-INT-10 verifica que usuário sem integration.configure recebe UNAUTHORIZED ao submeter form de canal. Requer E2E_NONADMIN_EMAIL configurado com usuário sem esta permission.
+- Pergunta: qual usuário de teste não tem integration.configure? A permission integration.configure é concedida ao role admin por padrão — qualquer outro role deveria falhar, mas precisamos confirmar a seed.
+- Impacto se decidir errado: CT-INT-10 fica como fixme sem cobrir o guard RBAC crítico de integrations.
+- Status: aberta
+
+### OQ-E2E-INT-02 — Brand ativa para E2E form de channel_account (CT-INT-11)
+- Origem: `tests/e2e/settings-integrations.spec.ts` (T-15-07, CT-INT-11)
+- Contexto: CT-INT-11 e CT-INT-10 requerem E2E_TEST_BRAND_ID (UUID de brand ativa no banco de testes) para que o Select de marca no ProviderConfigForm tenha opções disponíveis. Sem brand ativa, o form exibe mensagem alternativa ("Crie uma marca primeiro") e o submit não é possível.
+- Pergunta: deve haver uma brand seed padrão no banco de testes E2E? Qual o UUID esperado?
+- Impacto se decidir errado: CT-INT-11 fica como fixme sem cobrir o fluxo completo de criação de channel_account.
+- Status: aberta
+
 ---
 
 ## Respondidas

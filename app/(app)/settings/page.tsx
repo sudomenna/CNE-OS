@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Building2, FileText, Package, Users, Webhook } from 'lucide-react'
+import { Building2, FileText, Package, ShieldCheck, Users, Webhook } from 'lucide-react'
 
 export const metadata = {
   title: 'Configurações',
@@ -23,6 +23,12 @@ const SECTIONS = [
     label: 'Usuários',
     description: 'Convide e gerencie usuários internos',
     icon: Users,
+  },
+  {
+    href: '/settings/permissions',
+    label: 'Permissões',
+    description: 'Matriz de papéis × permissões editável',
+    icon: ShieldCheck,
   },
   {
     href: '/settings/webhooks',

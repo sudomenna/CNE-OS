@@ -1,8 +1,11 @@
 /**
- * MOD-SETTINGS / T-12-23 — /settings/integrations
+ * MOD-SETTINGS / T-12-23 + T-15-05 — /settings/integrations
  *
  * Server Component: lista status de cada provedor de integração.
  * Verifica env vars + busca erros recentes no webhook_log.
+ *
+ * T-15-05: cada card clicável navega para /settings/integrations/[provider].
+ * Cards kind='placeholder' não têm link.
  *
  * Spec: docs/70-ux/02-information-architecture.md §/settings/integrations
  */
@@ -116,6 +119,7 @@ export default async function IntegrationsPage() {
               key={def.provider}
               provider={def.provider as ProviderKey}
               displayName={def.displayName}
+              kind={def.kind}
               status={status}
               envVars={envVars}
               recentErrors={recentErrors}

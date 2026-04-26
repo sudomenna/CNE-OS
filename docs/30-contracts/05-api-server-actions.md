@@ -567,10 +567,14 @@ Nota: `listFunnelEntriesAction` aceita filtros opcionais `assignee` (UUID), `dat
 | `listProductsAction(brandId?)` | `requireSession` | — | — |
 | `listBrandsForSelectAction()` | `requireSession` | — | — |
 | `listCategoriesForSelectAction(brandId?)` | `requireSession` | — | — |
+| `getProductOfferCountsAction(productIds[])` | `requireSession` | — | — |
+| `listProductOfferUsageAction(productId)` | `requireSession` | — | — |
 
-Nota: `updateProductAction` atualiza `name`, `kind`, `categoryId`, `description`. Brand e slug são imutáveis.
-
-Nota: `archiveProductAction` rejeita com `FORBIDDEN` + `rule: 'INV-CATALOG-05'` se o produto estiver referenciado em `offer_condition_item` com condição `status='active'`.
+Notas:
+- `updateProductAction` atualiza `name`, `kind`, `categoryId`, `description`. Brand e slug são imutáveis.
+- `archiveProductAction` rejeita com `FORBIDDEN` + `rule: 'INV-CATALOG-05'` se o produto estiver referenciado em `offer_condition_item` com condição `status='active'`.
+- `getProductOfferCountsAction` (T-14-02): helper interno, retorna `Record<productId, count>` de ofertas associadas a cada produto. Sem RBAC além de sessão.
+- `listProductOfferUsageAction` (T-14-02): retorna array `{ offerId, offerName, offerStatus, offerSlug, kinds[] }[]` — ofertas que usam o produto e seus kind de condições. Sem RBAC além de sessão.
 
 ### MOD-CATALOG — `app/(app)/settings/catalog/categories/actions.ts`
 
@@ -777,6 +781,38 @@ Notas:
 - Limita exportação a 10.000 linhas (`EXPORT_LIMIT`).
 - CSV contém colunas: `timestamp, actor_email, action_kind, resource_kind, resource_id, changes` (JSON dos before/after).
 - Filename: `audit-log-YYYY-MM-DD.csv`.
+
+### MOD-RBAC — `app/(app)/settings/permissions/actions.ts` (T-15-02)
+
+| Função | Guard | Audit | Revalida |
+|---|---|---|---|
+| `grantPermissionAction(rawInput)` | admin-only (BR-RBAC) | `other / role_permission` | `/settings/permissions` |
+| `revokePermissionAction(rawInput)` | admin-only (BR-RBAC) | `other / role_permission` | `/settings/permissions` |
+| `getRoleMatrixAction()` | admin-only (BR-RBAC) | — | — |
+
+Notas (T-15-02):
+- `grantPermissionAction` aceita `{ roleId: UUID, permissionId: UUID }`. Se `role.kind='admin'`, operação é no-op silencioso (admin tem todas as permissões implicitamente).
+- `revokePermissionAction` rejeita com `BUSINESS_RULE_VIOLATED` (code `CannotModifyAdminRole`) se tentar revogar permissão do role `admin`.
+- `getRoleMatrixAction` retorna `{ roles: RoleMatrixRole[], permissions: RoleMatrixPermission[], assignments: RoleMatrixAssignment[] }` — matriz completa sem filtro. Leitura, sem audit.
+- Guard: não há Action `rbac.manage` na matriz canônica (registrado como OQ-RBAC-MANAGE-01); fallback é admin-only via `user.role === 'admin'`.
+- Audit gerado pelo domínio (`grantPermission`, `revokePermission` internamente chamam `logAudit`).
+
+### MOD-CHANNEL — `app/(app)/settings/integrations/[provider]/actions.ts` (T-15-05)
+
+| Função | Guard | Audit | Revalida |
+|---|---|---|---|
+| `createChannelAccountAction(rawInput)` | `integration.configure` (admin+2FA) | `create / channel_account` | `/settings/integrations`, `/settings/integrations/[provider]` |
+| `updateChannelAccountAction(rawInput)` | `integration.configure` (admin+2FA) | `update / channel_account` | `/settings/integrations`, `/settings/integrations/[provider]` |
+| `testConnectionAction(rawInput)` | `integration.configure` (admin+2FA) | — | — |
+
+Notas (T-15-05):
+- `createChannelAccountAction` aceita `{ brandId: UUID, channelKind: enum, externalId: string, credentials: Record<string, string> }`. Retorna `{ id: string }` do novo `channel_account`. Credenciais são encriptadas via ADR-18 antes de persistir.
+- `updateChannelAccountAction` aceita `{ id: UUID, credentials?: Record<string, string>, isActive?: boolean }`. Se `credentials` fornecidas, re-encripta antes de UPDATE. Retorna `ActionResult<void>`.
+- `testConnectionAction` aceita `{ id: UUID }`. **Phase 1:** placeholder que retorna `{ ok: true, message: '...' }`. Integração real com provedores (WhatsApp, Instagram, etc.) fica Sprint 16+. Retorna `{ ok: boolean, message: string }`.
+- Validação Zod: `channelKind` é enum `['whatsapp', 'instagram', 'email']`. Rejeita `VALIDATION` se invalid.
+- Erros: `NOT_FOUND` para brand/channel_account não encontrado; `VALIDATION` para duplicate (brandId, channelKind, externalId) ou channelKind inválido.
+- ADR-18: credenciais persistidas como `CredentialEnvelope` (jsonb) com `{ v: 1, encryptedAt: ISO string, ciphertext: base64 }`. Plaintext nunca em listagem.
+- Audit gerado por `createChannelAccount` / `updateChannelAccount` do domínio (chamadas via transação).
 
 ---
 

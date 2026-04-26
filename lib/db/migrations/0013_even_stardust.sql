@@ -1,0 +1,2 @@
+-- no-op: already applied via Supabase migrations 20260426000006 and 20260426000007
+-- trackable_link_click_anonymous table + webhook_log.operator_notes column

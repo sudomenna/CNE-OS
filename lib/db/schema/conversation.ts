@@ -92,8 +92,19 @@ export const channelAccount = pgTable(
     externalId: text('external_id').notNull(),
     displayName: text('display_name'),
     isActive: boolean('is_active').notNull().default(true),
-    // credenciais/tokens do provedor — criptografar na Fase 2
+    /**
+     * ADR-18: envelope encriptado via pgcrypto (pgp_sym_encrypt).
+     * Formato: { v: 1, encryptedAt: ISO string, ciphertext: base64 string }
+     * NULL = não configurado. Plaintext NUNCA persistido.
+     * Queries de listagem retornam apenas `encryptedAt` extraído do envelope.
+     */
     credentials: jsonb('credentials'),
+    /**
+     * ADR-18: timestamp da última atividade registrada pelo adapter do provedor.
+     * NULL quando ainda não houve atividade após configuração.
+     * Usado por listChannelsByBrand para exibir "último contato".
+     */
+    lastSeenAt: timestamp('last_seen_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

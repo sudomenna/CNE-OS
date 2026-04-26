@@ -158,6 +158,26 @@ Decisões não-óbvias, formato ADR leve. Ordem cronológica.
 - Alternativas: UUID gerado por nós — rejeitada: perde idempotência real (mesmo evento chegando 2x teria ids diferentes).
 - Consequências: mappers de integração (`lib/integrations/<p>/mapper.ts`) têm função `buildExternalId(payload)` pura e testada.
 
+## ADR-18 — Credenciais de integração encriptadas em `channel_account.credentials`
+- Data: 2026-04-26
+- Status: aceito
+- Contexto: Sprint 15 introduz UI de configuração de provedores (`/settings/integrations/[provider]`). Hoje secrets ficam em env vars (Vercel). Trocar token de WhatsApp ou Digital Guru exige redeploy. Operação fica refém de dev. UI precisa permitir edição runtime, mas tokens não podem ser persistidos em plaintext.
+- Decisão: armazenar credenciais em `channel_account.credentials` como `jsonb` encriptado via **pgcrypto** (`pgp_sym_encrypt`/`pgp_sym_decrypt`). Chave simétrica fica em variável de ambiente `CREDENTIALS_ENCRYPTION_KEY` (também rotacionável). Formato persistido:
+  ```json
+  { "v": 1, "encryptedAt": "2026-04-26T03:00:00Z", "ciphertext": "<base64 bytea>" }
+  ```
+  Helper `lib/db/crypto.ts` expõe `encryptCredentials(plain) → CredentialEnvelope` e `decryptCredentials(envelope) → plain` rodando SQL `SELECT pgp_sym_encrypt/decrypt(...)`. Plaintext nunca trafega fora da função do domínio que chama o provider; queries de listagem retornam apenas metadados (`status`, `external_id`, `last_seen_at`).
+- Alternativas:
+  - **Supabase Vault** — rejeitada na fase 1: requer extensão `supabase_vault` + workflow específico para rotação; pgcrypto resolve sem dependência adicional. Vault fica como caminho futuro (ADR follow-up se complexidade aumentar).
+  - **Manter em env var** — rejeitada: requer redeploy para troca, não atende caso de operador rotacionar token.
+  - **HashiCorp Vault / AWS KMS** — rejeitada: infra externa fora da stack atual.
+- Consequências:
+  - Migration `20260427000001_channel_account_encrypted_credentials.sql` ativa extensão `pgcrypto` (CREATE EXTENSION IF NOT EXISTS pgcrypto), faz backfill (registros pré-existentes têm credentials NULL ou mock; encriptar valor atual antes de aplicar).
+  - Adapters em `lib/integrations/<provider>/` recebem credentials já decriptadas (chamados pelo domínio que chama `decryptCredentials` antes do dispatch).
+  - Rotação de chave: novo `v: 2` envelope; helper aceita ler `v: 1` e `v: 2`; rotação opcional re-encripta registros em background.
+  - UI `/settings/integrations/[provider]` é write-only para credenciais (campo "Alterar token" sempre vazio; placeholder mostra "configurado em DD/MM/YYYY").
+- Fecha: gap operacional identificado no inventário pós-Sprint-14.
+
 ## ADR-17 — `refund_status` com `failed` e `cancelled` como valores distintos
 - Data: 2026-04-25
 - Status: aceito

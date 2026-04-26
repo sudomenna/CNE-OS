@@ -1,19 +1,22 @@
 'use client'
 
 /**
- * MOD-SETTINGS / T-12-23 — IntegrationCard
+ * MOD-SETTINGS / T-12-23 + T-15-05 — IntegrationCard
  *
  * Client Component: exibe status, env vars mascaradas e erros recentes
- * de um provedor de integração. Permite testar a conexão via Server Action.
+ * de um provedor de integração.
+ *
+ * T-15-05: Cards com kind='channel' ou kind='webhook' tornam-se links
+ * clicáveis para /settings/integrations/[provider]. Cards com
+ * kind='placeholder' exibem "Em breve" sem link ativo.
  *
  * Spec: docs/70-ux/02-information-architecture.md §/settings/integrations
  * Acessibilidade AA: labels, roles, foco visível.
  */
 
-import { useState, useTransition } from 'react'
-import { toast } from 'sonner'
+import Link from 'next/link'
+import type { Route } from 'next'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
@@ -21,8 +24,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { testIntegrationAction } from '@/app/(app)/settings/integrations/actions'
-import type { ProviderKey } from '@/app/(app)/settings/integrations/constants'
+import type { ProviderKey, ProviderKind } from '@/app/(app)/settings/integrations/constants'
 
 // ---------------------------------------------------------------------------
 // Props
@@ -31,6 +33,7 @@ import type { ProviderKey } from '@/app/(app)/settings/integrations/constants'
 export interface IntegrationCardProps {
   provider: ProviderKey
   displayName: string
+  kind: ProviderKind
   status: 'configured' | 'missing' | 'error'
   envVars: { key: string; maskedValue: string | null }[]
   recentErrors: { event: string; createdAt: string }[]
@@ -72,45 +75,19 @@ function ProviderInitial({ name }: { name: string }) {
 }
 
 // ---------------------------------------------------------------------------
-// IntegrationCard
+// CardBody — conteúdo interno (sem wrapper de Link)
 // ---------------------------------------------------------------------------
 
-export function IntegrationCard({
+function CardBody({
   provider,
   displayName,
+  kind,
   status,
   envVars,
   recentErrors,
 }: IntegrationCardProps) {
-  const [isPending, startTransition] = useTransition()
-  const [testResult, setTestResult] = useState<{
-    ok: boolean
-    message: string
-  } | null>(null)
-
-  function handleTest() {
-    startTransition(async () => {
-      setTestResult(null)
-      const result = await testIntegrationAction({ provider })
-
-      if (!result.ok) {
-        const msg = result.error.message
-        setTestResult({ ok: false, message: msg })
-        toast.error(`${displayName}: ${msg}`)
-        return
-      }
-
-      setTestResult(result.data)
-      if (result.data.ok) {
-        toast.success(result.data.message)
-      } else {
-        toast.error(result.data.message)
-      }
-    })
-  }
-
   return (
-    <Card>
+    <Card className={kind !== 'placeholder' ? 'hover:border-primary/50 transition-colors cursor-pointer' : 'opacity-70'}>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -124,9 +101,14 @@ export function IntegrationCard({
               </CardDescription>
             </div>
           </div>
-          <Badge variant={STATUS_VARIANT[status]} className="shrink-0 mt-1">
-            {STATUS_LABEL[status]}
-          </Badge>
+          <div className="flex items-center gap-2 shrink-0 mt-1">
+            {kind === 'placeholder' && (
+              <Badge variant="outline" className="text-xs">Em breve</Badge>
+            )}
+            <Badge variant={STATUS_VARIANT[status]}>
+              {STATUS_LABEL[status]}
+            </Badge>
+          </div>
         </div>
       </CardHeader>
 
@@ -190,32 +172,33 @@ export function IntegrationCard({
           </section>
         )}
 
-        {/* Resultado inline do teste */}
-        {testResult !== null && (
-          <p
-            role="status"
-            className={`text-xs rounded px-2 py-1 ${
-              testResult.ok
-                ? 'bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300'
-                : 'bg-destructive/10 text-destructive'
-            }`}
-          >
-            {testResult.message}
+        {/* Hint de navegação */}
+        {kind !== 'placeholder' && (
+          <p className="text-xs text-muted-foreground text-right">
+            Clique para configurar &rarr;
           </p>
         )}
-
-        {/* Botão testar */}
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full"
-          onClick={handleTest}
-          disabled={isPending}
-          aria-label={`Testar conexão com ${displayName}`}
-        >
-          {isPending ? 'Testando…' : 'Testar conexão'}
-        </Button>
       </CardContent>
     </Card>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// IntegrationCard — com ou sem Link dependendo do kind
+// ---------------------------------------------------------------------------
+
+export function IntegrationCard(props: IntegrationCardProps) {
+  if (props.kind === 'placeholder') {
+    return <CardBody {...props} />
+  }
+
+  return (
+    <Link
+      href={`/settings/integrations/${props.provider}` as Route}
+      className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-lg"
+      aria-label={`Configurar ${props.displayName}`}
+    >
+      <CardBody {...props} />
+    </Link>
   )
 }

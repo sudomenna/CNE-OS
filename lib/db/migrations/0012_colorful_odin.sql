@@ -1,0 +1,1 @@
+-- no-op: migration files lost; changes applied directly via Supabase migrations (Sprint 13–14)

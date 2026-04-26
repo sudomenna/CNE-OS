@@ -92,7 +92,7 @@ export async function classifyContact(
   contactId: string,
 ): Promise<ContactClassification>;
 ```
-- **Pós:** retorna classificação derivada (`lead`/`customer`/`student`/`paid_lead`) sem persistir.
+- **Pós:** retorna classificação derivada (`lead`/`customer`/`student`/`mentorado`) sem persistir. Hierarquia: `mentorado > student > customer > lead`.
 - **BRs:** [BR-CONTACT-CLASSIFICATION](../50-business-rules/BR-CONTACT-CLASSIFICATION.md).
 
 ### `upsertContact`
@@ -1381,6 +1381,231 @@ export type OverviewKpis = {
   avgResponseTimeMinutes: number | null;
   openConversations: number;
 };
+```
+
+---
+
+## MOD-RBAC
+
+Onde vive: `lib/domain/rbac/index.ts`.
+
+**Funções de gerenciamento de permissões e matriz role × permission. Implementado em T-15-01.**
+
+### `grantPermission`
+
+```ts
+export type GrantPermissionParams = {
+  actorUserId: string;
+  roleId: string;
+  permissionId: string;
+};
+
+export async function grantPermission(
+  tx: DbTx,
+  params: GrantPermissionParams,
+): Promise<void>;
+```
+- **Contrato:** concede uma permissão a um role. Se `role.kind === 'admin'`, operação é no-op silencioso (admin tem todas as permissões implicitamente).
+- **Pós:** INSERT em `role_permission` (idempotente via `ON CONFLICT DO NOTHING`); append em `audit_log` com `action='rbac.grant'`.
+- **Lança:** `RoleNotFound` (role não existe), `PermissionNotFound` (permission não existe).
+- **BRs:** [BR-RBAC](../50-business-rules/BR-RBAC.md).
+
+### `revokePermission`
+
+```ts
+export type RevokePermissionParams = {
+  actorUserId: string;
+  roleId: string;
+  permissionId: string;
+};
+
+export async function revokePermission(
+  tx: DbTx,
+  params: RevokePermissionParams,
+): Promise<void>;
+```
+- **Contrato:** revoga uma permissão de um role. Lança erro se tentar revogar do role `admin`.
+- **Pós:** DELETE em `role_permission`; append em `audit_log` com `action='rbac.revoke'`.
+- **Lança:** `RoleNotFound`, `PermissionNotFound`, `CannotModifyAdminRole` (tentativa de revogar permissão do admin).
+- **BRs:** [BR-RBAC](../50-business-rules/BR-RBAC.md).
+
+### `listRoleMatrix`
+
+```ts
+export type RoleMatrixRole = {
+  id: string;
+  kind: string;
+  name: string | null;
+};
+
+export type RoleMatrixPermission = {
+  id: string;
+  action: string;
+  requires2fa: boolean;
+};
+
+export type RoleMatrixAssignment = {
+  roleId: string;
+  permissionId: string;
+};
+
+export type RoleMatrix = {
+  roles: RoleMatrixRole[];
+  permissions: RoleMatrixPermission[];
+  assignments: RoleMatrixAssignment[];
+};
+
+export async function listRoleMatrix(): Promise<RoleMatrix>;
+```
+- **Contrato:** retorna matriz completa de roles, permissions e assignments (sem filtro — leitura bruta).
+- **Pós:** sem side-effects (leitura pura).
+- **BRs:** [BR-RBAC](../50-business-rules/BR-RBAC.md).
+
+### Tipos de erro
+
+```ts
+export class RbacDomainError extends Error;
+export class RoleNotFound extends RbacDomainError;
+export class PermissionNotFound extends RbacDomainError;
+export class CannotModifyAdminRole extends RbacDomainError;
+```
+
+---
+
+## MOD-CHANNEL
+
+Onde vive: `lib/domain/channel/index.ts` + `lib/db/crypto.ts`.
+
+**Funções de gerenciamento de contas de integração (channel_accounts) com credenciais encriptadas. Implementado em T-15-03.**
+
+### `createChannelAccount`
+
+```ts
+export type ChannelKind = 'whatsapp' | 'instagram' | 'email';
+
+export type CreateChannelAccountInput = {
+  brandId: string;
+  channelKind: string;
+  externalId: string;
+  credentials: Record<string, unknown>;
+  actorUserId: string;
+};
+
+export type CreateChannelAccountResult = {
+  id: string;
+};
+
+export async function createChannelAccount(
+  tx: DbTx,
+  input: CreateChannelAccountInput,
+  encryptFn: EncryptFn,
+): Promise<CreateChannelAccountResult>;
+```
+- **Contrato:** cria novo `channel_account` com credenciais encriptadas (ADR-18). Valida que `channelKind` é um enum válido.
+- **Pré:** `brandId` deve existir; par (brandId, channelKind, externalId) deve ser único.
+- **Pós:** INSERT em `channel_account` com `credentials` encriptado via `encryptFn`; append em `audit_log`.
+- **Lança:** `BrandNotFoundError`, `InvalidChannelKindError`, `DuplicateChannelAccountError`.
+- **BRs:** [ADR-18](../90-meta/04-decision-log.md), [INV-INBOX](../50-business-rules/BR-INBOX.md).
+
+### `updateChannelAccount`
+
+```ts
+export type UpdateChannelAccountInput = {
+  id: string;
+  actorUserId: string;
+  credentials?: Record<string, unknown>;
+  isActive?: boolean;
+};
+
+export async function updateChannelAccount(
+  tx: DbTx,
+  input: UpdateChannelAccountInput,
+  encryptFn: EncryptFn,
+): Promise<void>;
+```
+- **Contrato:** atualiza credenciais e/ou status de um `channel_account`. Se `credentials` fornecidas, re-encripta antes de persistir.
+- **Pós:** UPDATE em `channel_account`; append em `audit_log` com deltas (before/after cifradas em resumo).
+- **Lança:** `ChannelAccountNotFoundError`.
+- **BRs:** [ADR-18](../90-meta/04-decision-log.md).
+
+### `listChannelsByBrand`
+
+```ts
+export type ChannelAccountListItem = {
+  id: string;
+  brandId: string;
+  channelKind: string;
+  externalId: string;
+  displayName: string | null;
+  isActive: boolean;
+  encryptedAt: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export async function listChannelsByBrand(
+  brandId: string,
+): Promise<ChannelAccountListItem[]>;
+```
+- **Contrato:** lista `channel_accounts` de uma marca. **Nunca** retorna ciphertext nem plaintext das credentials (ADR-18) — apenas metadados + `encryptedAt` do envelope.
+- **Pós:** sem side-effects (leitura pura).
+- **BRs:** [ADR-18](../90-meta/04-decision-log.md).
+
+### `getChannelCredentials`
+
+```ts
+export type DecryptFn = (envelope: CredentialEnvelope) => Promise<Record<string, unknown>>;
+
+export async function getChannelCredentials(
+  id: string,
+  decryptFn: DecryptFn,
+): Promise<Record<string, unknown>>;
+```
+- **Contrato:** carrega `channel_account` e decripta as credentials via `decryptFn` (pgcrypto). **Restrito a adapters de integração** — nunca expor em Server Actions de listagem.
+- **Pós:** retorna plaintext (use imediatamente antes de enviar ao provedor externo).
+- **Lança:** `ChannelAccountNotFoundError`, `Error` se envelope malformado.
+- **BRs:** [ADR-18](../90-meta/04-decision-log.md) §security.
+
+### `encryptCredentials` (MOD-CRYPTO helper)
+
+```ts
+export type CredentialEnvelope = {
+  v: 1;
+  encryptedAt: string;
+  ciphertext: string;
+};
+
+export class CryptoConfigError extends Error;
+
+export async function encryptCredentials(
+  plain: Record<string, unknown>,
+): Promise<CredentialEnvelope>;
+```
+- **Contrato:** encripta credenciais em plaintext via `pgp_sym_encrypt` (pgcrypto no Supabase). Retorna envelope com formato versionado.
+- **Pré:** `CREDENTIALS_ENCRYPTION_KEY` must be set em environment.
+- **Lança:** `CryptoConfigError` se env var ausente.
+- **BRs:** [ADR-18](../90-meta/04-decision-log.md).
+
+### `decryptCredentials` (MOD-CRYPTO helper)
+
+```ts
+export async function decryptCredentials(
+  envelope: CredentialEnvelope,
+): Promise<Record<string, unknown>>;
+```
+- **Contrato:** decripta envelope via `pgp_sym_decrypt` (pgcrypto).
+- **Pré:** envelope válido com `v=1, ciphertext` base64.
+- **Lança:** `Error` se decrypt falha.
+- **BRs:** [ADR-18](../90-meta/04-decision-log.md) §security.
+
+### Tipos de erro
+
+```ts
+export class ChannelDomainError extends Error;
+export class ChannelAccountNotFoundError extends ChannelDomainError;
+export class BrandNotFoundError extends ChannelDomainError;
+export class DuplicateChannelAccountError extends ChannelDomainError;
+export class InvalidChannelKindError extends ChannelDomainError;
 ```
 
 ---
