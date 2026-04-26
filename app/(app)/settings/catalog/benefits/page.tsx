@@ -1,21 +1,27 @@
 /**
  * MOD-CATALOG — Página de Benefícios Comerciais
  * Server Component: lista benefícios + formulários de criar/editar/arquivar.
- * Spec: docs/20-domain/09-catalog.md §3.3, T-6-04, T-12-26
+ * Spec: docs/20-domain/09-catalog.md §3.3, T-6-04, T-12-26, T-16-13
  */
 
+import { redirect } from 'next/navigation'
+import { requireSession } from '@/lib/auth/session'
 import { listBenefitsAction, listBrandsForBenefitSelectAction } from './actions'
-import {
-  CatalogBenefitCreateForm,
-  CatalogBenefitEditForm,
-  CatalogBenefitArchiveDialog,
-} from '@/components/settings/catalog-benefit-form'
+import { CatalogBenefitCreateForm } from '@/components/settings/catalog-benefit-form'
+import { BenefitsList } from '@/components/settings/benefits-list'
 
 export const metadata = {
   title: 'Benefícios — Catálogo',
 }
 
 export default async function BenefitsPage() {
+  let ctx
+  try {
+    ctx = await requireSession()
+  } catch {
+    redirect('/login')
+  }
+
   const [benefitsResult, brandsResult] = await Promise.all([
     listBenefitsAction(),
     listBrandsForBenefitSelectAction(),
@@ -45,81 +51,7 @@ export default async function BenefitsPage() {
         </div>
       )}
 
-      <div className="rounded-lg border border-border bg-card overflow-hidden">
-        <table className="w-full text-sm" aria-label="Lista de benefícios comerciais">
-          <thead className="border-b border-border bg-muted/50">
-            <tr>
-              <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">Nome</th>
-              <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">Slug</th>
-              <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">Tag automática</th>
-              <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">Vigência padrão</th>
-              <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
-              <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">Criado em</th>
-              <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">
-                <span className="sr-only">Ações</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {benefits.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground/60">
-                  Nenhum benefício cadastrado.
-                </td>
-              </tr>
-            ) : (
-              benefits.map((b) => (
-                <tr
-                  key={b.id}
-                  className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors"
-                >
-                  <td className="px-4 py-3 font-medium text-foreground">{b.name}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{b.slug}</td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {b.autoTag ? (
-                      <code className="rounded bg-muted px-1.5 py-0.5 text-xs">{b.autoTag}</code>
-                    ) : (
-                      <span className="text-muted-foreground/40">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {b.defaultDurationMonths != null ? (
-                      `${b.defaultDurationMonths} meses`
-                    ) : (
-                      <span className="text-muted-foreground/40">Perpétuo</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    {b.status === 'archived' ? (
-                      <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                        Arquivado
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                        Ativo
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {new Date(b.createdAt).toLocaleDateString('pt-BR')}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <CatalogBenefitEditForm benefit={b} />
-                      {b.status === 'active' && (
-                        <CatalogBenefitArchiveDialog
-                          benefitId={b.id}
-                          benefitName={b.name}
-                        />
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      <BenefitsList rows={benefits} userId={ctx.user.id} />
     </div>
   )
 }

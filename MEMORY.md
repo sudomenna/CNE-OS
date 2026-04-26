@@ -45,6 +45,12 @@ Motivo: <por que divergiu>
 Ação: <atualizar doc em <quando> | deliberadamente mantido>
 ```
 
+#### 2026-04-26 · @cne-ui-author · [SYNC-PENDING] · T-16-09 · tableId campaigns:creatives não listado no inventário
+Doc afetada: `docs/70-ux/12-table-column-customizer.md` §3.1 (Inventário oficial)
+Divergência: T-16-09 introduziu o tableId `campaigns:creatives` (tabela de criativos em `/campaigns/[id]`, componente `components/campaign/creative-list.tsx`). O inventário §3.1 lista apenas `campaigns:list` como cobrindo `/campaigns` + `/campaigns/[id]`, sem entrada separada para a sub-tabela de criativos.
+Motivo: o inventário previa uma única entrada por rota; a investigação revelou que `/campaigns/[id]` tem tabela própria de criativos merecedora de customização independente.
+Ação: T-16-15 (doc-sync) deve adicionar entrada `campaigns:creatives | /campaigns/[id] (tabela Criativos) | C | T-16-09` no inventário §3.1 de `docs/70-ux/12-table-column-customizer.md`.
+
 #### 2026-04-26 · @cne-domain-author · [SYNC-PENDING] · MOD-CHANNEL · T-15-03
 Doc afetada: `docs/30-contracts/07-module-interfaces.md` (§MOD-CHANNEL — seção ainda não existe)
 Divergência: `lib/domain/channel/index.ts` expõe `createChannelAccount`, `updateChannelAccount`, `listChannelsByBrand`, `getChannelCredentials` + tipos + erros. `lib/db/crypto.ts` expõe `encryptCredentials`, `decryptCredentials`, `CredentialEnvelope`, `CryptoConfigError`. Nenhum dos dois documentados em `07-module-interfaces.md`.

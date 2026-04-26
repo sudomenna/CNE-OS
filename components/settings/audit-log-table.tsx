@@ -12,6 +12,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { useColumnVisibility } from '@/lib/hooks/use-column-visibility'
+import { ColumnsCustomizer } from '@/components/ui/columns-customizer'
+import { AUDIT_COLUMNS, SETTINGS_AUDIT_TABLE_ID } from './audit-columns'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -33,6 +36,13 @@ export type AuditLogTableProps = {
   rows: AuditLogRow[]
   page: number
   hasNext: boolean
+  /**
+   * ID do usuário autenticado que está visualizando a tabela.
+   * Usado como namespace no localStorage para o customizador de colunas.
+   * NÃO confundir com o parâmetro `userId` do formulário de filtro,
+   * que é o e-mail/ID do ator que se quer buscar nos logs.
+   */
+  viewerUserId: string
 }
 
 // ---------------------------------------------------------------------------
@@ -142,6 +152,8 @@ function FilterForm() {
     const data = new FormData(form)
     const params = new URLSearchParams()
 
+    // NOTE: `userId` aqui é o campo de filtro por ator (e-mail do ator nos logs),
+    // completamente separado do `viewerUserId` prop do componente pai.
     const userId = (data.get('userId') as string | null)?.trim()
     const actionKind = data.get('actionKind') as string | null
     const resourceKind = data.get('resourceKind') as string | null
@@ -310,12 +322,32 @@ function Pagination({ page, hasNext }: { page: number; hasNext: boolean }) {
 // AuditLogTable — main export
 // ---------------------------------------------------------------------------
 
-export function AuditLogTable({ rows, page, hasNext }: AuditLogTableProps) {
+export function AuditLogTable({ rows, page, hasNext, viewerUserId }: AuditLogTableProps) {
+  // Hook de visibilidade de colunas — usa viewerUserId como namespace no localStorage
+  // (distinto do campo `userId` do formulário de filtro, que busca por ator nos logs)
+  const { visibleColumnIds, isVisible, toggle, reset } = useColumnVisibility({
+    tableId: SETTINGS_AUDIT_TABLE_ID,
+    userId: viewerUserId,
+    columns: AUDIT_COLUMNS,
+  })
+
   return (
     <div className="space-y-4">
       <FilterForm />
 
       <div className="rounded-lg border border-border bg-card overflow-hidden">
+        {/* Toolbar com customizador de colunas */}
+        <div className="flex items-center justify-end px-4 py-2 border-b border-border bg-muted/30">
+          <ColumnsCustomizer
+            tableId={SETTINGS_AUDIT_TABLE_ID}
+            userId={viewerUserId}
+            columns={AUDIT_COLUMNS}
+            visibleColumnIds={visibleColumnIds}
+            onToggle={toggle}
+            onReset={reset}
+          />
+        </div>
+
         <div className="overflow-x-auto">
           <table
             className="w-full text-sm"
@@ -323,43 +355,60 @@ export function AuditLogTable({ rows, page, hasNext }: AuditLogTableProps) {
           >
             <thead className="border-b border-border bg-muted/50">
               <tr>
+                {/* actor — alwaysVisible */}
                 <th
                   scope="col"
                   className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap"
                 >
                   Ator
                 </th>
-                <th
-                  scope="col"
-                  className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap"
-                >
-                  Ação
-                </th>
-                <th
-                  scope="col"
-                  className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap"
-                >
-                  Recurso
-                </th>
-                <th
-                  scope="col"
-                  className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap"
-                >
-                  Timestamp
-                </th>
-                <th
-                  scope="col"
-                  className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap"
-                >
-                  Diff
-                </th>
+                {isVisible('action') && (
+                  <th
+                    scope="col"
+                    className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap"
+                  >
+                    Ação
+                  </th>
+                )}
+                {isVisible('resource') && (
+                  <th
+                    scope="col"
+                    className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap"
+                  >
+                    Recurso
+                  </th>
+                )}
+                {isVisible('resourceId') && (
+                  <th
+                    scope="col"
+                    className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap"
+                  >
+                    ID do recurso
+                  </th>
+                )}
+                {isVisible('timestamp') && (
+                  <th
+                    scope="col"
+                    className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap"
+                  >
+                    Timestamp
+                  </th>
+                )}
+                {isVisible('diff') && (
+                  <th
+                    scope="col"
+                    className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap"
+                  >
+                    Diff
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={visibleColumnIds.size}
                     className="px-4 py-10 text-center text-muted-foreground/60"
                   >
                     Nenhum registro encontrado para os filtros selecionados.
@@ -371,30 +420,45 @@ export function AuditLogTable({ rows, page, hasNext }: AuditLogTableProps) {
                     key={row.id}
                     className="border-b border-border last:border-0 hover:bg-muted/40 transition-colors"
                   >
+                    {/* actor — alwaysVisible */}
                     <td className="px-4 py-3 text-foreground">
                       {row.actorEmail ?? row.actorSystem ?? (
                         <span className="text-muted-foreground/50 italic">Sistema</span>
                       )}
                     </td>
-                    <td className="px-4 py-3">
-                      <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                        {ACTION_KIND_LABELS[row.actionKind] ?? row.actionKind}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground font-mono text-xs">
-                      <span className="font-semibold text-foreground">{row.resourceKind}</span>
-                      {row.resourceId && (
-                        <span className="ml-1 opacity-60" title={row.resourceId}>
-                          #{shortId(row.resourceId)}
+                    {isVisible('action') && (
+                      <td className="px-4 py-3">
+                        <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                          {ACTION_KIND_LABELS[row.actionKind] ?? row.actionKind}
                         </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
-                      {formatDate(row.createdAt)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <DiffCell before={row.before} after={row.after} />
-                    </td>
+                      </td>
+                    )}
+                    {isVisible('resource') && (
+                      <td className="px-4 py-3 text-muted-foreground font-mono text-xs">
+                        <span className="font-semibold text-foreground">{row.resourceKind}</span>
+                      </td>
+                    )}
+                    {isVisible('resourceId') && (
+                      <td className="px-4 py-3 text-muted-foreground font-mono text-xs">
+                        {row.resourceId ? (
+                          <span title={row.resourceId}>
+                            #{shortId(row.resourceId)}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground/40">—</span>
+                        )}
+                      </td>
+                    )}
+                    {isVisible('timestamp') && (
+                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
+                        {formatDate(row.createdAt)}
+                      </td>
+                    )}
+                    {isVisible('diff') && (
+                      <td className="px-4 py-3">
+                        <DiffCell before={row.before} after={row.after} />
+                      </td>
+                    )}
                   </tr>
                 ))
               )}

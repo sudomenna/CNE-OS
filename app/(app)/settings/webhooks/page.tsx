@@ -5,44 +5,16 @@
  * Destaque visual para entradas dead_letter (cor de alerta).
  *
  * FLOW-12 — Reprocessamento manual de webhook DLQ
+ * T-16-12 — Customização de colunas via <WebhooksList>
  */
 import Link from 'next/link'
-import { Badge } from '@/components/ui/badge'
+import { redirect } from 'next/navigation'
+import { requireSession } from '@/lib/auth/session'
+import { WebhooksList, type WebhookRow } from '@/components/settings/webhooks-list'
 import { getWebhookLogs } from './actions'
 
 export const metadata = {
   title: 'Webhooks — Configurações',
-}
-
-// ---------------------------------------------------------------------------
-// Labels e estilos de status
-// ---------------------------------------------------------------------------
-
-const STATUS_LABELS: Record<string, string> = {
-  received: 'Recebido',
-  processed: 'Processado',
-  failed: 'Falhou',
-  dead_letter: 'DLQ',
-}
-
-const STATUS_VARIANT: Record<
-  string,
-  'default' | 'secondary' | 'destructive' | 'outline'
-> = {
-  received: 'secondary',
-  processed: 'default',
-  failed: 'destructive',
-  dead_letter: 'destructive',
-}
-
-const PROVIDER_LABELS: Record<string, string> = {
-  digital_guru: 'Digital Guru',
-  brevo: 'Brevo',
-  whatsapp_official: 'WhatsApp',
-  instagram: 'Instagram',
-  email: 'E-mail',
-  notazz: 'Notazz',
-  analytics: 'Analytics',
 }
 
 const STATUS_OPTIONS = [
@@ -83,6 +55,14 @@ type PageProps = {
 // ---------------------------------------------------------------------------
 
 export default async function WebhooksPage({ searchParams }: PageProps) {
+  // Obter userId para o customizador de colunas (localStorage namespace)
+  let ctx
+  try {
+    ctx = await requireSession()
+  } catch {
+    redirect('/login')
+  }
+
   const params = await searchParams
   const statusFilter = params.status ?? ''
   const providerFilter = params.provider ?? ''
@@ -102,7 +82,7 @@ export default async function WebhooksPage({ searchParams }: PageProps) {
   const totalPages = Math.ceil(total / pageSize)
 
   function buildUrl(overrides: Record<string, string>) {
-    const params = new URLSearchParams()
+    const p = new URLSearchParams()
     const merged = {
       status: statusFilter,
       provider: providerFilter,
@@ -110,10 +90,23 @@ export default async function WebhooksPage({ searchParams }: PageProps) {
       ...overrides,
     }
     for (const [k, v] of Object.entries(merged)) {
-      if (v) params.set(k, v)
+      if (v) p.set(k, v)
     }
-    return `/settings/webhooks?${params.toString()}`
+    return `/settings/webhooks?${p.toString()}`
   }
+
+  // Mapear para WebhookRow com receivedAt como string ISO
+  const rows: WebhookRow[] = items.map((item) => ({
+    id: item.id,
+    provider: item.provider,
+    eventKind: item.eventKind ?? null,
+    status: item.status,
+    attempts: item.attempts,
+    receivedAt:
+      typeof item.receivedAt === 'string'
+        ? item.receivedAt
+        : (item.receivedAt as Date).toISOString(),
+  }))
 
   return (
     <div className="space-y-6">
@@ -199,86 +192,13 @@ export default async function WebhooksPage({ searchParams }: PageProps) {
         </div>
       )}
 
-      {/* Tabela */}
-      <div className="rounded-lg border border-border bg-card overflow-hidden">
-        <table className="w-full text-sm" aria-label="Lista de webhooks">
-          <thead className="border-b border-border bg-muted/50">
-            <tr>
-              <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">
-                Provedor
-              </th>
-              <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">
-                Tipo de evento
-              </th>
-              <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">
-                Status
-              </th>
-              <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">
-                Tentativas
-              </th>
-              <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">
-                Recebido em
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground/60">
-                  Nenhum evento encontrado{statusFilter || providerFilter ? ' com os filtros aplicados' : ''}.
-                </td>
-              </tr>
-            ) : (
-              items.map((item) => {
-                const isAlert = item.status === 'dead_letter' || item.status === 'failed'
-                return (
-                  <tr
-                    key={item.id}
-                    className={[
-                      'border-b border-border last:border-0 transition-colors',
-                      isAlert ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-muted/50',
-                    ].join(' ')}
-                  >
-                    <td className="px-4 py-3">
-                      <span className={`font-medium ${isAlert ? 'text-red-700' : 'text-foreground'}`}>
-                        {PROVIDER_LABELS[item.provider] ?? item.provider}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {item.eventKind ?? (
-                        <span className="text-muted-foreground/40 italic">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge variant={STATUS_VARIANT[item.status] ?? 'outline'}>
-                        {STATUS_LABELS[item.status] ?? item.status}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground tabular-nums">
-                      {item.attempts}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {new Date(item.receivedAt).toLocaleString('pt-BR', {
-                        dateStyle: 'short',
-                        timeStyle: 'short',
-                      })}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Link
-                        href={`/settings/webhooks/${item.id}`}
-                        className="text-sm font-medium text-muted-foreground underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 rounded"
-                        aria-label={`Ver detalhes do webhook ${item.id}`}
-                      >
-                        Detalhes
-                      </Link>
-                    </td>
-                  </tr>
-                )
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+      {/* Tabela com customizador de colunas */}
+      <WebhooksList
+        rows={rows}
+        userId={ctx.user.id}
+        statusFilter={statusFilter}
+        providerFilter={providerFilter}
+      />
 
       {/* Paginação */}
       {totalPages > 1 && (

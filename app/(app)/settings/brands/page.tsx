@@ -1,13 +1,20 @@
 import { listBrands } from './actions'
 import { CreateBrandForm } from './create-brand-form'
+import { BrandsList } from '@/components/settings/brands-list'
+import { requireSession } from '@/lib/auth/session'
 
 export const metadata = {
   title: 'Marcas — Configurações',
 }
 
 export default async function BrandsPage() {
-  const result = await listBrands()
+  const [result, session] = await Promise.all([
+    listBrands(),
+    requireSession().catch(() => null),
+  ])
+
   const brands = result.ok ? result.data : []
+  const userId = session?.user.id ?? 'anonymous'
 
   return (
     <div className="space-y-6">
@@ -28,81 +35,7 @@ export default async function BrandsPage() {
         </div>
       )}
 
-      <div className="rounded-lg border border-border bg-card overflow-hidden">
-        <table className="w-full text-sm" aria-label="Lista de marcas">
-          <thead className="border-b border-border bg-muted/50">
-            <tr>
-              <th
-                scope="col"
-                className="px-4 py-3 text-left font-medium text-muted-foreground"
-              >
-                Nome
-              </th>
-              <th
-                scope="col"
-                className="px-4 py-3 text-left font-medium text-muted-foreground"
-              >
-                Slug
-              </th>
-              <th
-                scope="col"
-                className="px-4 py-3 text-left font-medium text-muted-foreground"
-              >
-                Cor principal
-              </th>
-              <th
-                scope="col"
-                className="px-4 py-3 text-left font-medium text-muted-foreground"
-              >
-                Criado em
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {brands.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={4}
-                  className="px-4 py-8 text-center text-muted-foreground/60"
-                >
-                  Nenhuma marca cadastrada.
-                </td>
-              </tr>
-            ) : (
-              brands.map((b) => (
-                <tr
-                  key={b.id}
-                  className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors"
-                >
-                  <td className="px-4 py-3 font-medium text-foreground">
-                    <div className="flex items-center gap-2">
-                      {b.primaryColor && (
-                        <span
-                          className="inline-block h-3 w-3 rounded-full border border-border flex-shrink-0"
-                          style={{ backgroundColor: b.primaryColor }}
-                          aria-hidden="true"
-                        />
-                      )}
-                      {b.name}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                    {b.slug}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {b.primaryColor ?? (
-                      <span className="text-muted-foreground/40">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {new Date(b.createdAt).toLocaleDateString('pt-BR')}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      <BrandsList brands={brands} userId={userId} />
     </div>
   )
 }

@@ -73,7 +73,7 @@ export default async function AuditPage({ searchParams }: AuditPageProps) {
     if (ids.length === 0) {
       // No matching users → return empty result fast
       return (
-        <AuditPageShell page={page} rows={[]} hasNext={false} />
+        <AuditPageShell page={page} rows={[]} hasNext={false} viewerUserId={ctx.user.id} />
       )
     }
     if (ids.length === 1) {
@@ -153,7 +153,7 @@ export default async function AuditPage({ searchParams }: AuditPageProps) {
   }))
 
   return (
-    <AuditPageShell page={page} rows={rows} hasNext={hasNext} />
+    <AuditPageShell page={page} rows={rows} hasNext={hasNext} viewerUserId={ctx.user.id} />
   )
 }
 
@@ -161,10 +161,12 @@ function AuditPageShell({
   page,
   rows,
   hasNext,
+  viewerUserId,
 }: {
   page: number
   rows: AuditLogRow[]
   hasNext: boolean
+  viewerUserId: string
 }) {
   return (
     <div className="space-y-6">
@@ -186,7 +188,7 @@ function AuditPageShell({
       </div>
 
       <Suspense fallback={<div className="text-muted-foreground text-sm">Carregando…</div>}>
-        <AuditLogTable rows={rows} page={page} hasNext={hasNext} />
+        <AuditLogTable rows={rows} page={page} hasNext={hasNext} viewerUserId={viewerUserId} />
       </Suspense>
     </div>
   )
