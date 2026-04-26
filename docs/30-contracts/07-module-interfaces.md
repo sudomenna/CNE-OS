@@ -236,19 +236,30 @@ export async function emitTimelineEvent(
 ### `listTimelineEvents`
 
 ```ts
+export type TimelineFilters = {
+  brandId?: string;
+  kinds?: string[];
+  since?: Date;      // occurred_at >= since
+  until?: Date;      // occurred_at <= until
+};
+
+export type TimelineEventPage = {
+  events: TimelineEvent[];
+  nextCursor: string | null;  // keyset cursor: `${occurred_at.toISOString()}_${id}`
+  hasMore: boolean;
+};
+
 export async function listTimelineEvents(
   contactId: string,
-  filters: {
-    brandId?: string;
-    kinds?: string[];
-    channel?: ChannelKind;
-    from?: Date;
-    to?: Date;
-    cursor?: string;
-    limit?: number;
-  },
-): Promise<{ items: TimelineEvent[]; nextCursor: string | null }>;
+  filters?: TimelineFilters,
+  cursor?: string | null,
+  pageSize?: number,
+): Promise<TimelineEventPage>;
 ```
+- **Contrato:** retorna timeline paginada de um contato, consolidando eventos de todos os contatos que foram mesclados nele (transitividade de merges até profundidade 5, INV-TIMELINE-07).
+- **Paginação:** keyset cursor baseado em `(occurred_at DESC, id DESC)`; `pageSize` default é 50.
+- **Pré:** `contactId` deve existir; lança `ContactNotFoundError` se não encontrado.
+- **Pós:** `hasMore` indica se há mais página(s) adiante.
 
 ---
 
@@ -377,6 +388,35 @@ export async function updateTicket(
 ```
 - **Pós:** emite `TE-TICKET-UPDATED` com `payload.fields` listando os campos alterados.
 - **Lança:** `TicketNotFoundError` se `ticketId` não existir.
+
+### `computeFirstResponseSla` (pura)
+
+```ts
+export type SlaStatus = 'met' | 'violated' | 'pending';
+
+export type TicketSlaInput = {
+  /** Timestamp de abertura do ticket (mapeado de `createdAt` no schema) */
+  openedAt: Date;
+  /**
+   * Timestamp da primeira resposta ao contato.
+   * null quando ainda não houve resposta (SLA ainda não computável).
+   */
+  firstRespondedAt: Date | null;
+  /** Status atual do ticket — contexto do estado */
+  status: string;
+};
+
+export const FIRST_RESPONSE_SLA_MS = 15 * 60 * 1000; // 15 minutos em ms
+
+export function computeFirstResponseSla(ticket: TicketSlaInput): SlaStatus;
+```
+- **Contrato:** computa status do SLA de primeira resposta para um ticket (BR-TICKET-SLA).
+- **Regras:**
+  - Se `firstRespondedAt === null` → `'pending'` (aguardando primeira resposta).
+  - Se `firstRespondedAt - openedAt ≤ 15min` → `'met'` (SLA cumprido; limite inclusivo).
+  - Se `firstRespondedAt - openedAt > 15min` → `'violated'` (SLA violado).
+- **Pura:** sem I/O, sem DB; testável isoladamente.
+- **BRs:** [BR-TICKET-SLA](../50-business-rules/BR-TICKET-SLA.md), [FLOW-13](../60-flows/13-ticket-lifecycle.md).
 
 ---
 
@@ -734,12 +774,37 @@ export async function guardLegalEntityImmutable(
 - **Pós:** lança `OfferLegalEntityImmutableError` se há transação blocking.
 - **BRs:** INV-OFFER-03.
 
+### `assertRenewalEligibility`
+
+```ts
+export async function assertRenewalEligibility(
+  tx: DbTx,
+  contactId: string,
+  offerId: string,
+): Promise<void>;
+```
+- **Contrato:** verifica que o contato pode comprar uma oferta de renovação.
+- **Algoritmo (BR-RENEWAL):**
+  1. Carrega oferta; exige `type='renewal'` e `renews_offer_id != null`.
+  2. Obtém `originOfferId = offer.renews_offer_id`.
+  3. Busca `customer_entitlement` do contato com:
+     - `status='active'` OU
+     - `status='expired'` E `ends_at > now() - 30 days` (janela de graça)
+     - cujo `origin_transaction_id` aponta para transação aprovada do contato com `offer_id=originOfferId`.
+  4. Rejeita entitlements com `status='revoked'`.
+  5. Lança `RenewalWithoutActiveEntitlement` se nenhum encontrado.
+- **Pré:** transação `tx` ativa (ADR-11).
+- **Pós:** lança `OfferNotRenewal` se oferta não é renewal; `RenewalWithoutActiveEntitlement` se contato sem direito elegível.
+- **BRs:** [BR-RENEWAL](../50-business-rules/BR-RENEWAL.md), [FLOW-10](../60-flows/10-renewal-via-new-offer.md).
+
 ### Tipos de erro
 
 ```ts
 export class OfferDomainError extends Error;
 export class OfferCounterNotFoundError extends OfferDomainError;
 export class OfferLegalEntityImmutableError extends OfferDomainError;
+export class OfferNotRenewal extends OfferDomainError;
+export class RenewalWithoutActiveEntitlement extends OfferDomainError;
 export class NoPriorityChangeError extends OfferDomainError;
 ```
 
