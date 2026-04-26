@@ -1,5 +1,6 @@
 'use client'
 
+import { Fragment } from 'react'
 import Link from 'next/link'
 import type { Route } from 'next'
 import { usePathname } from 'next/navigation'
@@ -86,20 +87,20 @@ export function Breadcrumbs({ overrides }: BreadcrumbsProps) {
           const label = segmentToLabel(segment, overrides?.[segment])
 
           return (
-            <BreadcrumbItem key={href}>
-              {isLast ? (
-                <BreadcrumbPage className="font-medium text-foreground">
-                  {label}
-                </BreadcrumbPage>
-              ) : (
-                <>
+            <Fragment key={href}>
+              <BreadcrumbItem>
+                {isLast ? (
+                  <BreadcrumbPage className="font-medium text-foreground">
+                    {label}
+                  </BreadcrumbPage>
+                ) : (
                   <BreadcrumbLink asChild>
                     <Link href={href as Route}>{label}</Link>
                   </BreadcrumbLink>
-                  <BreadcrumbSeparator />
-                </>
-              )}
-            </BreadcrumbItem>
+                )}
+              </BreadcrumbItem>
+              {!isLast && <BreadcrumbSeparator />}
+            </Fragment>
           )
         })}
       </BreadcrumbList>

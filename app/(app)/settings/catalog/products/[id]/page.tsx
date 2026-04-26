@@ -86,9 +86,10 @@ function KindBadge({ kind }: { kind: string }) {
 export default async function ProductDetailPage({
   params,
 }: {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }) {
   await requireSession()
+  const { id } = await params
 
   // Busca produto
   const [prod] = await db
@@ -104,7 +105,7 @@ export default async function ProductDetailPage({
       createdAt: product.createdAt,
     })
     .from(product)
-    .where(eq(product.id, params.id))
+    .where(eq(product.id, id))
     .limit(1)
 
   if (!prod) {

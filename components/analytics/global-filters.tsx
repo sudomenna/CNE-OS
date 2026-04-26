@@ -46,7 +46,8 @@ export function GlobalFilters({
     [defaultFilters, router],
   );
 
-  const currentBrandId = defaultFilters.brandId ?? "";
+  // sentinel '__all' = "todas as marcas" (Radix Select não aceita value vazio)
+  const currentBrandId = defaultFilters.brandId ?? "__all";
   const currentPeriod = (defaultFilters.period as AnalyticsPeriod) ?? "30d";
 
   return (
@@ -62,14 +63,14 @@ export function GlobalFilters({
         <Select
           value={currentBrandId}
           onValueChange={(value) =>
-            handleChange({ brandId: value === "" ? null : value })
+            handleChange({ brandId: value === "__all" ? null : value })
           }
         >
           <SelectTrigger id="filter-brand" className="h-9 w-40 text-sm">
             <SelectValue placeholder="Todas as marcas" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Todas as marcas</SelectItem>
+            <SelectItem value="__all">Todas as marcas</SelectItem>
             {brands.map((b) => (
               <SelectItem key={b.id} value={b.id}>
                 {b.name}
@@ -118,7 +119,7 @@ export function GlobalFilters({
               <SelectValue placeholder="Todos os funis" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos os funis</SelectItem>
+              <SelectItem value="__all">Todos os funis</SelectItem>
               {funnels.map((f) => (
                 <SelectItem key={f.id} value={f.id}>
                   {f.name}
@@ -143,7 +144,7 @@ export function GlobalFilters({
               <SelectValue placeholder="Todas as campanhas" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todas as campanhas</SelectItem>
+              <SelectItem value="__all">Todas as campanhas</SelectItem>
               {campaigns.map((c) => (
                 <SelectItem key={c.id} value={c.id}>
                   {c.name}

@@ -84,29 +84,35 @@ export async function queryDelinquency(
 }
 
 export async function queryOverviewKpis(
-  filters: AnalyticsFilters,
+  // brandId opcional/null = consolidar TODAS as marcas (filtro "Todas as marcas")
+  filters: Omit<AnalyticsFilters, 'brandId'> & { brandId: string | null },
   db: Db = defaultDb,
 ): Promise<OverviewKpis> {
+  const fromDate = isoDate(filters.from)
+  const toDate = isoDate(filters.to)
+  // brandId=null → cláusula `${null}::uuid IS NULL` é sempre true → não filtra por marca
+  const brandId = filters.brandId
+
   const [salesResult, refundsResult, inboxResult] = await Promise.all([
     db.execute(sql`
       SELECT COALESCE(SUM(gross_revenue), 0)::float        AS revenue,
              COALESCE(SUM(transactions_count), 0)::int     AS count
       FROM mv_sales_by_brand_day
-      WHERE brand_id = ${filters.brandId}::uuid
-        AND day BETWEEN ${isoDate(filters.from)}::date AND ${isoDate(filters.to)}::date
+      WHERE day BETWEEN ${fromDate}::date AND ${toDate}::date
+        AND (${brandId}::uuid IS NULL OR brand_id = ${brandId}::uuid)
     `),
     db.execute(sql`
       SELECT COALESCE(SUM(refunds_count), 0)::int AS count
       FROM mv_refund_by_brand_day
-      WHERE brand_id = ${filters.brandId}::uuid
-        AND day BETWEEN ${isoDate(filters.from)}::date AND ${isoDate(filters.to)}::date
+      WHERE day BETWEEN ${fromDate}::date AND ${toDate}::date
+        AND (${brandId}::uuid IS NULL OR brand_id = ${brandId}::uuid)
     `),
     db.execute(sql`
       SELECT COALESCE(AVG(avg_response_time_minutes), NULL)::float AS avg_rt,
              COALESCE(SUM(open_count), 0)::int                    AS open_count
       FROM mv_inbox_daily
-      WHERE brand_id = ${filters.brandId}::uuid
-        AND day BETWEEN ${isoDate(filters.from)}::date AND ${isoDate(filters.to)}::date
+      WHERE day BETWEEN ${fromDate}::date AND ${toDate}::date
+        AND (${brandId}::uuid IS NULL OR brand_id = ${brandId}::uuid)
     `),
   ])
 

@@ -70,9 +70,9 @@ export default async function InboxPage({ searchParams }: InboxPageProps) {
         >
           {/* Painel 1: Lista de conversas (~25%) */}
           <ResizablePanel
-            defaultSize={25}
-            minSize={18}
-            maxSize={40}
+            defaultSize="25%"
+            minSize="18%"
+            maxSize="40%"
             className="flex flex-col"
           >
             <aside className="flex flex-col h-full overflow-hidden" aria-label="Conversas">
@@ -117,8 +117,8 @@ export default async function InboxPage({ searchParams }: InboxPageProps) {
 
           {/* Painel 2: Thread de mensagens (~50%) */}
           <ResizablePanel
-            defaultSize={50}
-            minSize={30}
+            defaultSize="50%"
+            minSize="30%"
             className="flex flex-col"
           >
             <main
@@ -148,9 +148,9 @@ export default async function InboxPage({ searchParams }: InboxPageProps) {
 
           {/* Painel 3: Dados do contato (~25%) */}
           <ResizablePanel
-            defaultSize={25}
-            minSize={16}
-            maxSize={40}
+            defaultSize="25%"
+            minSize="16%"
+            maxSize="40%"
           >
             <aside
               className="h-full overflow-y-auto"

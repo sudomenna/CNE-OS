@@ -197,7 +197,8 @@ export function DecisionPreview({ offerId }: Props) {
 
     // exactOptionalPropertyTypes: só incluir campos definidos
     const contactIdVal = form.contactId.trim()
-    const channelVal = form.channel
+    // sentinel '__none' = explícito "sem canal" (Radix Select não aceita value vazio)
+    const channelVal = form.channel === '__none' ? '' : form.channel
     const campaignIdVal = form.campaignId.trim()
     const creativeIdVal = form.creativeId.trim()
     const salesCountVal = form.salesCount ? parseInt(form.salesCount, 10) : undefined
@@ -271,7 +272,7 @@ export function DecisionPreview({ offerId }: Props) {
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Nenhum</SelectItem>
+                  <SelectItem value="__none">Nenhum</SelectItem>
                   <SelectItem value="whatsapp">WhatsApp</SelectItem>
                   <SelectItem value="instagram">Instagram</SelectItem>
                   <SelectItem value="email">E-mail</SelectItem>
