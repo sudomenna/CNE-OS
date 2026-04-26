@@ -1,16 +1,22 @@
 /**
  * ConversationList — coluna esquerda do inbox (lista de conversas abertas).
  *
- * Server Component. Lista conversas com status != 'closed'.
+ * Server Component. Lista conversas com status != 'closed' (por padrão).
  * Seleção via link ?conversation=<id>.
  *
- * docs/20-domain/05-conversation-inbox.md §3
+ * Filtros recebidos via props (vindos de searchParams na página):
+ *   - tab: 'all' | 'mine' | 'unassigned'
+ *   - channel: 'all' | 'whatsapp' | 'instagram' | 'email'
+ *   - status: 'all' | 'open' | 'waiting_customer' | 'waiting_team'
+ *
+ * docs/70-ux/04-screen-inbox.md §2.1, §2.2
  * docs/80-roadmap/02-sprint-3-4-inbox-tickets.md (T-3-11)
+ * T-13-15: filtros inline + tabs
  */
 
 import Link from 'next/link'
 import type { Route } from 'next'
-import { and, desc, ne } from 'drizzle-orm'
+import { and, desc, ne, eq, isNull, sql, SQL } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import {
   conversation,
@@ -18,8 +24,6 @@ import {
   channelAccount,
 } from '@/lib/db/schema/conversation'
 import { contact } from '@/lib/db/schema/contact'
-import { eq, isNull } from 'drizzle-orm'
-import { sql } from 'drizzle-orm'
 
 type ConversationStatus = 'open' | 'waiting_customer' | 'waiting_team' | 'closed'
 type ChannelKind = 'whatsapp' | 'instagram' | 'email'
@@ -71,11 +75,75 @@ function getInitials(name: string): string {
     .join('')
 }
 
+// ---------------------------------------------------------------------------
+// Props
+// ---------------------------------------------------------------------------
+
 interface ConversationListProps {
   selectedId?: string | undefined
+  /** ID do usuário logado — necessário para filtro "mine" */
+  currentUserId?: string | undefined
+  /** Tab ativa: 'all' | 'mine' | 'unassigned' */
+  tab?: string | undefined
+  /** Filtro de canal: 'all' | 'whatsapp' | 'instagram' | 'email' */
+  channelFilter?: string | undefined
+  /** Filtro de status: 'all' | 'open' | 'waiting_customer' | 'waiting_team' */
+  statusFilter?: string | undefined
 }
 
-export async function ConversationList({ selectedId }: ConversationListProps) {
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
+export async function ConversationList({
+  selectedId,
+  currentUserId,
+  tab = 'all',
+  channelFilter = 'all',
+  statusFilter = 'all',
+}: ConversationListProps) {
+  // Montar condições where dinamicamente
+  const conditions: SQL[] = [
+    ne(conversation.status, 'closed'),
+    isNull(conversation.deletedAt),
+  ]
+
+  // Filtro de tab (atribuição)
+  if (tab === 'mine' && currentUserId) {
+    conditions.push(eq(conversation.assignedUserId, currentUserId))
+  } else if (tab === 'unassigned') {
+    conditions.push(isNull(conversation.assignedUserId))
+  }
+
+  // Filtro de status (só aplica se não for 'all')
+  const VALID_STATUSES = ['open', 'waiting_customer', 'waiting_team'] as const
+  if (
+    statusFilter !== 'all' &&
+    VALID_STATUSES.includes(statusFilter as (typeof VALID_STATUSES)[number])
+  ) {
+    conditions.push(
+      eq(
+        conversation.status,
+        statusFilter as 'open' | 'waiting_customer' | 'waiting_team',
+      ),
+    )
+  }
+
+  // Filtro de canal (requer join com channel via channelAccount)
+  const VALID_CHANNELS = ['whatsapp', 'instagram', 'email'] as const
+  const channelConditions: SQL[] = []
+  if (
+    channelFilter !== 'all' &&
+    VALID_CHANNELS.includes(channelFilter as (typeof VALID_CHANNELS)[number])
+  ) {
+    channelConditions.push(
+      eq(
+        channel.kind,
+        channelFilter as 'whatsapp' | 'instagram' | 'email',
+      ),
+    )
+  }
+
   // Busca conversas ativas com último preview de mensagem
   const rows = await db
     .select({
@@ -86,7 +154,8 @@ export async function ConversationList({ selectedId }: ConversationListProps) {
       contactName: contact.fullName,
       channelKind: channel.kind,
       channelName: channel.name,
-      // Último preview via subquery de MAX createdAt
+      assignedUserId: conversation.assignedUserId,
+      // Último preview via subquery
       lastMessageBody: sql<string | null>`(
         SELECT body FROM message
         WHERE conversation_id = ${conversation.id}
@@ -100,8 +169,8 @@ export async function ConversationList({ selectedId }: ConversationListProps) {
     .innerJoin(channel, eq(channel.id, channelAccount.channelId))
     .where(
       and(
-        ne(conversation.status, 'closed'),
-        isNull(conversation.deletedAt),
+        ...conditions,
+        ...(channelConditions.length > 0 ? channelConditions : []),
       ),
     )
     .orderBy(desc(conversation.lastMessageAt))
@@ -109,8 +178,13 @@ export async function ConversationList({ selectedId }: ConversationListProps) {
 
   if (rows.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-6 text-muted-foreground/60 text-sm">
-        <p>Nenhuma conversa ativa.</p>
+      <div className="flex flex-col items-center justify-center h-full p-6 text-center">
+        <p className="text-sm text-muted-foreground/60">
+          Nenhuma conversa com os filtros selecionados.
+        </p>
+        <p className="text-xs text-muted-foreground/40 mt-1">
+          Ajuste os filtros acima para ver resultados.
+        </p>
       </div>
     )
   }
@@ -131,7 +205,7 @@ export async function ConversationList({ selectedId }: ConversationListProps) {
             aria-current={isSelected ? 'page' : undefined}
             className={[
               'flex items-start gap-3 p-3 hover:bg-muted/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
-              isSelected ? 'bg-muted' : '',
+              isSelected ? 'bg-muted border-l-2 border-l-primary' : '',
             ].join(' ')}
           >
             {/* Avatar com iniciais */}

@@ -36,11 +36,11 @@ Fechar os bloqueadores de produção identificados na auditoria pós-Sprint-12: 
 | T-13-12 | FLOW-12 — coluna operator_notes (schema + migration) | D | ✅ completed |
 | T-13-13 | FLOW-12 — ignoreWebhookAction + addOperatorNoteAction | D | ✅ completed |
 | T-13-14 | FLOW-12 — IgnoreButton + AddOperatorNoteForm + page detalhe | D | ✅ completed |
-| T-13-15 | Inbox UX — painel resizable + filtros inline + tabs de conversa | E | ⬜ pending |
-| T-13-16 | Inbox UX — compositor com tabs Mensagem/Template/Nota | E | ⬜ pending |
-| T-13-17 | Offer builder — editor visual AND/OR com validação em tempo real | E | ⬜ pending |
-| T-13-18 | Analytics — rota /analytics/inadimplencia | E | ⬜ pending |
-| T-13-19 | Analytics — export CSV universal (todas as rotas) | E | ⬜ pending |
+| T-13-15 | Inbox UX — painel resizable + filtros inline + tabs de conversa | E | ✅ completed |
+| T-13-16 | Inbox UX — compositor com tabs Mensagem/Template/Nota | E | ✅ completed |
+| T-13-17 | Offer builder — editor visual AND/OR com validação em tempo real | E | ✅ completed |
+| T-13-18 | Analytics — rota /analytics/inadimplencia | E | ✅ completed |
+| T-13-19 | Analytics — export CSV universal (todas as rotas) | E | ✅ completed |
 | T-13-20 | FLOW-08 — timeline de consolidação pós-merge | F | ⬜ pending |
 | T-13-21 | A11y — skip link + axe-core em CI + aria-sort | G | ⬜ pending |
 | T-13-22 | Design tokens — paleta --chart-* (8 cores categóricas) | G | ⬜ pending |
@@ -49,6 +49,7 @@ Fechar os bloqueadores de produção identificados na auditoria pós-Sprint-12: 
 
 **Baseline ao iniciar Sprint 13:** 1163 testes Vitest ✅ | typecheck ✅
 **Baseline após Onda D (2026-04-26):** 1185 testes Vitest ✅ | typecheck ✅ (+22 testes)
+**Baseline após Onda E (2026-04-26):** 1185 testes Vitest ✅ | typecheck ✅
 
 ---
 
@@ -103,7 +104,7 @@ Fechar os bloqueadores de produção identificados na auditoria pós-Sprint-12: 
 `T-13-11`, `T-13-12`, `T-13-13`, `T-13-14` (T-13-14 serial após T-13-13)
 → T-13-11/12 paralelos; T-13-13 paralelo com 11/12; T-13-14 após T-13-13.
 
-### Onda E — Inbox UX + Offer builder + Analytics (paralelo, 5 subagents) ⬜ próxima
+### Onda E — Inbox UX + Offer builder + Analytics (paralelo, 5 subagents) ✅ concluída 2026-04-26
 `T-13-15`, `T-13-16`, `T-13-17`, `T-13-18`, `T-13-19`
 → Todos em módulos distintos, arquivos disjuntos. T-13-19 pode ser paralelo com T-13-18 (rotas novas).
 

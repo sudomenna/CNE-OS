@@ -180,6 +180,31 @@ export async function changeConversationStatus(
 }
 
 /**
+ * listMessageTemplates — lista templates de mensagem disponíveis para a sessão ativa.
+ *
+ * Guard: inbox.reply
+ *
+ * TODO: a tabela `message_template` ainda não existe no schema (P2 — cne-schema-author).
+ * Enquanto não existe, retorna array vazio para que o compositor seja funcional
+ * sem travar typecheck. Quando a tabela for criada, substituir por query Drizzle.
+ *
+ * Retorna { ok: true, data: [] } para consumo seguro pelo compositor.
+ */
+export async function listMessageTemplates(): Promise<
+  ReturnType<typeof toActionResult<Array<{ id: string; name: string; body: string }>>>
+> {
+  return toActionResult(async () => {
+    const ctx = await requireSession()
+    await requirePermission(ctx, 'inbox.reply', { kind: 'global' })
+
+    // TODO: quando `message_template` existir no schema, trocar por:
+    // const templates = await db.select(...).from(messageTemplate).where(eq(messageTemplate.brandId, ctx.brandId))
+    void ctx // silencia unused-var enquanto stub
+    return [] as Array<{ id: string; name: string; body: string }>
+  })
+}
+
+/**
  * addInternalNote — adiciona nota interna a uma conversa (não visível ao contato).
  *
  * Guard: inbox.reply

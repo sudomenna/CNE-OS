@@ -5,7 +5,7 @@
  * Se nenhuma conversa selecionada → placeholder.
  * Mensagens ordenadas por created_at ASC.
  * Distingue inbound (esquerda) de outbound (direita).
- * Inclui SendMessageForm no rodapé.
+ * Inclui MessageComposer (tabs Mensagem/Template/Nota) no rodapé.
  *
  * docs/20-domain/05-conversation-inbox.md §3
  * docs/80-roadmap/02-sprint-3-4-inbox-tickets.md (T-3-11)
@@ -16,7 +16,7 @@ import { db } from '@/lib/db/client'
 import { conversation, message } from '@/lib/db/schema/conversation'
 import { contact } from '@/lib/db/schema/contact'
 import { userAccount } from '@/lib/db/schema/organization'
-import { SendMessageForm } from './send-message-form'
+import { MessageComposer } from './message-composer'
 
 interface ThreadPaneProps {
   conversationId?: string | undefined
@@ -140,7 +140,7 @@ export async function ThreadPane({ conversationId }: ThreadPaneProps) {
         </div>
       ) : (
         <div className="flex-shrink-0">
-          <SendMessageForm conversationId={conversationId} />
+          <MessageComposer conversationId={conversationId} />
         </div>
       )}
     </div>
