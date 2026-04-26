@@ -67,4 +67,5 @@ tmp/
 temp/
 .vercel
 .claude/settings.json
+.claude/worktrees/
 .playwright-mcp/
