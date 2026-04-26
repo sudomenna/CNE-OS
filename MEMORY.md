@@ -65,15 +65,6 @@ Ações executadas:
 2. Atualizado Sprint 10 DoD em `docs/80-roadmap/07-sprint-10-analytics.md`: todos os 7 critérios marcados como [x] concluído.
 Status: **SINCRONIA COMPLETA** — MOD-ANALYTICS documentado de acordo com implementação. Nenhuma divergência.
 
-#### 2026-04-26 · @cne-domain-author · [SYNC-PENDING] · MOD-OFFER · FLOW-10
-Doc afetada: `docs/30-contracts/07-module-interfaces.md` §MOD-OFFER
-Divergência: Adicionadas duas novas funções e dois novos erros ao módulo MOD-OFFER que não estão refletidos em `07-module-interfaces.md`:
-  - `assertRenewalEligibility(tx, contactId, offerId): Promise<void>` — guard BR-RENEWAL
-  - `OfferNotRenewal` (erro E-01)
-  - `RenewalWithoutActiveEntitlement` (erro E-02/E-03)
-Motivo: edição de `docs/30-contracts/07-module-interfaces.md` é sempre serial e está fora do ownership de cne-domain-author.
-Ação: cne-docs-sync deve adicionar `assertRenewalEligibility` na seção §MOD-OFFER de `07-module-interfaces.md` com a assinatura completa e os erros que ela pode lançar.
-
 #### 2026-04-25 · @cne-domain-author · [SYNC-PENDING] · MOD-BILLING · T-9-04
 Doc afetada: `docs/30-contracts/07-module-interfaces.md` §MOD-BILLING
 Divergência:

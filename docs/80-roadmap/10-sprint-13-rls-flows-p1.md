@@ -41,7 +41,7 @@ Fechar os bloqueadores de produção identificados na auditoria pós-Sprint-12: 
 | T-13-17 | Offer builder — editor visual AND/OR com validação em tempo real | E | ✅ completed |
 | T-13-18 | Analytics — rota /analytics/inadimplencia | E | ✅ completed |
 | T-13-19 | Analytics — export CSV universal (todas as rotas) | E | ✅ completed |
-| T-13-20 | FLOW-08 — timeline de consolidação pós-merge | F | ⬜ pending |
+| T-13-20 | FLOW-08 — timeline de consolidação pós-merge | F | ✅ completed |
 | T-13-21 | A11y — skip link + axe-core em CI + aria-sort | G | ⬜ pending |
 | T-13-22 | Design tokens — paleta --chart-* (8 cores categóricas) | G | ⬜ pending |
 | T-13-23 | Realtime — timeline contact + push de mensagens inbox | G | ⬜ pending |
@@ -50,6 +50,7 @@ Fechar os bloqueadores de produção identificados na auditoria pós-Sprint-12: 
 **Baseline ao iniciar Sprint 13:** 1163 testes Vitest ✅ | typecheck ✅
 **Baseline após Onda D (2026-04-26):** 1185 testes Vitest ✅ | typecheck ✅ (+22 testes)
 **Baseline após Onda E (2026-04-26):** 1185 testes Vitest ✅ | typecheck ✅
+**Baseline após Onda F (2026-04-26):** 1190 testes Vitest ✅ | typecheck ✅ (+5 testes)
 
 ---
 
@@ -108,7 +109,7 @@ Fechar os bloqueadores de produção identificados na auditoria pós-Sprint-12: 
 `T-13-15`, `T-13-16`, `T-13-17`, `T-13-18`, `T-13-19`
 → Todos em módulos distintos, arquivos disjuntos. T-13-19 pode ser paralelo com T-13-18 (rotas novas).
 
-### Onda F — FLOW-08 merge timeline (serial, 1 subagent) ⬜
+### Onda F — FLOW-08 merge timeline (serial, 1 subagent) ✅ concluída 2026-04-26
 `T-13-20`
 → Edita `lib/timeline/read.ts`; aguarda Onda E estar verde.
 
