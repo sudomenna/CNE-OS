@@ -14,6 +14,7 @@ import {
   TransactionListEmptyState,
 } from '@/components/transaction/transaction-list-skeleton'
 import { getTransactions } from './actions'
+import { requireSession } from '@/lib/auth/session'
 
 export const metadata = {
   title: 'Transacoes — CNE-OS',
@@ -54,9 +55,10 @@ interface TransactionListDataProps {
   dateFrom?: string | undefined
   dateTo?: string | undefined
   page: number
+  userId: string
 }
 
-async function TransactionListData({ selectedStatus, dateFrom, dateTo, page }: TransactionListDataProps) {
+async function TransactionListData({ selectedStatus, dateFrom, dateTo, page, userId }: TransactionListDataProps) {
   const result = await getTransactions({
     status: selectedStatus,
     dateFrom: dateFrom ? `${dateFrom}T00:00:00.000Z` : undefined,
@@ -79,7 +81,7 @@ async function TransactionListData({ selectedStatus, dateFrom, dateTo, page }: T
     return <TransactionListEmptyState />
   }
 
-  return <TransactionList transactions={items} />
+  return <TransactionList transactions={items} userId={userId} />
 }
 
 // ---------------------------------------------------------------------------
@@ -87,7 +89,8 @@ async function TransactionListData({ selectedStatus, dateFrom, dateTo, page }: T
 // ---------------------------------------------------------------------------
 
 export default async function TransactionsPage({ searchParams }: PageProps) {
-  const params = await searchParams
+  const [params, session] = await Promise.all([searchParams, requireSession()])
+  const userId = session.user.id
   const statusParam = typeof params['status'] === 'string' ? params['status'] : ''
   const dateFrom = typeof params['date_from'] === 'string' ? params['date_from'] : ''
   const dateTo = typeof params['date_to'] === 'string' ? params['date_to'] : ''
@@ -205,6 +208,7 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
           dateFrom={dateFrom || undefined}
           dateTo={dateTo || undefined}
           page={page}
+          userId={userId}
         />
       </Suspense>
 

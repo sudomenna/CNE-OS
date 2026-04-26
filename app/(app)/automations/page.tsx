@@ -3,6 +3,7 @@
  * Server Component — lê DB via Drizzle.
  * T-11-11: UI /automations lista + editor visual drag-drop
  * Spec: docs/20-domain/15-automation.md
+ * T-16-07: passa userId para AutomationList (customização de colunas, ADR-19)
  */
 
 import { desc, isNull } from 'drizzle-orm'
@@ -11,6 +12,7 @@ import { db } from '@/lib/db/client'
 import { automationFlow } from '@/lib/db/schema/automation'
 import { brand } from '@/lib/db/schema/organization'
 import { eq } from 'drizzle-orm'
+import { requireSession } from '@/lib/auth/session'
 import { AutomationList } from '@/components/automation/automation-list'
 
 export const metadata = {
@@ -18,6 +20,8 @@ export const metadata = {
 }
 
 export default async function AutomationsPage() {
+  const ctx = await requireSession()
+
   const flows = await db
     .select({
       id: automationFlow.id,
@@ -45,7 +49,7 @@ export default async function AutomationsPage() {
         </div>
       </div>
 
-      <AutomationList flows={flows} />
+      <AutomationList flows={flows} userId={ctx.user.id} />
     </div>
   )
 }

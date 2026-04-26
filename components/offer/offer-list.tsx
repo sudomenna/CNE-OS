@@ -4,6 +4,7 @@
  * OfferList — Client Component com tabela de ofertas e filtros.
  * Filtros: marca (brand_id) + status (offer_status).
  * T-6-17 — spec: docs/20-domain/10-offer-engine.md
+ * T-16-05 — ColumnsCustomizer integrado (standalone, ADR-19)
  */
 
 import * as React from 'react'
@@ -11,6 +12,9 @@ import Link from 'next/link'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import type { Route } from 'next'
 import { Badge } from '@/components/ui/badge'
+import { ColumnsCustomizer } from '@/components/ui/columns-customizer'
+import { useColumnVisibility } from '@/lib/hooks/use-column-visibility'
+import { OFFER_COLUMNS, OFFERS_LIST_TABLE_ID } from '@/components/offer/offer-columns'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -36,6 +40,7 @@ interface OfferListProps {
   brands: BrandOption[]
   selectedBrandId: string
   selectedStatus: string
+  userId: string
 }
 
 // ---------------------------------------------------------------------------
@@ -65,10 +70,18 @@ export function OfferList({
   brands,
   selectedBrandId,
   selectedStatus,
+  userId,
 }: OfferListProps) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+
+  // ADR-19: hook gerencia visibilidade por (userId × tableId) no localStorage
+  const { visibleColumnIds, isVisible, toggle, reset } = useColumnVisibility({
+    tableId: OFFERS_LIST_TABLE_ID,
+    userId,
+    columns: OFFER_COLUMNS,
+  })
 
   function updateFilter(key: string, value: string) {
     const params = new URLSearchParams(searchParams.toString())
@@ -141,71 +154,140 @@ export function OfferList({
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-border bg-card">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-muted/50">
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Nome
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground hidden md:table-cell">
-                  Marca
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground hidden md:table-cell">
-                  Slug
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Status
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground hidden sm:table-cell">
-                  Criada em
-                </th>
-                <th className="w-10" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {offers.map((o) => (
-                <tr key={o.id} className="hover:bg-muted/50 transition-colors">
-                  <td className="px-4 py-3">
-                    <Link
-                      href={`/offers/${o.id}` as Route}
-                      className="font-medium text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+        <div className="space-y-2">
+          {/* Toolbar com customizador de colunas */}
+          <div className="flex items-center justify-end">
+            <ColumnsCustomizer
+              tableId={OFFERS_LIST_TABLE_ID}
+              userId={userId}
+              columns={OFFER_COLUMNS}
+              visibleColumnIds={visibleColumnIds}
+              onToggle={toggle}
+              onReset={reset}
+            />
+          </div>
+
+          <div className="overflow-hidden rounded-lg border border-border bg-card">
+            <table className="w-full text-sm" aria-label="Lista de ofertas">
+              <thead>
+                <tr className="border-b border-border bg-muted/50">
+                  {/* Nome — alwaysVisible */}
+                  <th
+                    scope="col"
+                    className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                  >
+                    Nome
+                  </th>
+
+                  {/* Marca */}
+                  {isVisible('brand') && (
+                    <th
+                      scope="col"
+                      className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground hidden md:table-cell"
                     >
-                      {o.name}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground hidden md:table-cell">
-                    {o.brandName}
-                  </td>
-                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground/60 hidden md:table-cell">
-                    {o.slug}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge
-                      variant="secondary"
-                      className={STATUS_CLASS[o.status] ?? ''}
+                      Marca
+                    </th>
+                  )}
+
+                  {/* Slug */}
+                  {isVisible('slug') && (
+                    <th
+                      scope="col"
+                      className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground hidden md:table-cell"
                     >
-                      {STATUS_LABEL[o.status] ?? o.status}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground/60 hidden sm:table-cell">
-                    <time dateTime={o.createdAt.toISOString()}>
-                      {new Date(o.createdAt).toLocaleDateString('pt-BR')}
-                    </time>
-                  </td>
-                  <td className="px-4 py-3">
-                    <Link
-                      href={`/offers/${o.id}` as Route}
-                      className="text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded px-1"
-                      aria-label={`Ver detalhes da oferta ${o.name}`}
+                      Slug
+                    </th>
+                  )}
+
+                  {/* Status */}
+                  {isVisible('status') && (
+                    <th
+                      scope="col"
+                      className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground"
                     >
-                      Ver
-                    </Link>
-                  </td>
+                      Status
+                    </th>
+                  )}
+
+                  {/* Criada em */}
+                  {isVisible('createdAt') && (
+                    <th
+                      scope="col"
+                      className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground hidden sm:table-cell"
+                    >
+                      Criada em
+                    </th>
+                  )}
+
+                  {/* Ações — alwaysVisible */}
+                  <th scope="col" className="w-10">
+                    <span className="sr-only">Ações</span>
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {offers.map((o) => (
+                  <tr key={o.id} className="hover:bg-muted/50 transition-colors">
+                    {/* Nome — alwaysVisible */}
+                    <td className="px-4 py-3">
+                      <Link
+                        href={`/offers/${o.id}` as Route}
+                        className="font-medium text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+                      >
+                        {o.name}
+                      </Link>
+                    </td>
+
+                    {/* Marca */}
+                    {isVisible('brand') && (
+                      <td className="px-4 py-3 text-xs text-muted-foreground hidden md:table-cell">
+                        {o.brandName}
+                      </td>
+                    )}
+
+                    {/* Slug */}
+                    {isVisible('slug') && (
+                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground/60 hidden md:table-cell">
+                        {o.slug}
+                      </td>
+                    )}
+
+                    {/* Status */}
+                    {isVisible('status') && (
+                      <td className="px-4 py-3">
+                        <Badge
+                          variant="secondary"
+                          className={STATUS_CLASS[o.status] ?? ''}
+                        >
+                          {STATUS_LABEL[o.status] ?? o.status}
+                        </Badge>
+                      </td>
+                    )}
+
+                    {/* Criada em */}
+                    {isVisible('createdAt') && (
+                      <td className="px-4 py-3 text-xs text-muted-foreground/60 hidden sm:table-cell">
+                        <time dateTime={o.createdAt.toISOString()}>
+                          {new Date(o.createdAt).toLocaleDateString('pt-BR')}
+                        </time>
+                      </td>
+                    )}
+
+                    {/* Ações — alwaysVisible */}
+                    <td className="px-4 py-3">
+                      <Link
+                        href={`/offers/${o.id}` as Route}
+                        className="text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded px-1"
+                        aria-label={`Ver detalhes da oferta ${o.name}`}
+                      >
+                        Ver
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

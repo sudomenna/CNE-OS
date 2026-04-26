@@ -5,6 +5,7 @@ import { and, eq, ilike, inArray, isNull, or, sql } from 'drizzle-orm'
 
 import { db } from '@/lib/db/client'
 import { contact, contactEmail, contactPhone } from '@/lib/db/schema/contact'
+import { requireSession } from '@/lib/auth/session'
 import type { ContactRow } from '@/components/contact/contact-list'
 import { ContactList } from '@/components/contact/contact-list'
 import { ContactFilters } from '@/components/contact/contact-filters'
@@ -34,9 +35,10 @@ interface ContactListDataProps {
   search?: string | undefined
   classification?: ContactClassification | undefined
   page: number
+  userId: string
 }
 
-async function ContactListData({ search, classification, page }: ContactListDataProps) {
+async function ContactListData({ search, classification, page, userId }: ContactListDataProps) {
   const whereConditions = [
     isNull(contact.deletedAt),
     isNull(contact.mergedIntoId),
@@ -57,6 +59,8 @@ async function ContactListData({ search, classification, page }: ContactListData
       fullName: contact.fullName,
       status: contact.status,
       classification: contact.classification,
+      cpf: contact.cpf,
+      createdAt: contact.createdAt,
     })
     .from(contact)
     .where(and(...whereConditions))
@@ -124,9 +128,11 @@ async function ContactListData({ search, classification, page }: ContactListData
     classification: r.classification,
     email: emailByContact.get(r.id)?.email ?? null,
     phone: phoneByContact.get(r.id) ?? null,
+    cpf: r.cpf ?? null,
+    createdAt: r.createdAt,
   }))
 
-  return <ContactList contacts={contacts} />
+  return <ContactList contacts={contacts} userId={userId} />
 }
 
 // ---------------------------------------------------------------------------
@@ -141,6 +147,10 @@ export default async function ContactsPage({ searchParams }: PageProps) {
       ? (params['classification'] as ContactClassification)
       : undefined
   const page = Math.max(1, Number(params['page'] ?? '1'))
+
+  // Obter userId para namespacing das preferências de colunas (ADR-19)
+  const session = await requireSession().catch(() => null)
+  const userId = session?.user.id ?? 'anonymous'
 
   // Count query runs in parallel with the main data (both inside ContactListData Suspense boundary)
   const whereConditions = [
@@ -199,7 +209,7 @@ export default async function ContactsPage({ searchParams }: PageProps) {
 
       {/* Table with Suspense streaming */}
       <Suspense fallback={<ContactListSkeleton rows={PAGE_SIZE > 10 ? 10 : PAGE_SIZE} />}>
-        <ContactListData search={search} classification={classification} page={page} />
+        <ContactListData search={search} classification={classification} page={page} userId={userId} />
       </Suspense>
 
       {/* Pagination */}

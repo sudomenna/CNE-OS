@@ -3,6 +3,7 @@
  * Server Component — lê DB via Drizzle.
  * T-6-17: UI /offers lista + criação
  * Spec: docs/20-domain/10-offer-engine.md
+ * T-16-05: passa userId para ColumnsCustomizer (ADR-19)
  */
 
 import { and, desc, eq, isNull } from 'drizzle-orm'
@@ -14,6 +15,7 @@ import { offer } from '@/lib/db/schema/offer'
 import { brand } from '@/lib/db/schema/organization'
 import { Button } from '@/components/ui/button'
 import { OfferList } from '@/components/offer/offer-list'
+import { requireSession } from '@/lib/auth/session'
 
 export const metadata = {
   title: 'Ofertas — CNE-OS',
@@ -29,7 +31,11 @@ export default async function OffersPage({
 }: {
   searchParams: Promise<SearchParams>
 }) {
-  const params = await searchParams
+  const [ctx, params] = await Promise.all([
+    requireSession(),
+    searchParams,
+  ])
+
   const brandIdFilter = params.brand_id ?? ''
   const statusFilter = params.status ?? ''
 
@@ -95,6 +101,7 @@ export default async function OffersPage({
         brands={brands}
         selectedBrandId={brandIdFilter}
         selectedStatus={statusFilter}
+        userId={ctx.user.id}
       />
     </div>
   )
