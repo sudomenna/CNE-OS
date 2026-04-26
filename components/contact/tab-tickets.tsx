@@ -1,40 +1,49 @@
+'use client'
+
 /**
- * TabTickets — Server Component
+ * TabTickets — Client Component
  *
- * Exibe a lista de tickets vinculados a um contato.
- * Consumido pela aba "Tickets" na página de detalhe do contato (T-12-10).
- * O wiring na page.tsx é feito em T-12-16.
+ * Exibe a lista de tickets vinculados a um contato com customizador de colunas.
+ * tableId: contact:tickets (ADR-19)
+ *
+ * Recebe dados como props (fetched no Server Component pai: contacts/[id]/page.tsx).
  *
  * docs/20-domain/06-ticket.md
- * docs/20-domain/02-contact-identity.md §T-1-15
+ * Task: T-12-10, T-16-14
  */
+
 import Link from 'next/link'
 import type { Route } from 'next'
-import { and, desc, eq, isNull } from 'drizzle-orm'
 import { LifeBuoy } from 'lucide-react'
 
-import { db } from '@/lib/db/client'
-import { ticket } from '@/lib/db/schema/ticket'
+import { useColumnVisibility } from '@/lib/hooks/use-column-visibility'
+import { ColumnsCustomizer } from '@/components/ui/columns-customizer'
+import {
+  CONTACT_TICKETS_TABLE_ID,
+  CONTACT_TICKETS_COLUMNS,
+} from './contact-tickets-columns'
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-interface TabTicketsProps {
-  contactId: string
+export interface TicketRow {
+  id: string
+  title: string
+  category: string
+  priority: string
+  status: string
+  assignedUserId: string | null
+  createdAt: Date | string
 }
 
 // ---------------------------------------------------------------------------
 // Priority badge
-//
-// Enum values: low | medium | high | urgent
-// Task spec maps: critical→red, high→orange, medium→yellow, low→gray
-// "urgent" is the highest priority in the enum, so maps to red.
 // ---------------------------------------------------------------------------
 
 const PRIORITY_LABELS: Record<string, string> = {
   low: 'Baixa',
-  medium: 'Media',
+  medium: 'Média',
   high: 'Alta',
   urgent: 'Urgente',
 }
@@ -61,9 +70,6 @@ function PriorityBadge({ priority }: { priority: string }) {
 
 // ---------------------------------------------------------------------------
 // Status badge
-//
-// Enum values: open | in_progress | waiting_reply | resolved | cancelled
-// Task spec maps: open→green, in_progress→blue, resolved→gray, closed/cancelled→dark gray
 // ---------------------------------------------------------------------------
 
 const STATUS_LABELS: Record<string, string> = {
@@ -112,8 +118,6 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 // ---------------------------------------------------------------------------
 // CTA — link para novo ticket com contato pre-preenchido
-// Não usa OpenTicketButton porque este é um Server Component e OpenTicketButton
-// requer brandId que não está disponível neste contexto.
 // ---------------------------------------------------------------------------
 
 function NewTicketLink({ contactId }: { contactId: string }) {
@@ -148,21 +152,18 @@ function EmptyState({ contactId }: { contactId: string }) {
 // Main component
 // ---------------------------------------------------------------------------
 
-export async function TabTickets({ contactId }: TabTicketsProps) {
-  const rows = await db
-    .select({
-      id: ticket.id,
-      title: ticket.title,
-      category: ticket.category,
-      priority: ticket.priority,
-      status: ticket.status,
-      assignedUserId: ticket.assignedUserId,
-      createdAt: ticket.createdAt,
-    })
-    .from(ticket)
-    .where(and(eq(ticket.contactId, contactId), isNull(ticket.deletedAt)))
-    .orderBy(desc(ticket.createdAt))
-    .limit(50)
+interface TabTicketsProps {
+  contactId: string
+  userId: string
+  rows: TicketRow[]
+}
+
+export function TabTickets({ contactId, userId, rows }: TabTicketsProps) {
+  const { visibleColumnIds, isVisible, toggle, reset } = useColumnVisibility({
+    tableId: CONTACT_TICKETS_TABLE_ID,
+    userId,
+    columns: CONTACT_TICKETS_COLUMNS,
+  })
 
   if (rows.length === 0) {
     return <EmptyState contactId={contactId} />
@@ -170,47 +171,69 @@ export async function TabTickets({ contactId }: TabTicketsProps) {
 
   return (
     <div className="space-y-3">
+      {/* Toolbar com customizador de colunas */}
+      <div className="flex items-center justify-end">
+        <ColumnsCustomizer
+          tableId={CONTACT_TICKETS_TABLE_ID}
+          userId={userId}
+          columns={CONTACT_TICKETS_COLUMNS}
+          visibleColumnIds={visibleColumnIds}
+          onToggle={toggle}
+          onReset={reset}
+        />
+      </div>
+
       {/* Table */}
       <div className="overflow-x-auto rounded-lg border border-border">
         <table className="min-w-full divide-y divide-border text-sm">
           <thead className="bg-muted/50">
             <tr>
+              {/* id — alwaysVisible */}
               <th
                 scope="col"
                 className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide"
               >
                 ID
               </th>
+              {/* title — alwaysVisible */}
               <th
                 scope="col"
                 className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide"
               >
-                Titulo
+                Título
               </th>
-              <th
-                scope="col"
-                className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide"
-              >
-                Categoria
-              </th>
-              <th
-                scope="col"
-                className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide"
-              >
-                Prioridade
-              </th>
-              <th
-                scope="col"
-                className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide"
-              >
-                Status
-              </th>
-              <th
-                scope="col"
-                className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide"
-              >
-                Responsavel
-              </th>
+              {isVisible('category') && (
+                <th
+                  scope="col"
+                  className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide"
+                >
+                  Categoria
+                </th>
+              )}
+              {isVisible('priority') && (
+                <th
+                  scope="col"
+                  className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide"
+                >
+                  Prioridade
+                </th>
+              )}
+              {isVisible('status') && (
+                <th
+                  scope="col"
+                  className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide"
+                >
+                  Status
+                </th>
+              )}
+              {isVisible('assignedTo') && (
+                <th
+                  scope="col"
+                  className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide"
+                >
+                  Responsável
+                </th>
+              )}
             </tr>
           </thead>
           <tbody className="divide-y divide-border bg-card">
@@ -219,7 +242,7 @@ export async function TabTickets({ contactId }: TabTicketsProps) {
                 key={row.id}
                 className="hover:bg-muted/30 transition-colors"
               >
-                {/* ID curto */}
+                {/* ID — alwaysVisible */}
                 <td className="px-4 py-3 whitespace-nowrap font-mono text-xs text-muted-foreground">
                   <Link
                     href={`/tickets/${row.id}` as Route}
@@ -230,7 +253,7 @@ export async function TabTickets({ contactId }: TabTicketsProps) {
                   </Link>
                 </td>
 
-                {/* Titulo */}
+                {/* Título — alwaysVisible */}
                 <td className="px-4 py-3 max-w-xs">
                   <Link
                     href={`/tickets/${row.id}` as Route}
@@ -240,29 +263,33 @@ export async function TabTickets({ contactId }: TabTicketsProps) {
                   </Link>
                 </td>
 
-                {/* Categoria */}
-                <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
-                  {CATEGORY_LABELS[row.category] ?? row.category}
-                </td>
+                {isVisible('category') && (
+                  <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
+                    {CATEGORY_LABELS[row.category] ?? row.category}
+                  </td>
+                )}
 
-                {/* Prioridade */}
-                <td className="px-4 py-3 whitespace-nowrap">
-                  <PriorityBadge priority={row.priority} />
-                </td>
+                {isVisible('priority') && (
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    <PriorityBadge priority={row.priority} />
+                  </td>
+                )}
 
-                {/* Status */}
-                <td className="px-4 py-3 whitespace-nowrap">
-                  <StatusBadge status={row.status} />
-                </td>
+                {isVisible('status') && (
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    <StatusBadge status={row.status} />
+                  </td>
+                )}
 
-                {/* Responsavel */}
-                <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
-                  {row.assignedUserId ? (
-                    <span className="font-mono text-xs">{row.assignedUserId.slice(0, 8)}</span>
-                  ) : (
-                    <span aria-label="Sem responsavel">—</span>
-                  )}
-                </td>
+                {isVisible('assignedTo') && (
+                  <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
+                    {row.assignedUserId ? (
+                      <span className="font-mono text-xs">{row.assignedUserId.slice(0, 8)}</span>
+                    ) : (
+                      <span aria-label="Sem responsável">—</span>
+                    )}
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>

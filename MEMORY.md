@@ -45,6 +45,12 @@ Motivo: <por que divergiu>
 Ação: <atualizar doc em <quando> | deliberadamente mantido>
 ```
 
+#### 2026-04-26 · @cne-ui-author · [SYNC-PENDING] · T-16-14 · transaction:installments usa tabela própria (não reutiliza billing:installments)
+Doc afetada: `docs/70-ux/12-table-column-customizer.md` §3.1 (Inventário oficial)
+Divergência: `components/transaction/tab-installments.tsx` tem sua própria tabela inline com campos diferentes de `components/billing/installment-table.tsx`. O inventário §3.1 lista `transaction:installments | /transactions/[id] tab Parcelas` como T-16-14 (correto), mas T-16-15 precisa confirmar que este tableId está registrado e não confundido com `billing:installments`.
+Decisão tomada: usar tableId `transaction:installments` com tabela e colunas próprias (`components/transaction/transaction-installments-columns.ts`) porque: (a) o contexto é diferente — sem retry, sem boleto URL; (b) os campos do schema retornado diferem; (c) evita acoplamento entre dois contextos de negócio distintos (billing subscription vs transaction detail).
+Ação: T-16-15 (doc-sync) confirmar que o inventário §3.1 lista `transaction:installments` com referência ao arquivo `components/transaction/transaction-installments-columns.ts`.
+
 #### 2026-04-26 · @cne-ui-author · [SYNC-PENDING] · T-16-09 · tableId campaigns:creatives não listado no inventário
 Doc afetada: `docs/70-ux/12-table-column-customizer.md` §3.1 (Inventário oficial)
 Divergência: T-16-09 introduziu o tableId `campaigns:creatives` (tabela de criativos em `/campaigns/[id]`, componente `components/campaign/creative-list.tsx`). O inventário §3.1 lista apenas `campaigns:list` como cobrindo `/campaigns` + `/campaigns/[id]`, sem entrada separada para a sub-tabela de criativos.

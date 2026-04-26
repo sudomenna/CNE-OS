@@ -1,7 +1,7 @@
 import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { eq, and, isNull } from 'drizzle-orm'
+import { eq, and, isNull, desc } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import {
   contact,
@@ -11,6 +11,8 @@ import {
   contactCustomField,
 } from '@/lib/db/schema/contact'
 import { brand } from '@/lib/db/schema/organization'
+import { funnelEntry, funnel, funnelStage } from '@/lib/db/schema/funnel'
+import { ticket } from '@/lib/db/schema/ticket'
 import { requireSession } from '@/lib/auth/session'
 import { getPrimaryAddress } from '@/lib/domain/contact/address'
 import { listTimelineEvents } from '@/lib/timeline/read'
@@ -18,8 +20,8 @@ import { ContactHeader } from '@/components/contact/contact-header'
 import { ContactTabs } from '@/components/contact/contact-tabs'
 import { TimelineRealtimeTrigger } from '@/components/contact/timeline-realtime-trigger'
 import { TabConversations } from '@/components/contact/tab-conversations'
-import { TabTickets } from '@/components/contact/tab-tickets'
-import { TabOpportunities } from '@/components/contact/tab-opportunities'
+import { TabTickets, type TicketRow } from '@/components/contact/tab-tickets'
+import { TabOpportunities, type OpportunityRow } from '@/components/contact/tab-opportunities'
 import { TabTransactions } from '@/components/contact/tab-transactions'
 import { TabEntitlements } from '@/components/contact/tab-entitlements'
 import { TabNotes } from '@/components/contact/tab-notes'
@@ -75,8 +77,9 @@ export default async function ContactDetailPage({ params, searchParams }: PagePr
 
   // -------------------------------------------------------------------------
   // 2. Fetch contact data (incluindo emails, phones, tags, brand associations)
+  //    + tabs de oportunidades e tickets (para passar como props aos Client Components)
   // -------------------------------------------------------------------------
-  const [contactRows, phones, emails, tags, brandLinks] = await Promise.all([
+  const [contactRows, phones, emails, tags, brandLinks, opportunityRows, ticketRows] = await Promise.all([
     db.select().from(contact).where(eq(contact.id, id)).limit(1),
     db.select().from(contactPhone).where(eq(contactPhone.contactId, id)),
     db.select().from(contactEmail).where(eq(contactEmail.contactId, id)),
@@ -98,6 +101,39 @@ export default async function ContactDetailPage({ params, searchParams }: PagePr
           eq(contactCustomField.key, 'brand_id'),
         ),
       ),
+    // Oportunidades: funnel_entry JOIN funnel + funnel_stage
+    db
+      .select({
+        entryId:         funnelEntry.id,
+        funnelId:        funnelEntry.funnelId,
+        label:           funnelEntry.label,
+        score:           funnelEntry.score,
+        entryCampaignId: funnelEntry.entryCampaignId,
+        createdAt:       funnelEntry.createdAt,
+        funnelName:      funnel.name,
+        stageName:       funnelStage.name,
+      })
+      .from(funnelEntry)
+      .innerJoin(funnel,      eq(funnelEntry.funnelId,       funnel.id))
+      .innerJoin(funnelStage, eq(funnelEntry.currentStageId, funnelStage.id))
+      .where(eq(funnelEntry.contactId, id))
+      .orderBy(desc(funnelEntry.createdAt))
+      .limit(50),
+    // Tickets do contato
+    db
+      .select({
+        id:             ticket.id,
+        title:          ticket.title,
+        category:       ticket.category,
+        priority:       ticket.priority,
+        status:         ticket.status,
+        assignedUserId: ticket.assignedUserId,
+        createdAt:      ticket.createdAt,
+      })
+      .from(ticket)
+      .where(and(eq(ticket.contactId, id), isNull(ticket.deletedAt)))
+      .orderBy(desc(ticket.createdAt))
+      .limit(50),
   ])
 
   const contactRow = contactRows[0]
@@ -201,26 +237,18 @@ export default async function ContactDetailPage({ params, searchParams }: PagePr
           </Suspense>
         }
         ticketsContent={
-          <Suspense
-            fallback={
-              <div className="py-8 text-center text-sm text-muted-foreground">
-                Carregando tickets...
-              </div>
-            }
-          >
-            <TabTickets contactId={id} />
-          </Suspense>
+          <TabTickets
+            contactId={id}
+            userId={currentUserId}
+            rows={ticketRows as TicketRow[]}
+          />
         }
         oportunidadesContent={
-          <Suspense
-            fallback={
-              <div className="py-8 text-center text-sm text-muted-foreground">
-                Carregando oportunidades...
-              </div>
-            }
-          >
-            <TabOpportunities contactId={id} />
-          </Suspense>
+          <TabOpportunities
+            contactId={id}
+            userId={currentUserId}
+            rows={opportunityRows as OpportunityRow[]}
+          />
         }
         transacoesContent={
           <Suspense

@@ -1,8 +1,11 @@
+'use client'
+
 /**
- * TabInstallments — Server Component
+ * TabInstallments — Client Component
  * T-12-31: Tab Parcelas/Assinatura na tela de detalhe de transação.
+ * T-16-14: Customizador de colunas adicionado (transaction:installments).
  *
- * Detecta billing_kind da transação via installment e subscription:
+ * Detecta billing_kind da transação via dados passados por props:
  * - Se há subscription vinculada: exibe dados da assinatura + parcelas.
  * - Se há installments vinculados à transação: exibe tabela de parcelas.
  * - Caso contrário: mensagem de pagamento único.
@@ -12,9 +15,12 @@
  * Schema: lib/db/schema/billing.ts
  */
 
-import { eq } from 'drizzle-orm'
-import { db } from '@/lib/db/client'
-import { installment, subscription } from '@/lib/db/schema/billing'
+import { useColumnVisibility } from '@/lib/hooks/use-column-visibility'
+import { ColumnsCustomizer } from '@/components/ui/columns-customizer'
+import {
+  TRANSACTION_INSTALLMENTS_TABLE_ID,
+  TRANSACTION_INSTALLMENTS_COLUMNS,
+} from './transaction-installments-columns'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -22,6 +28,35 @@ import { installment, subscription } from '@/lib/db/schema/billing'
 
 type InstallmentStatus = 'scheduled' | 'paid' | 'overdue' | 'refunded' | 'cancelled'
 type SubscriptionStatus = 'trial' | 'active' | 'past_due' | 'paused' | 'cancelled' | 'expired'
+
+export interface InstallmentRowData {
+  id: string
+  sequence: number
+  due_at: Date | string
+  amount: string
+  status: string
+  paidAt: Date | string | null
+  externalId: string | null
+  retryCount: number
+}
+
+export interface SubscriptionData {
+  id: string
+  status: string
+  currentPeriodStart: Date | string | null
+  currentPeriodEnd: Date | string | null
+  nextBillingAt: Date | string | null
+  trialEndsAt: Date | string | null
+  cancelledAt: Date | string | null
+  cancelReason: string | null
+}
+
+export interface TabInstallmentsProps {
+  transactionId: string
+  userId: string
+  subscription: SubscriptionData | null
+  installments: InstallmentRowData[]
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -99,36 +134,149 @@ function EmptyState({ message }: { message: string }) {
 }
 
 // ---------------------------------------------------------------------------
-// Main export — Server Component
+// InstallmentsTableWithCustomizer — tabela de parcelas com customizador de colunas
 // ---------------------------------------------------------------------------
 
-interface TabInstallmentsProps {
-  transactionId: string
+interface InstallmentsTableProps {
+  rows: InstallmentRowData[]
+  userId: string
 }
 
-export async function TabInstallments({ transactionId }: TabInstallmentsProps) {
-  // Buscar subscription vinculada à transação de origem
-  const subscriptionRows = await db
-    .select()
-    .from(subscription)
-    .where(eq(subscription.originTransactionId, transactionId))
-    .limit(1)
+function InstallmentsTableWithCustomizer({ rows, userId }: InstallmentsTableProps) {
+  const { visibleColumnIds, isVisible, toggle, reset } = useColumnVisibility({
+    tableId: TRANSACTION_INSTALLMENTS_TABLE_ID,
+    userId,
+    columns: TRANSACTION_INSTALLMENTS_COLUMNS,
+  })
 
-  const sub = subscriptionRows[0] ?? null
+  return (
+    <div className="space-y-2">
+      {/* Toolbar com customizador de colunas */}
+      <div className="flex items-center justify-end">
+        <ColumnsCustomizer
+          tableId={TRANSACTION_INSTALLMENTS_TABLE_ID}
+          userId={userId}
+          columns={TRANSACTION_INSTALLMENTS_COLUMNS}
+          visibleColumnIds={visibleColumnIds}
+          onToggle={toggle}
+          onReset={reset}
+        />
+      </div>
 
-  // Buscar parcelas vinculadas à transação OU à subscription encontrada
-  const installmentRows = sub
-    ? await db
-        .select()
-        .from(installment)
-        .where(eq(installment.subscriptionId, sub.id))
-        .orderBy(installment.sequence)
-    : await db
-        .select()
-        .from(installment)
-        .where(eq(installment.transactionId, transactionId))
-        .orderBy(installment.sequence)
+      <div className="rounded-lg border border-border bg-card overflow-hidden">
+        <table className="w-full text-sm" role="table" aria-label="Parcelas">
+          <caption className="sr-only">Lista de parcelas da transação</caption>
+          <thead>
+            <tr className="border-b border-border bg-muted/50">
+              {/* sequence — alwaysVisible */}
+              <th
+                scope="col"
+                className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide"
+              >
+                N°
+              </th>
+              {isVisible('dueAt') && (
+                <th
+                  scope="col"
+                  className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide"
+                >
+                  Vencimento
+                </th>
+              )}
+              {isVisible('amount') && (
+                <th
+                  scope="col"
+                  className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wide"
+                >
+                  Valor
+                </th>
+              )}
+              {isVisible('status') && (
+                <th
+                  scope="col"
+                  className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide"
+                >
+                  Status
+                </th>
+              )}
+              {isVisible('paidAt') && (
+                <th
+                  scope="col"
+                  className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide"
+                >
+                  Pago em
+                </th>
+              )}
+              {isVisible('externalId') && (
+                <th
+                  scope="col"
+                  className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide hidden sm:table-cell"
+                >
+                  Ref. externa
+                </th>
+              )}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {rows.map((row) => {
+              const statusKey = row.status as InstallmentStatus
+              const label = INSTALLMENT_STATUS_LABEL[statusKey] ?? row.status
+              const badgeClass =
+                INSTALLMENT_STATUS_CLASSES[statusKey] ??
+                'inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground'
 
+              return (
+                <tr key={row.id}>
+                  {/* sequence — alwaysVisible */}
+                  <td className="px-4 py-3 tabular-nums text-foreground font-medium">
+                    {row.sequence}
+                  </td>
+                  {isVisible('dueAt') && (
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {formatDate(row.due_at)}
+                    </td>
+                  )}
+                  {isVisible('amount') && (
+                    <td className="px-4 py-3 text-right tabular-nums text-foreground">
+                      {formatCurrency(row.amount)}
+                    </td>
+                  )}
+                  {isVisible('status') && (
+                    <td className="px-4 py-3">
+                      <span className={badgeClass} aria-label={`Status: ${label}`}>
+                        {label}
+                      </span>
+                    </td>
+                  )}
+                  {isVisible('paidAt') && (
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {formatDateTime(row.paidAt)}
+                    </td>
+                  )}
+                  {isVisible('externalId') && (
+                    <td className="px-4 py-3 text-muted-foreground font-mono text-xs hidden sm:table-cell">
+                      {row.externalId ?? '—'}
+                    </td>
+                  )}
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Main export — Client Component
+// ---------------------------------------------------------------------------
+
+export function TabInstallments({
+  userId,
+  subscription: sub,
+  installments: installmentRows,
+}: TabInstallmentsProps) {
   // Cenário: assinatura
   if (sub) {
     const statusLabel =
@@ -197,7 +345,7 @@ export async function TabInstallments({ transactionId }: TabInstallmentsProps) {
           {installmentRows.length === 0 ? (
             <EmptyState message="Nenhuma cobrança registrada." />
           ) : (
-            <InstallmentsTable rows={installmentRows} />
+            <InstallmentsTableWithCustomizer rows={installmentRows} userId={userId} />
           )}
         </section>
       </div>
@@ -214,110 +362,11 @@ export async function TabInstallments({ transactionId }: TabInstallmentsProps) {
         >
           Parcelas ({installmentRows.length})
         </h3>
-        <InstallmentsTable rows={installmentRows} />
+        <InstallmentsTableWithCustomizer rows={installmentRows} userId={userId} />
       </section>
     )
   }
 
   // Cenário: pagamento único
-  return <EmptyState message="Pagamento unico — sem parcelas ou assinatura vinculada." />
-}
-
-// ---------------------------------------------------------------------------
-// Tabela de parcelas
-// ---------------------------------------------------------------------------
-
-type InstallmentRow = {
-  id: string
-  sequence: number
-  due_at: Date
-  amount: string
-  status: string
-  paidAt: Date | null
-  externalId: string | null
-  retryCount: number
-}
-
-function InstallmentsTable({ rows }: { rows: InstallmentRow[] }) {
-  return (
-    <div className="rounded-lg border border-border bg-card overflow-hidden">
-      <table className="w-full text-sm" role="table" aria-label="Parcelas">
-        <caption className="sr-only">Lista de parcelas da transacao</caption>
-        <thead>
-          <tr className="border-b border-border bg-muted/50">
-            <th
-              scope="col"
-              className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide"
-            >
-              N°
-            </th>
-            <th
-              scope="col"
-              className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide"
-            >
-              Vencimento
-            </th>
-            <th
-              scope="col"
-              className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wide"
-            >
-              Valor
-            </th>
-            <th
-              scope="col"
-              className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide"
-            >
-              Status
-            </th>
-            <th
-              scope="col"
-              className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide"
-            >
-              Pago em
-            </th>
-            <th
-              scope="col"
-              className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide hidden sm:table-cell"
-            >
-              Ref. externa
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-border">
-          {rows.map((row) => {
-            const statusKey = row.status as InstallmentStatus
-            const label = INSTALLMENT_STATUS_LABEL[statusKey] ?? row.status
-            const badgeClass =
-              INSTALLMENT_STATUS_CLASSES[statusKey] ??
-              'inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground'
-
-            return (
-              <tr key={row.id}>
-                <td className="px-4 py-3 tabular-nums text-foreground font-medium">
-                  {row.sequence}
-                </td>
-                <td className="px-4 py-3 text-muted-foreground">
-                  {formatDate(row.due_at)}
-                </td>
-                <td className="px-4 py-3 text-right tabular-nums text-foreground">
-                  {formatCurrency(row.amount)}
-                </td>
-                <td className="px-4 py-3">
-                  <span className={badgeClass} aria-label={`Status: ${label}`}>
-                    {label}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-muted-foreground">
-                  {formatDateTime(row.paidAt)}
-                </td>
-                <td className="px-4 py-3 text-muted-foreground font-mono text-xs hidden sm:table-cell">
-                  {row.externalId ?? '—'}
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-    </div>
-  )
+  return <EmptyState message="Pagamento único — sem parcelas ou assinatura vinculada." />
 }

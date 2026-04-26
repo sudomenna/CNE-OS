@@ -11,15 +11,23 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import type { Route } from 'next'
+import { eq } from 'drizzle-orm'
 import { Badge } from '@/components/ui/badge'
 import { SnapshotViewer } from '@/components/transaction/snapshot-viewer'
 import { TransactionTabs } from '@/components/transaction/transaction-tabs'
 import { TransactionActionsMenu } from '@/components/transaction/transaction-actions-menu'
-import { TabInstallments } from '@/components/transaction/tab-installments'
+import {
+  TabInstallments,
+  type InstallmentRowData,
+  type SubscriptionData,
+} from '@/components/transaction/tab-installments'
 import { TabEntitlements } from '@/components/transaction/tab-entitlements'
 import { TabAuditLog } from '@/components/transaction/tab-audit-log'
 import { TabTimeline } from '@/components/transaction/tab-timeline'
 import { getTransaction, hasActiveRefund } from '@/app/(app)/transactions/actions'
+import { requireSession } from '@/lib/auth/session'
+import { db } from '@/lib/db/client'
+import { installment, subscription } from '@/lib/db/schema/billing'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -216,7 +224,8 @@ export default async function TransactionDetailPage({
 }) {
   const { id } = await params
 
-  const [trxResult, refundResult] = await Promise.all([
+  const [session, trxResult, refundResult] = await Promise.all([
+    requireSession(),
     getTransaction({ id }),
     hasActiveRefund({ transactionId: id }),
   ])
@@ -228,6 +237,28 @@ export default async function TransactionDetailPage({
 
   const trx = trxResult.data
   const hasRefundActive = refundResult.ok ? refundResult.data.hasActive : false
+  const currentUserId = session.user.id
+
+  // Buscar subscription + parcelas para o tab Parcelas/Assinatura
+  const subscriptionRows = await db
+    .select()
+    .from(subscription)
+    .where(eq(subscription.originTransactionId, id))
+    .limit(1)
+
+  const sub = subscriptionRows[0] ?? null
+
+  const installmentRows = sub
+    ? await db
+        .select()
+        .from(installment)
+        .where(eq(installment.subscriptionId, sub.id))
+        .orderBy(installment.sequence)
+    : await db
+        .select()
+        .from(installment)
+        .where(eq(installment.transactionId, id))
+        .orderBy(installment.sequence)
 
   // BR-REFUND: botao de reembolso visivel apenas se approved e sem refund ativo
   const canRefund = trx.status === 'approved' && !hasRefundActive
@@ -414,7 +445,14 @@ export default async function TransactionDetailPage({
         defaultTab="itens"
         itensContent={<ItemsTabContent items={trx.items} />}
         snapshotContent={<SnapshotTabContent snapshot={trx.snapshot} />}
-        parcelasContent={<TabInstallments transactionId={trx.id} />}
+        parcelasContent={
+          <TabInstallments
+            transactionId={trx.id}
+            userId={currentUserId}
+            subscription={sub as SubscriptionData | null}
+            installments={installmentRows as unknown as InstallmentRowData[]}
+          />
+        }
         direitosContent={<TabEntitlements transactionId={trx.id} />}
         auditoriaContent={<TabAuditLog transactionId={trx.id} />}
         timelineContent={<TabTimeline transactionId={trx.id} />}

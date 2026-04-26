@@ -1,33 +1,55 @@
+'use client'
+
 /**
- * TabOpportunities — Server Component
+ * TabOpportunities — Client Component
  *
- * Exibe as oportunidades (funnel_entry) do contato.
- * Busca: funnel_entry WHERE contact_id = contactId
- *        JOIN funnel (nome), funnel_stage (estágio atual)
- * ORDER BY created_at DESC, LIMIT 50
+ * Exibe as oportunidades (funnel_entry) do contato com customizador de colunas.
+ * tableId: contact:opportunities (ADR-19)
+ *
+ * Recebe dados como props (fetched no Server Component pai: contacts/[id]/page.tsx).
  *
  * Spec: docs/20-domain/08-funnel-opportunity.md §3
- * Task: T-12-11
+ * Task: T-12-11, T-16-14
  */
+
 import Link from 'next/link'
 import type { Route } from 'next'
-import { eq, desc } from 'drizzle-orm'
 import { GitBranch } from 'lucide-react'
 
-import { db } from '@/lib/db/client'
-import { funnelEntry, funnel, funnelStage } from '@/lib/db/schema/funnel'
+import { useColumnVisibility } from '@/lib/hooks/use-column-visibility'
+import { ColumnsCustomizer } from '@/components/ui/columns-customizer'
+import {
+  CONTACT_OPPORTUNITIES_TABLE_ID,
+  CONTACT_OPPORTUNITIES_COLUMNS,
+} from './contact-opportunities-columns'
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-type FunnelOpportunityLabel = typeof funnelEntry.$inferSelect['label']
+type FunnelOpportunityLabel =
+  | 'open'
+  | 'negotiating'
+  | 'concluded'
+  | 'won'
+  | 'lost'
+  | 'reopened'
+
+export interface OpportunityRow {
+  entryId: string
+  funnelId: string
+  label: FunnelOpportunityLabel
+  score: string | number | null
+  entryCampaignId: string | null
+  createdAt: Date | string
+  funnelName: string
+  stageName: string
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Formata data no padrão dd/MM/yyyy */
 function formatDate(date: Date | string): string {
   return new Date(date).toLocaleDateString('pt-BR', {
     day: '2-digit',
@@ -36,17 +58,16 @@ function formatDate(date: Date | string): string {
   })
 }
 
-// Cores dos badges por label — Acessibilidade AA garantida por contraste
 const LABEL_BADGE: Record<
   FunnelOpportunityLabel,
   { label: string; className: string }
 > = {
-  open:        { label: 'Aberta',       className: 'bg-blue-100 text-blue-800 border-blue-200' },
-  negotiating: { label: 'Negociando',   className: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
-  concluded:   { label: 'Concluída',    className: 'bg-purple-100 text-purple-800 border-purple-200' },
-  won:         { label: 'Ganha',        className: 'bg-green-100 text-green-800 border-green-200' },
-  lost:        { label: 'Perdida',      className: 'bg-red-100 text-red-800 border-red-200' },
-  reopened:    { label: 'Reaberta',     className: 'bg-orange-100 text-orange-800 border-orange-200' },
+  open:        { label: 'Aberta',     className: 'bg-blue-100 text-blue-800 border-blue-200' },
+  negotiating: { label: 'Negociando', className: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
+  concluded:   { label: 'Concluída',  className: 'bg-purple-100 text-purple-800 border-purple-200' },
+  won:         { label: 'Ganha',      className: 'bg-green-100 text-green-800 border-green-200' },
+  lost:        { label: 'Perdida',    className: 'bg-red-100 text-red-800 border-red-200' },
+  reopened:    { label: 'Reaberta',   className: 'bg-orange-100 text-orange-800 border-orange-200' },
 }
 
 // ---------------------------------------------------------------------------
@@ -55,34 +76,17 @@ const LABEL_BADGE: Record<
 
 interface TabOpportunitiesProps {
   contactId: string
+  userId: string
+  rows: OpportunityRow[]
 }
 
-export async function TabOpportunities({ contactId }: TabOpportunitiesProps) {
-  // -------------------------------------------------------------------------
-  // Query: funnel_entry JOIN funnel + funnel_stage, filtrando por contact_id
-  // Limita 50, mais recentes primeiro
-  // -------------------------------------------------------------------------
-  const rows = await db
-    .select({
-      entryId:     funnelEntry.id,
-      funnelId:    funnelEntry.funnelId,
-      label:       funnelEntry.label,
-      score:       funnelEntry.score,
-      entryCampaignId: funnelEntry.entryCampaignId,
-      createdAt:   funnelEntry.createdAt,
-      funnelName:  funnel.name,
-      stageName:   funnelStage.name,
-    })
-    .from(funnelEntry)
-    .innerJoin(funnel,      eq(funnelEntry.funnelId,       funnel.id))
-    .innerJoin(funnelStage, eq(funnelEntry.currentStageId, funnelStage.id))
-    .where(eq(funnelEntry.contactId, contactId))
-    .orderBy(desc(funnelEntry.createdAt))
-    .limit(50)
+export function TabOpportunities({ contactId, userId, rows }: TabOpportunitiesProps) {
+  const { visibleColumnIds, isVisible, toggle, reset } = useColumnVisibility({
+    tableId: CONTACT_OPPORTUNITIES_TABLE_ID,
+    userId,
+    columns: CONTACT_OPPORTUNITIES_COLUMNS,
+  })
 
-  // -------------------------------------------------------------------------
-  // Empty state
-  // -------------------------------------------------------------------------
   if (rows.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-border py-16 text-center">
@@ -109,11 +113,20 @@ export async function TabOpportunities({ contactId }: TabOpportunitiesProps) {
     )
   }
 
-  // -------------------------------------------------------------------------
-  // Table
-  // -------------------------------------------------------------------------
   return (
     <div className="space-y-4">
+      {/* Toolbar com customizador de colunas */}
+      <div className="flex items-center justify-end">
+        <ColumnsCustomizer
+          tableId={CONTACT_OPPORTUNITIES_TABLE_ID}
+          userId={userId}
+          columns={CONTACT_OPPORTUNITIES_COLUMNS}
+          visibleColumnIds={visibleColumnIds}
+          onToggle={toggle}
+          onReset={reset}
+        />
+      </div>
+
       <div className="overflow-x-auto rounded-lg border border-border">
         <table
           className="w-full caption-bottom text-sm"
@@ -121,42 +134,53 @@ export async function TabOpportunities({ contactId }: TabOpportunitiesProps) {
         >
           <thead>
             <tr className="border-b border-border bg-muted/50">
+              {/* funnel — alwaysVisible */}
               <th
                 scope="col"
                 className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground"
               >
                 Funil
               </th>
-              <th
-                scope="col"
-                className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground"
-              >
-                Estágio atual
-              </th>
-              <th
-                scope="col"
-                className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground"
-              >
-                Status
-              </th>
-              <th
-                scope="col"
-                className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground"
-              >
-                Score
-              </th>
-              <th
-                scope="col"
-                className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground"
-              >
-                Campanha
-              </th>
-              <th
-                scope="col"
-                className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground"
-              >
-                Entrada
-              </th>
+              {isVisible('stage') && (
+                <th
+                  scope="col"
+                  className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                >
+                  Estágio atual
+                </th>
+              )}
+              {isVisible('status') && (
+                <th
+                  scope="col"
+                  className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                >
+                  Status
+                </th>
+              )}
+              {isVisible('score') && (
+                <th
+                  scope="col"
+                  className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                >
+                  Score
+                </th>
+              )}
+              {isVisible('campaign') && (
+                <th
+                  scope="col"
+                  className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                >
+                  Campanha
+                </th>
+              )}
+              {isVisible('createdAt') && (
+                <th
+                  scope="col"
+                  className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                >
+                  Entrada
+                </th>
+              )}
             </tr>
           </thead>
           <tbody className="divide-y divide-border bg-background">
@@ -166,17 +190,17 @@ export async function TabOpportunities({ contactId }: TabOpportunitiesProps) {
                 className: 'bg-muted text-muted-foreground border-border',
               }
 
-              // Score exibido como inteiro
-              const scoreDisplay = row.score != null
-                ? String(Math.round(Number(row.score)))
-                : '—'
+              const scoreDisplay =
+                row.score != null
+                  ? String(Math.round(Number(row.score)))
+                  : '—'
 
               return (
                 <tr
                   key={row.entryId}
                   className="hover:bg-muted/30 transition-colors"
                 >
-                  {/* Funil — link para o board */}
+                  {/* Funil — alwaysVisible; link para o board */}
                   <td className="px-4 py-3 font-medium text-foreground">
                     <Link
                       href={`/funnels/${row.funnelId}` as Route}
@@ -186,39 +210,44 @@ export async function TabOpportunities({ contactId }: TabOpportunitiesProps) {
                     </Link>
                   </td>
 
-                  {/* Estágio atual */}
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {row.stageName}
-                  </td>
+                  {isVisible('stage') && (
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {row.stageName}
+                    </td>
+                  )}
 
-                  {/* Badge de status */}
-                  <td className="px-4 py-3">
-                    <span
-                      className={[
-                        'inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium',
-                        badge.className,
-                      ].join(' ')}
-                    >
-                      {badge.label}
-                    </span>
-                  </td>
+                  {isVisible('status') && (
+                    <td className="px-4 py-3">
+                      <span
+                        className={[
+                          'inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium',
+                          badge.className,
+                        ].join(' ')}
+                      >
+                        {badge.label}
+                      </span>
+                    </td>
+                  )}
 
-                  {/* Score */}
-                  <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
-                    {scoreDisplay}
-                  </td>
+                  {isVisible('score') && (
+                    <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
+                      {scoreDisplay}
+                    </td>
+                  )}
 
-                  {/* Campanha */}
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {row.entryCampaignId ?? '—'}
-                  </td>
+                  {isVisible('campaign') && (
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {row.entryCampaignId ?? '—'}
+                    </td>
+                  )}
 
-                  {/* Data de entrada */}
-                  <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
-                    <time dateTime={new Date(row.createdAt).toISOString()}>
-                      {formatDate(row.createdAt)}
-                    </time>
-                  </td>
+                  {isVisible('createdAt') && (
+                    <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
+                      <time dateTime={new Date(row.createdAt).toISOString()}>
+                        {formatDate(row.createdAt)}
+                      </time>
+                    </td>
+                  )}
                 </tr>
               )
             })}
