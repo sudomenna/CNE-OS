@@ -10,7 +10,9 @@ import { and, eq, sql } from 'drizzle-orm'
 
 import type { DbTx } from '@/lib/db/client'
 import { transaction, type Transaction } from '@/lib/db/schema/transaction'
+import { offer } from '@/lib/db/schema/offer'
 import { DuplicateOfferPurchaseError } from './errors'
+import { assertRenewalEligibility } from '@/lib/domain/offer/renewal'
 
 // ---------------------------------------------------------------------------
 // Input / Output types
@@ -67,6 +69,21 @@ export async function createPendingTransaction(
   if (existing.length > 0) {
     // BR-OFFER-UNIQUENESS: contato já tem transação approved para esta oferta.
     throw new DuplicateOfferPurchaseError(input.contactId, input.offerId)
+  }
+
+  // BR-RENEWAL: se a oferta é do tipo renewal, verificar elegibilidade antes de criar pending.
+  // docs/60-flows/10-renewal-via-new-offer.md §passo 3
+  const offerTypeRows = await tx
+    .select({ type: offer.type })
+    .from(offer)
+    .where(eq(offer.id, input.offerId))
+    .limit(1)
+
+  const offerType = offerTypeRows[0]?.type
+
+  if (offerType === 'renewal') {
+    // BR-RENEWAL: verificar entitlement ativo da oferta original antes de criar a transação
+    await assertRenewalEligibility(tx, input.contactId, input.offerId)
   }
 
   // INSERT com status='pending' (default do schema)

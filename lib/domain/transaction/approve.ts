@@ -25,6 +25,7 @@ import {
   transactionItem,
   transactionStatusHistory,
 } from '@/lib/db/schema/transaction'
+import { offer } from '@/lib/db/schema/offer'
 import type { Transaction } from '@/lib/db/schema/transaction'
 import { composeSnapshot } from './snapshot'
 import { grantFromTransaction as defaultGrantFromTransaction } from '@/lib/domain/entitlement/grant'
@@ -35,6 +36,7 @@ import {
   TransactionNotFoundError,
   DuplicateOfferPurchaseError,
 } from './errors'
+import { assertRenewalEligibility } from '@/lib/domain/offer/renewal'
 
 // ---------------------------------------------------------------------------
 // Erros específicos de approveTransaction (ADR-10)
@@ -213,6 +215,24 @@ export async function approveTransaction(
   if (existingApproved.length > 0) {
     // BR-OFFER-UNIQUENESS: contato já tem outra transação approved para esta oferta
     throw new DuplicateOfferPurchaseError(contactId, offerId)
+  }
+
+  // -------------------------------------------------------------------------
+  // Passo 2b: BR-RENEWAL — verificar elegibilidade de renovação (se aplicável)
+  // docs/60-flows/10-renewal-via-new-offer.md §passo 3
+  // docs/50-business-rules/BR-RENEWAL.md §Enforcement
+  // -------------------------------------------------------------------------
+  const offerTypeRows = await tx
+    .select({ type: offer.type })
+    .from(offer)
+    .where(eq(offer.id, offerId))
+    .limit(1)
+
+  const offerType = offerTypeRows[0]?.type
+
+  if (offerType === 'renewal') {
+    // BR-RENEWAL: verificar entitlement ativo da oferta original antes de aprovar
+    await assertRenewalEligibility(tx, contactId, offerId)
   }
 
   // -------------------------------------------------------------------------

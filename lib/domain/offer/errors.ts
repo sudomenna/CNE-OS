@@ -46,3 +46,44 @@ export class OfferLegalEntityImmutableError extends OfferDomainError {
     this.offerId = offerId
   }
 }
+
+/**
+ * BR-RENEWAL E-01: Lançado quando a oferta referenciada não é do tipo 'renewal'
+ * ou não possui renews_offer_id preenchido.
+ *
+ * docs/50-business-rules/BR-RENEWAL.md §Algoritmo passo 1
+ */
+export class OfferNotRenewal extends OfferDomainError {
+  readonly offerId: string
+
+  constructor(offerId: string) {
+    super(
+      `BR-RENEWAL E-01: offer ${offerId} is not a renewal offer — ` +
+        `type must be 'renewal' and renews_offer_id must be set.`,
+    )
+    this.name = 'OfferNotRenewal'
+    this.offerId = offerId
+  }
+}
+
+/**
+ * BR-RENEWAL E-02 / E-03: Lançado quando o contato não possui entitlement ativo
+ * (ou dentro da janela de graça de 30 dias) proveniente da oferta original.
+ * Inclui o caso de entitlement revogado por refund.
+ *
+ * docs/50-business-rules/BR-RENEWAL.md §Algoritmo passo 5, tabela de decisão linhas 1 e 5
+ */
+export class RenewalWithoutActiveEntitlement extends OfferDomainError {
+  readonly contactId: string
+  readonly originOfferId: string
+
+  constructor(contactId: string, originOfferId: string) {
+    super(
+      `BR-RENEWAL E-02/E-03: contact ${contactId} has no active or grace-period entitlement ` +
+        `from origin offer ${originOfferId} — renewal requires an active entitlement.`,
+    )
+    this.name = 'RenewalWithoutActiveEntitlement'
+    this.contactId = contactId
+    this.originOfferId = originOfferId
+  }
+}
