@@ -55,3 +55,6 @@ export { recomputeScore, recomputeScore as updateScore } from './score'
 
 // T-5-16: FLOW-14 — atribuição de entrada/conversão
 export { resolveAttribution, applyEntryAttribution } from './attribution'
+
+// FLOW-07 passo 6: reverter oportunidade após aprovação de refund
+export { revertFunnelEntryAfterRefund } from './revert'

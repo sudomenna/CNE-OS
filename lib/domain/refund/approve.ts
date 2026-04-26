@@ -32,6 +32,7 @@ import {
 } from '@/lib/db/schema/billing'
 import { flagSnapshotRefunded } from '@/lib/domain/transaction/flag-snapshot'
 import { revokeByTransaction } from '@/lib/domain/entitlement/revoke'
+import { revertFunnelEntryAfterRefund } from '@/lib/domain/funnel/revert'
 import { emitTimelineEvent } from '@/lib/timeline/emit'
 import type { TimelineEventInput } from '@/lib/timeline/emit'
 import {
@@ -100,10 +101,6 @@ const noopReclassify: ReclassifyFn = async (_tx, _contactId) => {
   // BR-CONTACT-CLASSIFICATION: pode voltar de customer/student para lead
 }
 
-const noopRevertOpportunity: RevertOpportunityFn = async (_tx, _transactionId) => {
-  // Stub: reverter oportunidade no funil — MOD-FUNNEL.setOpportunityLabel (T-8-xx)
-  // docs/20-domain/14-refund.md §7 passo 6
-}
 
 /**
  * Implementação inline de cancelamento de subscription vinculada à transação.
@@ -216,7 +213,7 @@ export async function approveRefund(
   refundId: string,
   approverUserId: string,
   reclassifyFn: ReclassifyFn = noopReclassify,
-  revertOpportunityFn: RevertOpportunityFn = noopRevertOpportunity,
+  revertOpportunityFn: RevertOpportunityFn = revertFunnelEntryAfterRefund,
   revokeFn: RevokeByTransactionFn = revokeByTransaction,
   flagSnapshotFn: FlagSnapshotFn = flagSnapshotRefunded,
   emit: EmitFn = emitTimelineEvent,
