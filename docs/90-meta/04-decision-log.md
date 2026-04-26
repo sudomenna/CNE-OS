@@ -158,6 +158,39 @@ Decisões não-óbvias, formato ADR leve. Ordem cronológica.
 - Alternativas: UUID gerado por nós — rejeitada: perde idempotência real (mesmo evento chegando 2x teria ids diferentes).
 - Consequências: mappers de integração (`lib/integrations/<p>/mapper.ts`) têm função `buildExternalId(payload)` pura e testada.
 
+## ADR-19 — Persistência de preferências de UI em `localStorage` (Sprint 16)
+- Data: 2026-04-26
+- Status: aceito
+- Contexto: Sprint 16 introduz `<ColumnsCustomizer>` para permitir que cada usuário escolha quais colunas são exibidas em cada tabela do sistema (15 tabelas listadas no roadmap). A preferência é por (userId × tableId) e precisa sobreviver à navegação dentro da aplicação. Existem duas opções principais de persistência: `localStorage` no navegador ou tabela `user_preferences` no Postgres.
+- Decisão: persistir preferências de UI em **`localStorage`** com a seguinte chave canônica:
+  ```
+  cne-os:cols:<tableId>:<userId>
+  ```
+  Formato do payload (JSON):
+  ```jsonc
+  {
+    "v": 1,
+    "updatedAt": "2026-04-27T10:00:00.000Z",
+    "hidden": ["origin", "createdAt"]
+  }
+  ```
+  - **Lista negativa** (colunas ocultas, não visíveis). Quando uma coluna nova é adicionada ao código, ela aparece automaticamente para todos os usuários sem migration de payload.
+  - `tableId` segue convenção `<scope>:<table>` (ex.: `contacts:list`, `contact:opportunities`, `settings:users`). Inventário em [docs/70-ux/12-table-column-customizer.md].
+  - Campo `v` permite evolução do formato sem quebrar leitores antigos.
+- Alternativas consideradas:
+  - **Tabela `user_preferences` no DB** — rejeitada nesta sprint: exige migration + RLS + Server Action + roundtrip por mudança; latência percebida ao toggle de coluna; sync cross-device não tem demanda de produto registrada (registrada como `OQ-COLUMNS-01` para reavaliar).
+  - **Cookie httpOnly** — rejeitada: payload cresce com nº de tabelas customizadas; cookies sobem em toda request (overhead).
+  - **IndexedDB** — rejeitada: overhead de API para volume pequeno (lista de 5–10 strings por tabela); `localStorage` é suficiente.
+- Consequências:
+  - Hook `lib/hooks/use-column-visibility.ts` lê/grava `localStorage` com guard `typeof window !== 'undefined'` para SSR-safety.
+  - **Hydration**: server renderiza **todas as colunas**; client filtra após mount via `useEffect`. Flicker breve aceitável (alternativa seria suspender render até client, pior UX).
+  - **Reset entre dispositivos**: usuário em outro device começa com defaults — comportamento esperado dado o trade-off.
+  - **Reset manual**: limpar `localStorage` zera preferências; documentado no pattern doc (T-16-03).
+  - **Auditoria**: visibilidade é só presentation; auditoria sempre via export CSV ou view detalhe (não dependente de coluna visível).
+  - **Export CSV**: ignora visibilidade — exporta todas as colunas (`OQ-COLUMNS-02` resolvido aqui).
+  - **Migração futura para DB**: se houver demanda de sync cross-device, a migração é aditiva (tabela `user_preferences` + sync hook lê DB primeiro, fallback `localStorage`); o formato do payload (`{ v, hidden, updatedAt }`) é reaproveitável.
+- Fecha: bloqueio de início do Sprint 16.
+
 ## ADR-18 — Credenciais de integração encriptadas em `channel_account.credentials`
 - Data: 2026-04-26
 - Status: aceito
