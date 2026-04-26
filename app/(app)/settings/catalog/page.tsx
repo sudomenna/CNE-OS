@@ -1,50 +1,38 @@
 import Link from 'next/link'
-import { Building2, FileText, Package, Users, Webhook } from 'lucide-react'
+import { Box, FolderOpen, Gift } from 'lucide-react'
 
 export const metadata = {
-  title: 'Configurações',
+  title: 'Catálogo',
 }
 
 const SECTIONS = [
   {
-    href: '/settings/brands',
-    label: 'Marcas',
-    description: 'Gerencie as marcas da CNE Educação',
-    icon: Building2,
+    href: '/settings/catalog/products',
+    label: 'Produtos',
+    description: 'Gerencie o catálogo de produtos por marca',
+    icon: Box,
   },
   {
-    href: '/settings/legal-entities',
-    label: 'CNPJs',
-    description: 'Entidades fiscais e emissão de notas',
-    icon: FileText,
+    href: '/settings/catalog/categories',
+    label: 'Categorias',
+    description: 'Organize produtos em categorias hierárquicas',
+    icon: FolderOpen,
   },
   {
-    href: '/settings/users',
-    label: 'Usuários',
-    description: 'Convide e gerencie usuários internos',
-    icon: Users,
-  },
-  {
-    href: '/settings/webhooks',
-    label: 'Webhooks',
-    description: 'Monitore e reprocesse eventos de integração',
-    icon: Webhook,
-  },
-  {
-    href: '/settings/catalog',
-    label: 'Catálogo',
-    description: 'Produtos, categorias e benefícios comerciais',
-    icon: Package,
+    href: '/settings/catalog/benefits',
+    label: 'Benefícios comerciais',
+    description: 'Benefícios e entregáveis das ofertas',
+    icon: Gift,
   },
 ]
 
-export default function SettingsPage() {
+export default function CatalogPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Configurações</h1>
+        <h1 className="text-2xl font-bold text-foreground">Catálogo</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Gerencie a organização, entidades fiscais e usuários.
+          Produtos, categorias e benefícios comerciais por marca.
         </p>
       </div>
       <div className="grid gap-4 sm:grid-cols-3">

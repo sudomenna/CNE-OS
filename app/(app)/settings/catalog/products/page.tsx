@@ -4,7 +4,8 @@
  * Spec: docs/20-domain/09-catalog.md §2, T-6-04, T-12-26
  */
 
-import { listProductsAction, listBrandsForSelectAction, listCategoriesForSelectAction } from './actions'
+import Link from 'next/link'
+import { listProductsAction, listBrandsForSelectAction, listCategoriesForSelectAction, getProductOfferCountsAction } from './actions'
 import {
   CatalogProductCreateForm,
   CatalogProductEditForm,
@@ -25,6 +26,8 @@ export default async function ProductsPage() {
   const products = productsResult.ok ? productsResult.data : []
   const brands = brandsResult.ok ? brandsResult.data : []
   const categories = categoriesResult.ok ? categoriesResult.data : []
+
+  const offerCounts = await getProductOfferCountsAction(products.map((p) => p.id))
 
   return (
     <div className="space-y-6">
@@ -55,6 +58,7 @@ export default async function ProductsPage() {
               <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">Slug</th>
               <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">Tipo</th>
               <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
+              <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">Ofertas</th>
               <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">Criado em</th>
               <th scope="col" className="px-4 py-3 text-left font-medium text-muted-foreground">
                 <span className="sr-only">Ações</span>
@@ -64,7 +68,7 @@ export default async function ProductsPage() {
           <tbody>
             {products.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground/60">
+                <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground/60">
                   Nenhum produto cadastrado.
                 </td>
               </tr>
@@ -86,6 +90,18 @@ export default async function ProductsPage() {
                       <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
                         Ativo
                       </span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    {(offerCounts[p.id] ?? 0) > 0 ? (
+                      <Link
+                        href={('/settings/catalog/products/' + p.id) as never}
+                        className="text-xs font-medium text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full hover:bg-blue-100"
+                      >
+                        {offerCounts[p.id]} oferta{offerCounts[p.id] === 1 ? '' : 's'}
+                      </Link>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">

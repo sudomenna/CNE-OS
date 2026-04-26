@@ -8,11 +8,11 @@
  */
 
 import { z } from 'zod'
-import { eq, and, isNull } from 'drizzle-orm'
+import { eq, and, isNull, inArray, count, asc } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { db } from '@/lib/db/client'
 import { product, productCategory, productKindEnum } from '@/lib/db/schema/catalog'
-import { offerConditionItem, offerCondition } from '@/lib/db/schema/offer'
+import { offerConditionItem, offerCondition, offer } from '@/lib/db/schema/offer'
 import { brand } from '@/lib/db/schema/organization'
 import { requireSession } from '@/lib/auth/session'
 import { requirePermission } from '@/lib/auth/permissions'
@@ -296,5 +296,104 @@ export async function listCategoriesForSelectAction(brandId?: string) {
       .where(brandId ? eq(productCategory.brandId, brandId) : undefined)
       .orderBy(productCategory.name)
     return rows
+  })
+}
+
+// ---------------------------------------------------------------------------
+// getProductOfferCountsAction
+// ---------------------------------------------------------------------------
+
+/**
+ * getProductOfferCountsAction — retorna contagem de ofertas ativas por produto.
+ * Helper interno — não encapsula em toActionResult; retorna Record<productId, count>.
+ * Guard: catalog.read (admin, marketing)
+ */
+export async function getProductOfferCountsAction(
+  productIds: string[],
+): Promise<Record<string, number>> {
+  await requireSession()
+
+  if (productIds.length === 0) return {}
+
+  const rows = await db
+    .select({
+      productId: offerConditionItem.productId,
+      cnt: count(offer.id),
+    })
+    .from(offerConditionItem)
+    .innerJoin(offerCondition, eq(offerConditionItem.offerConditionId, offerCondition.id))
+    .innerJoin(offer, eq(offerCondition.offerId, offer.id))
+    .where(
+      and(
+        inArray(offerConditionItem.productId, productIds),
+        isNull(offerCondition.deletedAt),
+      ),
+    )
+    .groupBy(offerConditionItem.productId)
+
+  return rows.reduce<Record<string, number>>((acc, row) => {
+    if (row.productId != null) {
+      acc[row.productId] = Number(row.cnt)
+    }
+    return acc
+  }, {})
+}
+
+// ---------------------------------------------------------------------------
+// listProductOfferUsageAction
+// ---------------------------------------------------------------------------
+
+/**
+ * listProductOfferUsageAction — lista ofertas que contêm um produto.
+ * Guard: catalog.read (admin, marketing)
+ * Agrupa por offer.id em memória (produto pode aparecer em múltiplas condições da mesma oferta).
+ */
+export async function listProductOfferUsageAction(productId: string) {
+  return toActionResult(async () => {
+    await requireSession()
+
+    const rows = await db
+      .select({
+        offerId: offer.id,
+        offerName: offer.name,
+        offerSlug: offer.slug,
+        offerStatus: offer.status,
+        kind: offerConditionItem.kind,
+      })
+      .from(offerConditionItem)
+      .innerJoin(offerCondition, eq(offerConditionItem.offerConditionId, offerCondition.id))
+      .innerJoin(offer, eq(offerCondition.offerId, offer.id))
+      .where(
+        and(
+          eq(offerConditionItem.productId, productId),
+          isNull(offerCondition.deletedAt),
+        ),
+      )
+      .orderBy(asc(offer.name))
+
+    // Agrupar por offer.id — produto pode aparecer em múltiplas condições da mesma oferta
+    const byOffer = new Map<
+      string,
+      { offerId: string; offerName: string; offerSlug: string; offerStatus: string; kinds: string[] }
+    >()
+
+    for (const row of rows) {
+      const existing = byOffer.get(row.offerId)
+      if (existing) {
+        if (!existing.kinds.includes(row.kind)) {
+          existing.kinds.push(row.kind)
+        }
+      } else {
+        byOffer.set(row.offerId, {
+          offerId: row.offerId,
+          offerName: row.offerName,
+          offerSlug: row.offerSlug,
+          offerStatus: row.offerStatus,
+          kinds: [row.kind],
+        })
+      }
+    }
+
+    return Array.from(byOffer.values())
   })
 }
