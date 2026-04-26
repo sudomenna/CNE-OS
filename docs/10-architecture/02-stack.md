@@ -260,7 +260,61 @@ E2E Playwright roda em `main` pré-deploy (ver [`10-testing-strategy.md`](./10-t
 
 ---
 
-## 7. Versionamento
+## 7. shadcn/ui — CLI e Registry de Temas
+
+### Instalar componente shadcn padrão
+
+```bash
+pnpm dlx shadcn@latest add <component-name>
+# ex: pnpm dlx shadcn@latest add button dialog table
+```
+
+Componentes são ejetados em `/components/ui`. **Nunca editar manualmente** — re-instale via CLI se precisar de upgrade.
+
+### Aplicar tema do shadcn/studio (@ss-themes)
+
+**Não use `pnpm dlx shadcn@latest add @ss-themes/...` diretamente.** Os temas do shadcn/studio usam variáveis em formato OKLCH, incompatível com o `tailwind.config.ts` deste projeto (Tailwind v3 usa `hsl(var(--...))`). Aplicar via CLI quebraria todas as cores silenciosamente.
+
+Use a skill `/apply-theme` que faz a conversão OKLCH→HSL automaticamente:
+
+```
+/apply-theme material-design
+/apply-theme spotify
+/apply-theme @ss-themes/claude
+```
+
+A skill:
+1. Baixa o JSON do tema em `https://shadcnstudio.com/r/themes/{nome}.json`
+2. Converte cada valor OKLCH → HSL via Node.js (matemática exata)
+3. Reescreve apenas o bloco de variáveis em `app/globals.css`, preservando diretivas e CSS customizado
+4. Roda `pnpm typecheck` para confirmar que nada quebrou
+
+O registry está configurado em `components.json` para referência:
+
+```json
+{
+  "registries": {
+    "@ss-themes": "https://shadcnstudio.com/r/themes/{name}.json"
+  }
+}
+```
+
+### Descobrir temas disponíveis
+
+- Catálogo visual: https://shadcnstudio.com/theme-generator
+- Testar JSON de um tema: `https://shadcnstudio.com/r/themes/<nome>.json`
+
+### Por que não usar `shadcn init --preset`
+
+Os presets do shadcn `init` (ex: `--preset b1JouLfnb0`) geram estilos como `radix-mira` que dependem de Tailwind v4 (`@import "shadcn/tailwind.css"`, `@theme inline`). Migrar para Tailwind v4 requer ADR aprovado — não fazer sem decisão explícita.
+
+### Regra
+
+Toda mudança de tema que altere `app/globals.css` deve garantir que os tokens estão em HSL puro (sem `oklch()`) e que `pnpm typecheck` passa limpo.
+
+---
+
+## 8. Versionamento
 
 - Stack upgrades via PR dedicado com ADR quando muda major.
 - `drizzle-kit`, `next`, `react` major bump = ADR.
@@ -268,7 +322,7 @@ E2E Playwright roda em `main` pré-deploy (ver [`10-testing-strategy.md`](./10-t
 
 ---
 
-## 8. Open Questions
+## 9. Open Questions
 
 - `OQ-STACK-01`: adotar Turbopack como dev default (Next 15 beta estável)?
 - `OQ-STACK-02`: usar `pg-boss` em paralelo ao Inngest para cron puro ultra-barato?
