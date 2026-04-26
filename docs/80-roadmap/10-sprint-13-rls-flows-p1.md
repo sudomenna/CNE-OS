@@ -42,15 +42,16 @@ Fechar os bloqueadores de produção identificados na auditoria pós-Sprint-12: 
 | T-13-18 | Analytics — rota /analytics/inadimplencia | E | ✅ completed |
 | T-13-19 | Analytics — export CSV universal (todas as rotas) | E | ✅ completed |
 | T-13-20 | FLOW-08 — timeline de consolidação pós-merge | F | ✅ completed |
-| T-13-21 | A11y — skip link + axe-core em CI + aria-sort | G | ⬜ pending |
-| T-13-22 | Design tokens — paleta --chart-* (8 cores categóricas) | G | ⬜ pending |
-| T-13-23 | Realtime — timeline contact + push de mensagens inbox | G | ⬜ pending |
-| T-13-24 | FLOW-13 — SLA + automation_trigger para tickets | G | ⬜ pending |
+| T-13-21 | A11y — skip link + axe-core em CI + aria-sort | G | ✅ completed |
+| T-13-22 | Design tokens — paleta --chart-* (8 cores categóricas) | G | ✅ completed |
+| T-13-23 | Realtime — timeline contact + push de mensagens inbox | G | ✅ completed |
+| T-13-24 | FLOW-13 — SLA + automation_trigger para tickets | G | ✅ completed |
 
 **Baseline ao iniciar Sprint 13:** 1163 testes Vitest ✅ | typecheck ✅
 **Baseline após Onda D (2026-04-26):** 1185 testes Vitest ✅ | typecheck ✅ (+22 testes)
 **Baseline após Onda E (2026-04-26):** 1185 testes Vitest ✅ | typecheck ✅
 **Baseline após Onda F (2026-04-26):** 1190 testes Vitest ✅ | typecheck ✅ (+5 testes)
+**Baseline após Onda G (2026-04-26):** 1200 testes Vitest ✅ | typecheck ✅ (+10 testes)
 
 ---
 
@@ -113,7 +114,7 @@ Fechar os bloqueadores de produção identificados na auditoria pós-Sprint-12: 
 `T-13-20`
 → Edita `lib/timeline/read.ts`; aguarda Onda E estar verde.
 
-### Onda G — A11y + design tokens + realtime + FLOW-13 (paralelo, 4 subagents) ⬜
+### Onda G — A11y + design tokens + realtime + FLOW-13 (paralelo, 4 subagents) ✅ concluída 2026-04-26
 `T-13-21`, `T-13-22`, `T-13-23`, `T-13-24`
 → Todos em arquivos disjuntos; podem rodar juntos.
 

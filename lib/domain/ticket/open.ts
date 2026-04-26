@@ -11,6 +11,7 @@ import type { DbTx } from '@/lib/db/client'
 import { ticket, ticketStatusHistory } from '@/lib/db/schema/ticket'
 import type { Ticket } from '@/lib/db/schema/ticket'
 import { emitTimelineEvent } from '@/lib/timeline/emit'
+import { dispatchTrigger } from '@/lib/domain/automation/dispatch'
 
 export type OpenTicketInput = {
   contactId: string
@@ -83,6 +84,22 @@ export async function openTicket(tx: DbTx, input: OpenTicketInput): Promise<Tick
       },
     },
     tx,
+  )
+
+  // FLOW-13 T-13-24: dispatchTrigger 'ticket_opened' — automation trigger direto,
+  // complementar ao hook em emitTimelineEvent (fire-and-forget, não bloqueia retorno).
+  void dispatchTrigger('ticket_opened', {
+    subjectKind: 'ticket',
+    subjectId: row.id,
+    data: {
+      ticket_id: row.id,
+      contact_id: contactId,
+      brand_id: brandId,
+      category,
+      priority,
+    },
+  }, tx).catch((err: unknown) =>
+    console.error('[ticket.open] dispatchTrigger ticket_opened failed', err),
   )
 
   return row

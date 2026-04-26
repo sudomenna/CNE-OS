@@ -9,6 +9,8 @@
  */
 export type { OpenTicketInput } from './open'
 export type { TicketStatus } from './set-status'
+export type { SlaStatus, TicketSlaInput } from './sla'
+export { computeFirstResponseSla, FIRST_RESPONSE_SLA_MS } from './sla'
 
 export {
   TicketDomainError,

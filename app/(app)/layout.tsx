@@ -31,12 +31,19 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <HotkeysProvider>
+      {/* A11y §2.1: skip link como primeiro elemento tabulável — visível ao receber foco */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-background focus:text-foreground focus:rounded focus:ring-2 focus:ring-ring"
+      >
+        Pular para conteúdo
+      </a>
       <div className="flex h-screen overflow-hidden">
         <Sidebar />
         <div className="flex flex-1 flex-col overflow-hidden">
           <Topbar userName={userName} userEmail={userEmail} avatarUrl={avatarUrl} />
           <GlobalBanners />
-          <main className="flex-1 overflow-auto p-6">
+          <main id="main-content" className="flex-1 overflow-auto p-6">
             <Breadcrumbs />
             {children}
           </main>

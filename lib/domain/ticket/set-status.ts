@@ -12,6 +12,7 @@ import type { DbTx } from '@/lib/db/client'
 import { ticket, ticketStatusHistory } from '@/lib/db/schema/ticket'
 import type { Ticket } from '@/lib/db/schema/ticket'
 import { emitTimelineEvent } from '@/lib/timeline/emit'
+import { dispatchTrigger } from '@/lib/domain/automation/dispatch'
 import { TicketNotFoundError, InvalidTicketTransitionError } from './errors'
 
 export type TicketStatus =
@@ -158,6 +159,28 @@ export async function setTicketStatus(
         },
       },
       tx,
+    )
+  }
+
+  // FLOW-13 T-13-24: dispatchTrigger 'ticket_closed' quando ticket transita para
+  // resolved ou cancelled (ambos são estados terminais considerados "fechamento").
+  // fire-and-forget — não bloqueia o retorno nem propaga falha para o caller.
+  // Nota: 'ticket_closed' não está em automation_trigger_kind enum ainda;
+  // o dispatch é silencioso (retorna []) até que o enum seja estendido.
+  if (toStatus === 'resolved' || toStatus === 'cancelled') {
+    void dispatchTrigger('ticket_closed', {
+      subjectKind: 'ticket',
+      subjectId: ticketId,
+      data: {
+        ticket_id: ticketId,
+        contact_id: updatedRow.contactId,
+        brand_id: updatedRow.brandId,
+        from_status: fromStatus,
+        to_status: toStatus,
+        reason: reason ?? null,
+      },
+    }, tx).catch((err: unknown) =>
+      console.error('[ticket.set-status] dispatchTrigger ticket_closed failed', err),
     )
   }
 
